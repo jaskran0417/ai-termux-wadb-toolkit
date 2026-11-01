@@ -1,0 +1,22 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+STATE=/data/data/com.termux/files/home/.ai-wadb/mcp-recovery
+case "${1:-}" in
+  --follow|-f)
+    mkdir -p "$STATE/logs"
+    touch "$STATE/logs/remote.log"
+    exec tail -n 50 -F "$STATE/logs/remote.log"
+    ;;
+  --events)
+    [ -r "$STATE/events.log" ] && tail -n "${2:-40}" "$STATE/events.log"
+    ;;
+  -h|--help)
+    echo "Usage: wadb-mcp-log [--follow|-f|--events [LINES]]"
+    echo "Default: show the latest 80 Desktop Commander log lines."
+    ;;
+  "")
+    [ -r "$STATE/logs/remote.log" ] && tail -n 80 "$STATE/logs/remote.log"
+    ;;
+  *)
+    echo "Unknown option: $1"; exit 2 ;;
+esac

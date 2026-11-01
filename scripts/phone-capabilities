@@ -1,0 +1,125 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+VERSION="2.0-portable"
+DETAILS=0
+MODE="${1:-}"
+[ "$MODE" = "--details" ] && DETAILS=1
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+export HOME="${HOME:-/data/data/com.termux/files/home}"
+export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
+export PATH="$PREFIX/bin:/system/bin:$PATH"
+
+ok(){ printf "  OK   %-28s %s\n" "$1" "${2:-works}"; }
+warn(){ printf "  WARN %-28s %s\n" "$1" "${2:-limited}"; }
+no(){ printf "  NO   %-28s %s\n" "$1" "${2:-unavailable}"; }
+have(){ command -v "$1" >/dev/null 2>&1; }
+
+show_help(){ cat <<'EOF'
+phone-capabilities [--details|--help]
+
+Read-only capability audit for the portable AI Termux WADB environment.
+
+Preferred Wireless ADB flow:
+  1. Run: wireless-adb-connect
+  2. If pairing is genuinely required, open Android:
+       Developer options > Wireless debugging > Pair device with pairing code
+  3. AI-assisted: paste the 6-digit code to the AI and let it run:
+       wadb-bootstrap --pair-code CODE
+  4. Manual fallback:
+       wadb-bootstrap --ip PHONE_IP --pair-port PAIRING_PORT --pair-code CODE
+  5. Verify final shell:
+       adb shell id
+     Expected: uid=2000(shell)
+
+Pairing and normal connection ports are different and dynamic.
+The bundle probes only the target phone's own current IP.
+EOF
+}
+[ "$MODE" = "--help" ] && { show_help; exit 0; }
+
+find_shell(){
+  local pid
+  for pid in $(ps -ef 2>/dev/null | awk '/\/data\/data\/com\.termux\/files\/usr\/bin\/bash -l/ && !/awk/ {print $2}'); do
+    if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -q '^TERMUX_API_VERSION='; then
+      echo "$pid"; return 0
+    fi
+  done
+  return 1
+}
+
+api_run(){
+  local pid="$1"; shift
+  python3 - "$pid" "$DETAILS" "$@" <<'PY2'
+import os, subprocess, sys
+pid, details, *cmd = sys.argv[1:]
+try:
+    env={}
+    for item in open(f'/proc/{pid}/environ','rb').read().split(b'\0'):
+        if b'=' in item:
+            k,v=item.split(b'=',1)
+            env[k.decode(errors='ignore')]=v.decode(errors='ignore')
+    r=subprocess.run(cmd, env=env, text=True, capture_output=True, timeout=12)
+    print('RC='+str(r.returncode))
+    if details=='1' and r.stdout: print(r.stdout.strip())
+except subprocess.TimeoutExpired:
+    print('TIMEOUT')
+except Exception as e:
+    print('ERROR='+type(e).__name__)
+PY2
+}
+
+echo "Phone Capability Audit $VERSION"
+printf 'Device: %s %s | Android %s | %s\n' \
+  "$(getprop ro.product.manufacturer 2>/dev/null || echo Android)" \
+  "$(getprop ro.product.model 2>/dev/null || echo device)" \
+  "$(getprop ro.build.version.release 2>/dev/null || echo '?')" \
+  "$(uname -m 2>/dev/null || echo '?')"
+
+echo
+echo "Core"
+for c in python3 adb git java clang make; do
+  have "$c" && ok "$c" "$(command -v "$c")" || warn "$c" "not installed"
+done
+[ -r "$HOME/storage/shared" ] && ok "Shared storage" "readable" || warn "Shared storage" "run termux-setup-storage if needed"
+
+echo
+echo "Termux:API"
+pid="$(find_shell || true)"
+if [ -n "$pid" ]; then ok "Real Termux environment" "PID $pid"; else warn "Real Termux environment" "open Termux app shell"; fi
+for cmd in termux-battery-status termux-wifi-connectioninfo termux-telephony-cellinfo; do
+  label="$cmd"
+  if ! have "$cmd"; then warn "$label" "command missing"; continue; fi
+  if [ -z "$pid" ]; then warn "$label" "not tested"; continue; fi
+  out="$(api_run "$pid" "$cmd" 2>/dev/null || true)"
+  case "$out" in RC=0*) ok "$label" "works" ;; TIMEOUT*) warn "$label" "timed out" ;; *) warn "$label" "$out" ;; esac
+  [ "$DETAILS" -eq 1 ] && printf '%s\n' "$out" | sed -n '2,45p'
+done
+
+echo
+echo "Wireless ADB"
+if have adb; then
+  list="$(adb devices -l 2>&1 || true)"
+  serial="$(printf '%s\n' "$list" | awk '$2=="device" {print $1; exit}')"
+  if [ -n "$serial" ]; then
+    ok "ADB device" "$serial"
+    ident="$(adb -s "$serial" shell id 2>&1 | tr '\n' ' ')"
+    case "$ident" in *'uid=2000(shell)'*) ok "ADB shell identity" "uid=2000(shell)" ;; *) warn "ADB shell identity" "$ident" ;; esac
+  else
+    warn "ADB device" "not connected"
+  fi
+  [ "$DETAILS" -eq 1 ] && printf '%s\n' "$list"
+fi
+
+if have wireless-debug-status; then
+  echo; echo "WADB Bridge status"
+  wireless-debug-status 2>&1 | sed -n '1,14p'
+fi
+
+echo
+echo "Notes"
+echo "  - Audit is read-only."
+echo "  - No root is required."
+echo "  - Termux:API probes borrow a real Termux app environment."
+echo "  - Full guide: $HOME/AI_ENVIRONMENT.md"
+echo "  - Quick/full AI view: ai-info"
+echo "  - Automatic ADB reconnect: wireless-adb-connect"

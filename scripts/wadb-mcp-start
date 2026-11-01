@@ -1,0 +1,7 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+set_mcp_desired online
+recovery_enabled && /data/data/com.termux/files/usr/bin/wadb-mcp-watchdog-start
+ensure_online manual
+write_status
+[ "${1:-}" = "--quiet" ] || echo "START_MCP requested; saved credentials are preserved."

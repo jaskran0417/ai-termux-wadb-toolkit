@@ -1,0 +1,322 @@
+{
+  "schema": 2,
+  "name": "AI Termux WADB Toolkit",
+  "version": "1.7.5",
+  "edition": "HARDENED",
+  "signature_algorithm": "Ed25519",
+  "release_key_sha256": "87aaf967095808f2e384ed912a3d28c6e1d969774d4975a905468f26b4078ca5",
+  "targets": [
+    {
+      "kind": "PREFIX_BIN",
+      "path": "adb-mdns-discover",
+      "sha256": "7678548b09dda46d4a9b00851f986195604e6e3b02fe8765e8c11313b8f7cbd4",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "ai-info",
+      "sha256": "a596ace1eb60dcef25d2f32b55d665205d5c60087e574c68781a74ad07f4d4c7",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "phone-capabilities",
+      "sha256": "94b3a89cfed6b0f061316a96f577138aa416df6799f2ca031323384c0d9124f9",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-bootstrap",
+      "sha256": "d81cab9e5b54e6009e4dd5b5a6b54a02c9d6dd0f12fc265fbf9e209f6a375847",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-integrity-check",
+      "sha256": "54031e76ed14233528f62924b0b35a938e85bb7ad74c27f3e725f554f3369459",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-local-off",
+      "sha256": "c432334be37365ac41cb377411602d9b6e16c9956057819b3b8fe465658c369f",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-local-on",
+      "sha256": "935400c56f05269b9d0c738d6daae03fa3f8f80dc819fa7b705cedd89e4d866d",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-local-shell",
+      "sha256": "9477d439f5413c774632286cdc5b9acd45d5df58c7ab39bd1540c5bbce286d6f",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-local-status",
+      "sha256": "b98f348ed5b54c1ca3015a9cbe61a27bc5fd621767d9e5a1e59d17a1c980775b",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-github-config",
+      "sha256": "93869d60ac5fd19fa95af4c0101b640b3bce4d5d8646f537d1c0f4119d81ae50",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-github-sync",
+      "sha256": "f00202ee7937b1b0e37327287f5205b4e41d56aba3ba8ec0428192abe9a2c6b4",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-github-test",
+      "sha256": "38161758ca7eb4030c2b071d8d3408fa59e3c8ad196a82544de7a26211f3a7a9",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-job",
+      "sha256": "aab61c93b91ee7b49a86a2c8d06a80c6f971d3a51ec03303cbec34d0d82fa01d",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-log",
+      "sha256": "8740bdc43f77a149af9c9455dc851d55d07ed904030cd9011a85394357301373",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-logout",
+      "sha256": "37a9e5391bec61787351d1c5f1f6ab2aec37ce329562f7654fb38d99aaf46e12",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-recovery-disable",
+      "sha256": "b0053d378bfc3da6dbc432954bdcc5f05d72aee72cf9dce0e72d3a951f7d8ca3",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-recovery-setup",
+      "sha256": "0cadf9d14d968ea4efe1e6c7e8626f39fa35df7174942a9f8a1233f10b1d58ad",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-restart",
+      "sha256": "f534d66881123a5b41d3aa440deb2b0705c1fa3a6480c7bdde6bb12a659bdc30",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-start",
+      "sha256": "042eeb851faace7da9a1c10bc80d0a5d1f9c64829c98d60d19ddaf92e1606aae",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-status",
+      "sha256": "c9d6d8bdce34cf05dc94829f2eaf94084d560a7467e2c13488fd7d2cc5bc4dbe",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-stop",
+      "sha256": "931163e82b9160b97ee74b4dc77c2471260d760d8a857f05922708a7b7d4fef1",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-watchdog",
+      "sha256": "0d3b078bb95b4ba9afdc0b793595ae72b71a21c9dfb22403218e1db7f6ca9b2f",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-mcp-watchdog-start",
+      "sha256": "05e3fb5c5ca7dd65ed7548f5fb40a82439693c052416f3f2aa0b37188bb10fea",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-notify",
+      "sha256": "6a07301a384ae996a4cad9e93c586a2cb6ce2c50e339596e90e94c5fce34621e",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wadb-toolkit-uninstall",
+      "sha256": "f5d8c5e81c2790c567446eab535ea77192b45e647e8aa200ba7bd31d78db9dd7",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wireless-adb-connect",
+      "sha256": "891601b9bcda7943805143de4b33e6daeff4d89283ad8fe848ab7ddca7b84036",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wireless-debug-off",
+      "sha256": "602335321141af929dbf5422a85b5386e568403a316292edc60340c1bdb07d61",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wireless-debug-on",
+      "sha256": "7b0e36d5dac0a74feb50f5705a01ac81b5a31300b575f574cbb9d21d48db1aa4",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_BIN",
+      "path": "wireless-debug-status",
+      "sha256": "eace1bd3b04cecced8df6b10f2f3edf4f73f3a8d6d988eb7b530f518753724f2",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "github-control-fetch",
+      "sha256": "880c67320367c23f02e3f6bc433b3764072ef23832552770b81263cf73eaff5e",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "mcp-recovery-common",
+      "sha256": "195293d9282912954dbba404ae5acda319edd3e3d3a4895ac8532148a1c2dbd2",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "verify-installed.js",
+      "sha256": "292063297ff9741fec78039cade37f53ea6e3699d73889dd135ac8f29f9a6d0c",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "wadb-bridge.apk.sha256",
+      "sha256": "68180029d17673e00c5df34bdbe90e70af423378c675ae7cbf104646b5de09cd",
+      "mode": "644"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "wadb-common",
+      "sha256": "6c594953183f06703cc663bbe9b99371e220d362b4cdeb15226ff1ce541c8c4b",
+      "mode": "755"
+    },
+    {
+      "kind": "PREFIX_LIBEXEC",
+      "path": "wadb-local-bridge",
+      "sha256": "af6d437e479ca5015685916b89db156f00f359cc30519e8cbeb6a8da9b414e56",
+      "mode": "755"
+    },
+    {
+      "kind": "PRIVATE_HOME",
+      "path": "wadb-bridge.apk",
+      "sha256": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4",
+      "mode": "600"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "AI_RULES.md",
+      "sha256": "f2f762a33c3cfe2bfed1c296de67423bae9dc50c731cb09eb84c3b057d703bf7",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "COMMAND_REFERENCE.md",
+      "sha256": "75363a67c2ab8c3a3dad88276034cd6f3168e9a2281f9b736bfdb6e8a09b8136",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "INTEGRITY_VERIFICATION.md",
+      "sha256": "dbe9fa8304e3829da80876507fce162086a20a3ce060b0d53996a45509a5a862",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "PROMPTS_FOR_AI.md",
+      "sha256": "4152f3e7d5e42f750834e71f04e61c1efb658c86f7ce73468c4b0a031852dbc9",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "READ_THIS_FIRST_AI.md",
+      "sha256": "25a1542aaf9b93a5080d3648d38925f8b941db9ab94740f0f75a2bda099dadad",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "README_FIRST.md",
+      "sha256": "c77f92b2e51bd7ebccfdf7a38170dbc8b55efc3779fc9cdb71a34853662c3be1",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "RECOVERY_GITHUB.md",
+      "sha256": "65eadef0a200382d57e5051ca63124536d6b8a27401100a87013f96b3150603a",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "RECOVERY_TROUBLESHOOTING.md",
+      "sha256": "86e2768d5cbb206531977220ebee6516e1d9f8805e0a5167a5fa07f4bb86a776",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "REMOTE_MCP_AI_CONNECTION.md",
+      "sha256": "e25818a44e5db0129021663545fc1d60f779ce11a1bbd60d9ccb1c9a89833f95",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "SECURITY_AND_ROLLBACK.md",
+      "sha256": "314f0833c7f903030bfc556ba6cf5825d2432f2c42757d0429b6397cd6feff37",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "SHIZUKU_OPTIONAL.md",
+      "sha256": "b54a59f71c34196901d97c51adc143e8811cc5f655480ced1fe2c4face448085",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "START_HERE.md",
+      "sha256": "55cd0342ad8353aee08e3d05abd5835862da1a841bd13fc0935a665547848b17",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "toolkit-manifest.json",
+      "sha256": "4aa62371f3bbb740429f5ec7d9fd6404030d2988b57b3549c826aaa11e929cfe",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "TROUBLESHOOTING.md",
+      "sha256": "eaf3c234b5cfca09491381ba2eb6f300564e00047a42784eeb2f10141836f550",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
+      "path": "USER_SETUP.md",
+      "sha256": "21cbe52e827f249fec932c0744b47403e1b99bd11cdaae352a63690e506d7262",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME",
+      "path": "AI_ENVIRONMENT.md",
+      "sha256": "58304dcd098a47efb368ebb3fe0cae66ef4b137f49784408981ec804f1a93043",
+      "mode": "644"
+    }
+  ]
+}

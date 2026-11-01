@@ -1,0 +1,1041 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+PATH="$PREFIX/bin:/system/bin:$PATH"
+export PATH
+[ -r "$PREFIX/libexec/ai-wadb/wadb-common" ] && . "$PREFIX/libexec/ai-wadb/wadb-common"
+VERSION="1.7.5"
+DOC="$TERMUX_HOME/AI_ENVIRONMENT.md"
+AI_FIRST="$TERMUX_HOME/AI_WADB_DOCS/READ_THIS_FIRST_AI.md"
+USER_FIRST="$TERMUX_HOME/AI_WADB_DOCS/START_HERE.md"
+MODE="${1:-}"
+PAIR_STATE_FILE="$TERMUX_HOME/.ai-wadb/pairing.pending"
+PAIR_STATE_TTL=600
+AI_INFO_HAS_LOCAL_SHELL=1
+
+USE_COLOR=1
+[ -n "${NO_COLOR:-}" ] && USE_COLOR=0
+[ ! -t 1 ] && USE_COLOR=0
+case "$MODE" in --json|--plain|--status|--commands) USE_COLOR=0 ;; esac
+
+if [ "$USE_COLOR" -eq 1 ]; then
+  RESET=$'\033[0m'; BOLD=$'\033[1m'; DIM=$'\033[2m'
+  CYAN=$'\033[36m'; BLUE=$'\033[34m'; GREEN=$'\033[32m'
+  YELLOW=$'\033[33m'; RED=$'\033[31m'; MAGENTA=$'\033[35m'
+else
+  RESET=""; BOLD=""; DIM=""; CYAN=""; BLUE=""; GREEN=""
+  YELLOW=""; RED=""; MAGENTA=""
+fi
+
+term_cols() {
+  local c="${COLUMNS:-}"
+  case "$c" in ''|*[!0-9]*) c="$(tput cols 2>/dev/null || echo 80)" ;; esac
+  [ "$c" -lt 28 ] && c=28
+  [ "$c" -gt 100 ] && c=100
+  printf '%s\n' "$c"
+}
+
+human_msg() {
+  local symbol="$1" color="$2"; shift 2
+  local msg="$*" cols width first=1 line
+  cols="$(term_cols)"; width=$((cols-3)); [ "$width" -lt 20 ] && width=20
+  while IFS= read -r line; do
+    if [ "$first" -eq 1 ]; then
+      printf '%s%s%s %s\n' "$color" "$symbol" "$RESET" "$line"
+      first=0
+    else
+      printf '  %s\n' "$line"
+    fi
+  done < <(printf '%s\n' "$msg" | fold -s -w "$width")
+}
+
+say()  { human_msg " " "" "$*"; }
+ok()   { human_msg "✓" "$GREEN" "$*"; }
+warn() { human_msg "!" "$YELLOW" "$*"; }
+fail() { human_msg "✗" "$RED" "$*"; }
+info() { human_msg "→" "$CYAN" "$*"; }
+
+pair_state_load() {
+  PAIRING_STATE="none"; PAIRING_AGE_SECONDS=""
+  [ -r "$PAIR_STATE_FILE" ] || return 0
+  created="$(sed -n 's/^created=//p' "$PAIR_STATE_FILE" 2>/dev/null | head -n1)"
+  case "$created" in ''|*[!0-9]*) PAIRING_STATE="stale"; return 0 ;; esac
+  now="$(date +%s 2>/dev/null || echo 0)"
+  case "$now" in ''|*[!0-9]*) PAIRING_STATE="pending"; return 0 ;; esac
+  age=$((now-created)); [ "$age" -lt 0 ] && age=0
+  PAIRING_AGE_SECONDS="$age"
+  if [ "$age" -ge "$PAIR_STATE_TTL" ]; then
+    PAIRING_STATE="stale"
+  else
+    PAIRING_STATE="pending"
+  fi
+}
+
+pair_state_mark() {
+  mkdir -p "$(dirname "$PAIR_STATE_FILE")"
+  umask 077
+  printf 'created=%s\n' "$(date +%s)" > "$PAIR_STATE_FILE"
+  chmod 600 "$PAIR_STATE_FILE" 2>/dev/null || true
+}
+
+pair_state_clear() {
+  rm -f "$PAIR_STATE_FILE"
+}
+
+pair_state_block_connect() {
+  pair_state_load
+  if [ "$PAIRING_STATE" = "pending" ]; then
+    warn "A pairing cycle is already waiting for the current Android 6-digit code."
+    echo "PAIRING_STATE=pending"
+    [ -n "$PAIRING_AGE_SECONDS" ] && echo "PAIRING_AGE_SECONDS=$PAIRING_AGE_SECONDS"
+    echo "DO_NOT_RUN_CONNECT_AGAIN=yes"
+    echo "NEXT_COMMAND=ai-info_--pair_CODE"
+    echo "RESULT=PAIRING_CODE_REQUIRED"
+    return 30
+  fi
+  if [ "$PAIRING_STATE" = "stale" ]; then
+    pair_state_clear
+    info "Previous pairing state expired; starting a fresh connection cycle."
+  fi
+  return 0
+}
+
+coloros_dpm_state() {
+  local mfr prop
+  mfr="$(getprop ro.product.manufacturer 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  case "$mfr" in
+    oppo|oneplus|realme*) ;;
+    *) echo "not_applicable"; return 0 ;;
+  esac
+  prop="$(getprop persist.sys.permission.enable 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  case "$prop" in
+    false|0) echo "on" ;;
+    true|1) echo "off" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+print_coloros_first_setup() {
+  local st
+  st="$(coloros_dpm_state)"
+  [ "$st" = "not_applicable" ] && return 0
+  case "$st" in
+    on)
+      echo "DISABLE_PERMISSION_MONITORING=on"
+      ok "Disable permission monitoring is ON/blue."
+      ;;
+    off)
+      echo "DISABLE_PERMISSION_MONITORING=off"
+      warn "Disable permission monitoring is OFF/gray."
+      ;;
+    *)
+      echo "DISABLE_PERMISSION_MONITORING=unknown"
+      warn "Could not verify Disable permission monitoring state."
+      ;;
+  esac
+  info "First-time ColorOS setup: turn BOTH Wireless debugging ON and Disable permission monitoring ON (blue)."
+}
+
+cached_bridge_version_code() {
+  local apk="$TERMUX_HOME/.ai-wadb/wadb-bridge.apk"
+  [ -f "$apk" ] || return 1
+  ANDROID_DATA="$TERMUX_HOME/.android" aapt dump badging "$apk" 2>/dev/null |
+    sed -n "s/^package:.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -n1
+}
+
+installed_bridge_version_code() {
+  [ "$ADB_STATE" = "Connected" ] || return 1
+  adb -s "$ADB_SERIAL" shell dumpsys package com.jaskran.wadbbridge 2>/dev/null |
+    sed -n 's/.*versionCode=\([0-9][0-9]*\).*/\1/p' | head -n1
+}
+
+clip_text() {
+  local value="$1" limit="$2"
+  value="${value//$'\n'/ }"
+  value="${value//$'\r'/ }"
+  value="${value//$'\t'/ }"
+  if [ "${#value}" -gt "$limit" ]; then
+    if [ "$limit" -le 3 ]; then value="${value:0:limit}"; else value="${value:0:limit-1}…"; fi
+  fi
+  printf '%s' "$value"
+}
+
+kv() {
+  local label="$1" value="$2" color="${3:-}" cols labelw valuew
+  cols="$(term_cols)"
+  if [ "$cols" -lt 35 ]; then
+    labelw=$((cols-4))
+    valuew=$((cols-6))
+    label="$(clip_text "$label" "$labelw")"
+    value="$(clip_text "$value" "$valuew")"
+    printf '  %s\n    %s%s%s\n' "$label" "$color" "$value" "$RESET"
+  else
+    labelw=20
+    [ "$cols" -lt 52 ] && labelw=16
+    valuew=$((cols-labelw-5))
+    label="$(clip_text "$label" "$labelw")"
+    value="$(clip_text "$value" "$valuew")"
+    printf '  %-*s  %s%s%s\n' "$labelw" "$label" "$color" "$value" "$RESET"
+  fi
+}
+section() {
+  local title="$1" cols width text fill
+  cols="$(term_cols)"
+  width=$((cols-4))
+  text="$(clip_text "$title" "$width")"
+  fill=$((width-${#text}-2))
+  [ "$fill" -lt 0 ] && fill=0
+  printf '\n%s  %s%s%s  %s' "$CYAN" "$text" "$DIM" "$RESET" "$DIM"
+  local i
+  for ((i=0; i<fill; i++)); do printf '─'; done
+  printf '%s\n' "$RESET"
+}
+menu_item() {
+  local num="$1" text="$2" cols width
+  cols="$(term_cols)"
+  width=$((cols-8))
+  text="$(clip_text "$text" "$width")"
+  printf '  %s[%02d]%s  %s\n' "$CYAN" "$num" "$RESET" "$text"
+}
+get_state() {
+  ADB_STATE="Disconnected"; ADB_SERIAL=""
+  ADB_KEY="Missing"
+  [ -f "$TERMUX_HOME/.android/adbkey" ] && ADB_KEY="Present"
+
+  if command -v adb >/dev/null 2>&1; then
+    local candidate first_candidate=""
+    while IFS= read -r candidate; do
+      [ -n "$candidate" ] || continue
+      [ -n "$first_candidate" ] || first_candidate="$candidate"
+      if command -v wadb_verify_shell >/dev/null 2>&1 && wadb_verify_shell "$candidate"; then
+        ADB_SERIAL="$candidate"
+        ADB_STATE="Connected"
+        break
+      fi
+    done < <(adb devices -l 2>/dev/null | awk '$2=="device"{print $1}')
+    if [ -z "$ADB_SERIAL" ] && [ -n "$first_candidate" ]; then
+      ADB_STATE="Connected (unverified target)"
+      ADB_SERIAL=""
+    fi
+  else
+    ADB_STATE="ADB command missing"
+  fi
+
+  LOCAL_ADB_STATE="unknown"; LOCAL_ADB_MODE="secure_shell_bridge"
+  LOCAL_ADB_ENDPOINT="127.0.0.1:47173"; LOCAL_ADB_SERIAL=""
+  LOCAL_ADB_PORT="47173"; LOCAL_ADB_SHELL_UID=""; LOCAL_ADB_ENABLED="unknown"
+  LOCAL_ADB_WIFI_ENABLED="unknown"; LOCAL_ADB_TCP_PORT=""; LOCAL_ADB_SECURE=""
+  LOCAL_ADB_USB_CONFIG=""; LOCAL_ADB_USB_STATE=""; LOCAL_ADB_WIFI_STATE="unknown"
+  LOCAL_ADB_LISTENER_SCOPE="unknown"; LOCAL_ADB_PROTOCOL=""
+  LOCAL_ADB_AUTH=""; LOCAL_ADB_TCP_EXPOSURE="unknown"
+  if command -v wadb-local-status >/dev/null 2>&1; then
+    lsout="$(timeout 4 wadb-local-status 2>/dev/null || true)"
+    LOCAL_ADB_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_STATE=//p' | tail -n1)"
+    LOCAL_ADB_MODE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_MODE=//p' | tail -n1)"
+    LOCAL_ADB_ENDPOINT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_ENDPOINT=//p' | tail -n1)"
+    LOCAL_ADB_SERIAL="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_SERIAL=//p' | tail -n1)"
+    LOCAL_ADB_PORT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_PORT=//p' | tail -n1)"
+    LOCAL_ADB_SHELL_UID="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_SHELL_UID=//p' | tail -n1)"
+    LOCAL_ADB_ENABLED="$(printf '%s\n' "$lsout" | sed -n 's/^ADB_ENABLED=//p' | tail -n1)"
+    LOCAL_ADB_WIFI_ENABLED="$(printf '%s\n' "$lsout" | sed -n 's/^ADB_WIFI_ENABLED=//p' | tail -n1)"
+    LOCAL_ADB_TCP_PORT="$(printf '%s\n' "$lsout" | sed -n 's/^TCP_PORT=//p' | tail -n1)"
+    LOCAL_ADB_USB_CONFIG="$(printf '%s\n' "$lsout" | sed -n 's/^USB_CONFIG=//p' | tail -n1)"
+    LOCAL_ADB_USB_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^USB_STATE=//p' | tail -n1)"
+    LOCAL_ADB_SECURE="$(printf '%s\n' "$lsout" | sed -n 's/^ADB_SECURE=//p' | tail -n1)"
+    LOCAL_ADB_WIFI_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^WIFI_STATE=//p' | tail -n1)"
+    LOCAL_ADB_LISTENER_SCOPE="$(printf '%s\n' "$lsout" | sed -n 's/^LISTENER_SCOPE=//p' | tail -n1)"
+    LOCAL_ADB_PROTOCOL="$(printf '%s\n' "$lsout" | sed -n 's/^PROTOCOL=//p' | tail -n1)"
+    LOCAL_ADB_AUTH="$(printf '%s\n' "$lsout" | sed -n 's/^BRIDGE_AUTH=//p' | tail -n1)"
+    LOCAL_ADB_TCP_EXPOSURE="$(printf '%s\n' "$lsout" | sed -n 's/^ADBD_TCP_EXPOSURE=//p' | tail -n1)"
+    [ -n "$LOCAL_ADB_STATE" ] || LOCAL_ADB_STATE="unknown"
+    [ -n "$LOCAL_ADB_MODE" ] || LOCAL_ADB_MODE="secure_shell_bridge"
+    [ -n "$LOCAL_ADB_ENDPOINT" ] || LOCAL_ADB_ENDPOINT="127.0.0.1:47173"
+    [ -n "$LOCAL_ADB_PORT" ] || LOCAL_ADB_PORT="47173"
+  fi
+
+  WIRELESS_STATE="Unknown"; ADBD_STATE="Unknown"; BRIDGE_STATE="Unknown"; BRIDGE_WRITE="unknown"
+  if command -v wireless-debug-status >/dev/null 2>&1; then
+    wd="$(timeout 4 wireless-debug-status 2>&1 || true)"
+    val="$(printf '%s\n' "$wd" | sed -n 's/.*adb_wifi_enabled=\([0-9-]*\).*/\1/p' | tail -n1)"
+    adbd="$(printf '%s\n' "$wd" | sed -n 's/^adbd=//p' | tail -n1)"
+    BRIDGE_WRITE="$(printf '%s\n' "$wd" | sed -n 's/^bridge_write=//p' | tail -n1)"
+    case "$val" in
+      1)
+        WIRELESS_STATE="On"
+        [ "$BRIDGE_WRITE" = ready ] && BRIDGE_STATE="Ready" || BRIDGE_STATE="Needs permission"
+        ;;
+      0)
+        WIRELESS_STATE="Off"
+        [ "$BRIDGE_WRITE" = ready ] && BRIDGE_STATE="Ready" || BRIDGE_STATE="Needs permission"
+        ;;
+      *)
+        WIRELESS_STATE="Unknown"
+        BRIDGE_STATE="Not ready"
+        [ -n "$BRIDGE_WRITE" ] || BRIDGE_WRITE="unknown"
+        ;;
+    esac
+    [ -n "$adbd" ] && ADBD_STATE="$adbd"
+  fi
+
+  MCP_STATE="Not configured"; MCP_PID="offline"; MCP_CREDS="no"
+  MCP_OWNER="NOT_SET"; WATCHDOG="Off"; GITHUB="Off"; MCP_HOME_DETECTED="$TERMUX_HOME"
+  MCP_TARGET="DEFAULT"; GITHUB_REPO_DISPLAY=""
+  GITHUB_READ_MODE=""; GITHUB_READ_MODE_LAST=""; GITHUB_READ_ERROR=""
+  RECOVERY_ENABLED="no"; MCP_DESIRED="unknown"; MCP_ACTUAL="offline"; MCP_PROCESS_COUNT="0"
+  WATCHDOG_INTERVAL_DISPLAY=""; NOTIFICATIONS_ENABLED_DISPLAY="0"
+  TERMUX_API_PACKAGE="no"; TERMUX_API_APP="no"; TERMUX_API_READY="no"
+  if command -v wadb-mcp-status >/dev/null 2>&1; then
+    ms="$(timeout 4 wadb-mcp-status 2>/dev/null || true)"
+    MCP_PID="$(printf '%s\n' "$ms" | sed -n 's/^remote_pid=//p' | tail -n1)"
+    MCP_CREDS="$(printf '%s\n' "$ms" | sed -n 's/^credentials=//p' | tail -n1)"
+    MCP_OWNER="$(printf '%s\n' "$ms" | sed -n 's/^owner=//p' | tail -n1)"
+    RECOVERY_ENABLED="$(printf '%s\n' "$ms" | sed -n 's/^recovery_enabled=//p' | tail -n1)"
+    MCP_DESIRED="$(printf '%s\n' "$ms" | sed -n 's/^mcp_desired=//p' | tail -n1)"
+    MCP_ACTUAL="$(printf '%s\n' "$ms" | sed -n 's/^mcp_actual=//p' | tail -n1)"
+    MCP_PROCESS_COUNT="$(printf '%s\n' "$ms" | sed -n 's/^mcp_process_count=//p' | tail -n1)"
+    WATCHDOG_INTERVAL_DISPLAY="$(printf '%s\n' "$ms" | sed -n 's/^watchdog_interval=//p' | tail -n1)"
+    NOTIFICATIONS_ENABLED_DISPLAY="$(printf '%s\n' "$ms" | sed -n 's/^notifications_enabled=//p' | tail -n1)"
+    MCP_HOME_DETECTED="$(printf '%s\n' "$ms" | sed -n 's/^mcp_home=//p' | tail -n1)"
+    wd_pid="$(printf '%s\n' "$ms" | sed -n 's/^watchdog_pid=//p' | tail -n1)"
+    gh="$(printf '%s\n' "$ms" | sed -n 's/^github_enabled=//p' | tail -n1)"
+    gh_owner="$(printf '%s\n' "$ms" | sed -n 's/^github_owner=//p' | tail -n1)"
+    gh_repo="$(printf '%s\n' "$ms" | sed -n 's/^github_repo=//p' | tail -n1)"
+    GITHUB_READ_MODE="$(printf '%s\n' "$ms" | sed -n 's/^github_read_mode=//p' | tail -n1)"
+    GITHUB_READ_MODE_LAST="$(printf '%s\n' "$ms" | sed -n 's/^github_read_mode_last=//p' | tail -n1)"
+    GITHUB_READ_ERROR="$(printf '%s\n' "$ms" | sed -n 's/^github_read_error=//p' | tail -n1)"
+    MCP_TARGET="$(printf '%s\n' "$ms" | sed -n 's/^target=//p' | tail -n1)"
+    [ -z "$MCP_OWNER" ] && MCP_OWNER="NOT_SET"
+    [ -z "$MCP_HOME_DETECTED" ] && MCP_HOME_DETECTED="$TERMUX_HOME"
+    if [ "$MCP_PID" != "offline" ] && [ -n "$MCP_PID" ] && kill -0 "$MCP_PID" 2>/dev/null; then
+      if [ "$MCP_DESIRED" = "offline" ]; then
+        MCP_STATE="Online (desired OFFLINE)"
+      else
+        MCP_STATE="Online"
+      fi
+    elif [ "$MCP_CREDS" = "yes" ]; then
+      MCP_STATE="Offline (login saved)"
+    else
+      MCP_STATE="Offline"
+    fi
+    if [ -n "$wd_pid" ] && [ "$wd_pid" != "none" ] && kill -0 "$wd_pid" 2>/dev/null; then
+      WATCHDOG="Running"
+    fi
+    if [ "$gh" = "1" ]; then
+      GITHUB="Configured"
+      [ -n "$gh_owner" ] && [ -n "$gh_repo" ] && GITHUB_REPO_DISPLAY="$gh_owner/$gh_repo"
+    fi
+  else
+    if [ -f "$HOME/.desktop-commander-device/device.json" ]; then
+      MCP_CREDS="yes"; MCP_STATE="Login present"; MCP_HOME_DETECTED="$HOME"
+    elif [ -f "$TERMUX_HOME/.desktop-commander-device/device.json" ]; then
+      MCP_CREDS="yes"; MCP_STATE="Login present"
+    fi
+  fi
+
+  command -v termux-wifi-connectioninfo >/dev/null 2>&1 && TERMUX_API_PACKAGE="yes" || TERMUX_API_PACKAGE="no"
+  /system/bin/pm path com.termux.api >/dev/null 2>&1 && TERMUX_API_APP="yes" || TERMUX_API_APP="no"
+  if [ "$TERMUX_API_PACKAGE" = yes ] && [ "$TERMUX_API_APP" = yes ]; then TERMUX_API_READY="yes"; fi
+
+  DEVICE_MFR="$(getprop ro.product.manufacturer 2>/dev/null || echo Android)"
+  DEVICE_MODEL="$(getprop ro.product.model 2>/dev/null || echo device)"
+  ANDROID="$(getprop ro.build.version.release 2>/dev/null || echo '?')"
+  DPM_STATE="$(coloros_dpm_state)"
+  pair_state_load
+  BRIDGE_CACHED_VERSION_CODE="$(cached_bridge_version_code 2>/dev/null || true)"
+  BRIDGE_INSTALLED_VERSION_CODE="$(installed_bridge_version_code 2>/dev/null || true)"
+  BRIDGE_SYNC="unknown"
+  if [ "$ADB_STATE" = "Connected" ] && [ -n "$BRIDGE_CACHED_VERSION_CODE" ]; then
+    if [ -z "$BRIDGE_INSTALLED_VERSION_CODE" ]; then
+      BRIDGE_SYNC="install_required"
+    elif [ "$BRIDGE_CACHED_VERSION_CODE" -gt "$BRIDGE_INSTALLED_VERSION_CODE" ] 2>/dev/null; then
+      BRIDGE_SYNC="upgrade_required"
+    elif [ "$BRIDGE_CACHED_VERSION_CODE" -eq "$BRIDGE_INSTALLED_VERSION_CODE" ] 2>/dev/null; then
+      BRIDGE_SYNC="current"
+    else
+      BRIDGE_SYNC="installed_newer"
+    fi
+  fi
+}
+
+
+show_header() {
+  local cols width title subtitle rule
+  cols="$(term_cols)"
+  width=$((cols-4))
+  title="$(clip_text "AI TERMUX WADB / CONTROL CENTER" "$width")"
+  subtitle="$(clip_text "SYSTEM CONSOLE  |  v$VERSION" "$width")"
+  rule=""
+  local i
+  for ((i=0; i<width; i++)); do rule="${rule}─"; done
+  printf '%s  %s%s%s\n' "$BOLD" "$CYAN" "$title" "$RESET"
+  printf '%s  %s%s\n' "$DIM" "$subtitle" "$RESET"
+  printf '  %s\n' "$rule"
+}
+
+show_dashboard() {
+  get_state
+  show_header
+
+  section "DEVICE"
+  kv "Device" "$DEVICE_MFR $DEVICE_MODEL"
+  kv "Android" "$ANDROID"
+  kv "Toolkit" "v$VERSION" "$GREEN"
+  kv "WADB Bridge" "$BRIDGE_STATE" "$([ "$BRIDGE_STATE" = Ready ] && echo "$GREEN" || echo "$YELLOW")"
+  if [ "$TERMUX_API_READY" = yes ]; then
+    kv "Termux:API" "Ready" "$GREEN"
+  else
+    kv "Termux:API" "Optional" "$DIM"
+  fi
+
+  section "CONNECTIVITY"
+  [ "$WIRELESS_STATE" = On ] && c="$GREEN" || c="$YELLOW"
+  kv "Wireless ADB" "$WIRELESS_STATE" "$c"
+  kv "ADB target" "$ADB_STATE" "$([ "$ADB_STATE" = Connected ] && echo "$GREEN" || echo "$YELLOW")"
+  kv "Trusted ADB key" "$ADB_KEY" "$([ "$ADB_KEY" = Present ] && echo "$GREEN" || echo "$YELLOW")"
+  kv "adbd" "$ADBD_STATE" "$DIM"
+  case "$DPM_STATE" in
+    on) kv "Permission mode" "Disabled / blue" "$GREEN" ;;
+    off) kv "Permission mode" "Enabled / gray" "$YELLOW" ;;
+    unknown) kv "Permission mode" "Unknown" "$YELLOW" ;;
+  esac
+  [ "$PAIRING_STATE" = pending ] && kv "Pairing" "Waiting for current code" "$YELLOW"
+
+  if [ "$AI_INFO_HAS_LOCAL_SHELL" = 1 ]; then
+    section "LOCAL ACCESS"
+    case "$LOCAL_ADB_STATE" in ready) c="$GREEN";; *) c="$YELLOW";; esac
+    kv "Secure local shell" "$LOCAL_ADB_STATE" "$c"
+    [ -n "$LOCAL_ADB_ENDPOINT" ] && kv "Loopback endpoint" "$LOCAL_ADB_ENDPOINT" "$DIM"
+    if [ "$LOCAL_ADB_STATE" = ready ]; then
+      kv "Shell identity" "uid=2000 (shell)" "$GREEN"
+      kv "Authentication" "$LOCAL_ADB_AUTH" "$GREEN"
+      kv "Listener scope" "$LOCAL_ADB_LISTENER_SCOPE" "$([ "$LOCAL_ADB_LISTENER_SCOPE" = loopback_only ] && echo "$GREEN" || echo "$YELLOW")"
+      kv "adbd TCP exposure" "$LOCAL_ADB_TCP_EXPOSURE" "$([ "$LOCAL_ADB_TCP_EXPOSURE" = none ] && echo "$GREEN" || echo "$YELLOW")"
+    fi
+  fi
+
+  section "REMOTE CONTROL"
+  mcp_color="$YELLOW"; [ "$MCP_STATE" = Online ] && mcp_color="$GREEN"
+  kv "Desktop Commander" "$MCP_STATE" "$mcp_color"
+  kv "Saved authorization" "$([ "$MCP_CREDS" = yes ] && echo Present || echo Not detected)" "$([ "$MCP_CREDS" = yes ] && echo "$GREEN" || echo "$YELLOW")"
+  [ "$MCP_OWNER" != "NOT_SET" ] && kv "Session label" "$MCP_OWNER" "$MAGENTA"
+  if [ "$MCP_PROCESS_COUNT" -gt 1 ] 2>/dev/null; then
+    kv "Managed processes" "$MCP_PROCESS_COUNT (review)" "$YELLOW"
+  fi
+
+  section "RECOVERY"
+  [ "$RECOVERY_ENABLED" = yes ] && c="$GREEN" || c="$YELLOW"
+  kv "Automatic recovery" "$RECOVERY_ENABLED" "$c"
+  [ "$WATCHDOG" = Running ] && c="$GREEN" || c="$YELLOW"
+  kv "Recovery watchdog" "$WATCHDOG" "$c"
+  [ -n "$WATCHDOG_INTERVAL_DISPLAY" ] && kv "Watchdog interval" "${WATCHDOG_INTERVAL_DISPLAY}s" "$DIM"
+  [ "$NOTIFICATIONS_ENABLED_DISPLAY" = 1 ] && kv "Notifications" "Enabled" "$GREEN" || kv "Notifications" "Disabled / unavailable" "$DIM"
+  [ "$GITHUB" = Configured ] && kv "GitHub fallback" "Configured" "$GREEN" || kv "GitHub fallback" "Not configured" "$DIM"
+  [ -n "$GITHUB_REPO_DISPLAY" ] && kv "Control repository" "$GITHUB_REPO_DISPLAY" "$DIM"
+  if [ "$GITHUB" = Configured ] && [ -n "$GITHUB_READ_ERROR" ] && [ "$GITHUB_READ_ERROR" != none ]; then
+    kv "GitHub read health" "$GITHUB_READ_ERROR" "$YELLOW"
+  fi
+
+  section "RECOMMENDED ACTION"
+  if [ "$PAIRING_STATE" = pending ]; then
+    info "Pair using the current code: ai-info --pair CODE"
+  elif [ "$MCP_CREDS" != yes ]; then
+    info "Authenticate Desktop Commander."
+  elif [ "$BRIDGE_STATE" != Ready ] || [ "$ADB_KEY" != Present ]; then
+    info "Connect Wireless ADB: ai-info --connect"
+  elif [ "$RECOVERY_ENABLED" != yes ]; then
+    info "Review automatic recovery: wadb-mcp-recovery-setup"
+  elif [ "$WATCHDOG" != Running ]; then
+    info "Start the recovery watchdog: wadb-mcp-watchdog-start"
+  else
+    ok "Core services are ready."
+  fi
+
+  section "QUICK ACTIONS"
+  menu_item 1 "Connect / reconnect"
+  menu_item 2 "Remote control status"
+  menu_item 3 "Recovery configuration"
+  menu_item 4 "GitHub recovery"
+  menu_item 5 "Session label"
+  menu_item 6 "System diagnostics"
+  menu_item 7 "Documentation"
+  [ "$AI_INFO_HAS_LOCAL_SHELL" = 1 ] && menu_item 8 "Secure local shell"
+
+  if [ "${AI_INFO_HAS_LOCAL_SHELL:-0}" = 1 ]; then
+    menu_item 9 "Disconnect Wireless ADB"
+    menu_item 10 "All commands & usage"
+  else
+    menu_item 8 "Disconnect Wireless ADB"
+    menu_item 9 "All commands & usage"
+  fi
+
+}
+show_json() {
+  get_state
+  python - <<PY
+import json
+print(json.dumps({
+  "toolkit_version":"$VERSION",
+  "device":{"manufacturer":"""$DEVICE_MFR""","model":"""$DEVICE_MODEL""","android":"""$ANDROID"""},
+  "mcp":{"state":"""$MCP_STATE""","credentials":"""$MCP_CREDS""","owner":"""$MCP_OWNER""","pid":"""$MCP_PID""","home":"""$MCP_HOME_DETECTED""","desired":"""$MCP_DESIRED""","actual":"""$MCP_ACTUAL""","process_count":"""$MCP_PROCESS_COUNT""","recovery_enabled":"""$RECOVERY_ENABLED""","watchdog":"""$WATCHDOG""","watchdog_interval_seconds":"""$WATCHDOG_INTERVAL_DISPLAY""","notifications_enabled":"""$NOTIFICATIONS_ENABLED_DISPLAY"""},
+  "local_adb":{"state":"""$LOCAL_ADB_STATE""","mode":"""$LOCAL_ADB_MODE""","endpoint":"""$LOCAL_ADB_ENDPOINT""","serial":"""$LOCAL_ADB_SERIAL""","port":"""$LOCAL_ADB_PORT""","shell_uid":"""$LOCAL_ADB_SHELL_UID""","protocol":"""$LOCAL_ADB_PROTOCOL""","auth":"""$LOCAL_ADB_AUTH""","adb_enabled":"""$LOCAL_ADB_ENABLED""","adb_wifi_enabled":"""$LOCAL_ADB_WIFI_ENABLED""","adbd":"""$ADBD_STATE""","tcp_port":"""$LOCAL_ADB_TCP_PORT""","adbd_tcp_exposure":"""$LOCAL_ADB_TCP_EXPOSURE""","usb_config":"""$LOCAL_ADB_USB_CONFIG""","usb_state":"""$LOCAL_ADB_USB_STATE""","adb_secure":"""$LOCAL_ADB_SECURE""","wifi_state":"""$LOCAL_ADB_WIFI_STATE""","listener_scope":"""$LOCAL_ADB_LISTENER_SCOPE"""},
+  "wireless_adb":{"state":"""$WIRELESS_STATE""","adbd":"""$ADBD_STATE""","adb":"""$ADB_STATE""","trusted_key":"""$ADB_KEY""","bridge":"""$BRIDGE_STATE""","bridge_write":"""$BRIDGE_WRITE""","disable_permission_monitoring":"""$DPM_STATE""","pairing_state":"""$PAIRING_STATE""","pairing_age_seconds":"""$PAIRING_AGE_SECONDS""","bridge_cached_version_code":"""$BRIDGE_CACHED_VERSION_CODE""","bridge_installed_version_code":"""$BRIDGE_INSTALLED_VERSION_CODE""","bridge_sync":"""$BRIDGE_SYNC"""},
+  "github_recovery":{"state":"""$GITHUB""","repo":"""$GITHUB_REPO_DISPLAY""","target":"""$MCP_TARGET""","read_mode":"""$GITHUB_READ_MODE""","last_read_mode":"""$GITHUB_READ_MODE_LAST""","read_error":"""$GITHUB_READ_ERROR"""},
+  "termux_api":{"package":"""$TERMUX_API_PACKAGE""","android_app":"""$TERMUX_API_APP""","ready":"""$TERMUX_API_READY"""},
+},indent=2))
+PY
+}
+
+show_mcp() {
+  get_state
+  echo "MCP_STATE=$MCP_STATE"
+  echo "MCP_PID=$MCP_PID"
+  echo "MCP_CREDENTIALS=$MCP_CREDS"
+  echo "MCP_OWNER=$MCP_OWNER"
+  echo "MCP_HOME=$MCP_HOME_DETECTED"
+  echo "MCP_DESIRED=$MCP_DESIRED"
+  echo "MCP_ACTUAL=$MCP_ACTUAL"
+  echo "MCP_PROCESS_COUNT=$MCP_PROCESS_COUNT"
+  echo "RECOVERY_ENABLED=$RECOVERY_ENABLED"
+  echo "WATCHDOG=$WATCHDOG"
+  echo "WATCHDOG_INTERVAL_SECONDS=$WATCHDOG_INTERVAL_DISPLAY"
+  echo "GITHUB_RECOVERY=$GITHUB"
+}
+
+show_recovery() {
+  get_state
+  echo "RECOVERY_ENABLED=$RECOVERY_ENABLED"
+  echo "MCP_DESIRED=$MCP_DESIRED"
+  echo "MCP_ACTUAL=$MCP_ACTUAL"
+  echo "LOCAL_WATCHDOG=$WATCHDOG"
+  echo "WATCHDOG_INTERVAL_SECONDS=$WATCHDOG_INTERVAL_DISPLAY"
+  echo "NOTIFICATIONS_ENABLED=$NOTIFICATIONS_ENABLED_DISPLAY"
+  echo "GITHUB_RECOVERY=$GITHUB"
+  echo "GITHUB_REPO=$GITHUB_REPO_DISPLAY"
+  echo "MCP_TARGET=$MCP_TARGET"
+  state=/data/data/com.termux/files/home/.ai-wadb/mcp-recovery
+  [ -r "$state/events.log" ] && { echo "--- recent events ---"; tail -10 "$state/events.log"; }
+}
+
+owner_path() {
+  get_state
+  printf '%s/REMOTE_SESSION_ID.txt\n' "$MCP_HOME_DETECTED"
+}
+
+owner_set() {
+  name="${2:-}"
+  [ -n "$name" ] || { echo "Usage: ai-info --owner-set NAME"; exit 2; }
+  case "$name" in *$'\n'*|*=*) echo "Owner label must be a simple name without '='."; exit 2;; esac
+  p="$(owner_path)"
+  mkdir -p "$(dirname "$p")"
+  printf 'OWNER=%s\n' "$name" > "$p"
+  chmod 600 "$p"
+  echo "OWNER=$name"
+  echo "RESULT=OWNER_SAVED"
+  echo "This label is optional and does not change MCP authentication."
+}
+
+owner_clear() {
+  p="$(owner_path)"
+  if [ -f "$p" ]; then
+    rm -f "$p"
+  fi
+  echo "OWNER=NOT_SET"
+  echo "RESULT=OWNER_CLEARED"
+  echo "MCP authentication was not changed."
+}
+
+doctor() {
+  get_state
+  show_header
+  section "READ-ONLY DIAGNOSTICS"
+  command -v adb >/dev/null 2>&1 && ok "adb command available" || fail "adb command missing"
+  command -v python >/dev/null 2>&1 && ok "python available" || fail "python missing"
+  command -v node >/dev/null 2>&1 && ok "node available" || warn "node missing (needed for Desktop Commander bootstrap)"
+  command -v npx >/dev/null 2>&1 && ok "npx available" || warn "npx missing (needed for Desktop Commander bootstrap)"
+  [ "$BRIDGE_STATE" = Ready ] && ok "WADB Bridge responds" || warn "WADB Bridge not ready"
+  command -v wadb-local-status >/dev/null 2>&1 && command -v wadb-local-shell >/dev/null 2>&1 &&
+    ok "secure local shell helpers installed" || warn "secure local shell helpers missing"
+  if [ "$LOCAL_ADB_STATE" = ready ]; then
+    ok "authenticated loopback shell is ready as uid=2000(shell)"
+    [ "$LOCAL_ADB_LISTENER_SCOPE" = loopback_only ] && ok "local bridge is bound to loopback only" || warn "local bridge is not verified loopback-only"
+    [ "$LOCAL_ADB_TCP_EXPOSURE" = none ] && ok "adbd has no classic network TCP listener" || warn "adbd TCP exposure remains: $LOCAL_ADB_TCP_EXPOSURE"
+    [ "$LOCAL_ADB_ENABLED" = 1 ] && ok "adb_enabled keeps adbd alive in USB mode" || warn "adb_enabled is not 1"
+  else
+    info "secure local shell is not currently ready"
+  fi
+  [ "$ADB_KEY" = Present ] && ok "ADB key present" || warn "ADB key not present"
+  [ "$MCP_CREDS" = yes ] && ok "Desktop Commander saved login present" || warn "saved MCP login not detected"
+  [ "$RECOVERY_ENABLED" = yes ] && ok "MCP recovery enabled" || info "MCP recovery is disabled"
+  [ "$WATCHDOG" = Running ] && ok "MCP recovery watchdog running" || warn "MCP recovery watchdog not running"
+  if [ "$MCP_PROCESS_COUNT" -gt 1 ] 2>/dev/null; then
+    warn "Multiple Desktop Commander processes detected for the configured MCP HOME ($MCP_PROCESS_COUNT)."
+  else
+    ok "No duplicate managed Desktop Commander process detected"
+  fi
+  if [ "$TERMUX_API_READY" = yes ]; then
+    ok "Termux:API command package and Android companion are ready"
+  else
+    info "Termux:API is optional; automatic IP detection/notifications may use fallback behavior"
+  fi
+  [ "$GITHUB" = Configured ] && ok "GitHub recovery configured" || info "GitHub recovery is optional"
+  echo
+  echo "No settings were changed."
+}
+
+connect_adb() {
+  pair_state_block_connect
+  prc=$?
+  [ "$prc" -eq 30 ] && exit 30
+  if ! command -v wireless-adb-connect >/dev/null 2>&1; then
+    fail "Wireless ADB connector is missing."
+    exit 2
+  fi
+  out="$(wireless-adb-connect 2>&1)"; rc=$?
+  case "$rc" in
+    0)
+      pair_state_clear
+      serial="$(printf '%s\n' "$out" | sed -n 's/^ADB_CONNECTED=//p' | tail -n1)"
+      ok "Wireless ADB connected."
+      [ -n "$serial" ] && echo "Device: $serial"
+
+      get_state
+      if [ "$BRIDGE_STATE" != Ready ] || [ "$BRIDGE_SYNC" = install_required ] || [ "$BRIDGE_SYNC" = upgrade_required ]; then
+        if [ "$BRIDGE_SYNC" = upgrade_required ]; then
+          info "Newer cached WADB Bridge detected; upgrading installed Bridge..."
+        else
+          info "Completing WADB Bridge permission setup..."
+        fi
+        fout="$(wadb-bootstrap --finalize 2>&1)"; frc=$?
+        printf '%s\n' "$fout"
+        if [ "$frc" -ne 0 ]; then
+          fail "ADB is connected, but WADB Bridge setup is incomplete."
+          echo "RESULT=ADB_CONNECTED_BRIDGE_NOT_READY"
+          echo "EXIT_CODE=$frc"
+          exit "$frc"
+        fi
+        get_state
+        if [ "$BRIDGE_SYNC" = install_required ] || [ "$BRIDGE_SYNC" = upgrade_required ]; then
+          fail "WADB Bridge install/update verification failed."
+          echo "CACHED_BRIDGE_VERSION_CODE=$BRIDGE_CACHED_VERSION_CODE"
+          echo "INSTALLED_BRIDGE_VERSION_CODE=$BRIDGE_INSTALLED_VERSION_CODE"
+          echo "RESULT=BRIDGE_UPDATE_VERIFY_FAILED"
+          exit 27
+        fi
+      fi
+
+      if [ "$BRIDGE_STATE" != Ready ] || [ "$BRIDGE_WRITE" != ready ]; then
+        fail "ADB is connected, but WADB Bridge write verification failed."
+        echo "RESULT=ADB_CONNECTED_BRIDGE_NOT_READY"
+        exit 26
+      fi
+
+      echo "RESULT=CONNECTED_AND_READY"
+      ;;
+    20)
+      get_state
+      if [ "$BRIDGE_WRITE" != ready ]; then
+        if /system/bin/pm path com.jaskran.wadbbridge >/dev/null 2>&1; then
+          warn "WADB Bridge still needs its one-time secure-settings grant."
+        else
+          warn "Initial WADB bootstrap required; WADB Bridge is not installed yet."
+        fi
+        print_coloros_first_setup
+        if [ "$(coloros_dpm_state)" = "not_applicable" ]; then
+          echo "Turn Wireless debugging ON manually once, then run: ai-info --connect"
+        else
+          echo "Turn Wireless debugging ON and Disable permission monitoring ON (blue), then run: ai-info --connect"
+        fi
+        echo "The existing trusted ADB key will be tried first; do not re-pair unless Android rejects it."
+        echo "RESULT=MANUAL_WIRELESS_DEBUG_ON_REQUIRED_ONCE"
+      else
+        fail "Wireless Debugging could not be enabled automatically."
+        echo "RESULT=WIRELESS_DEBUG_ENABLE_FAILED"
+      fi
+      exit 20
+      ;;
+    30)
+      pair_state_mark
+      warn "Pairing is required."
+      print_coloros_first_setup
+      echo "Open Developer options > Wireless debugging > Pair device with pairing code."
+      echo "Keep the pairing popup visible. Send the current 6-digit code to the AI."
+      echo "PAIRING_STATE=pending"
+      echo "DO_NOT_RUN_CONNECT_AGAIN=yes"
+      echo "NEXT_COMMAND=ai-info_--pair_CODE"
+      echo "Then run: ai-info --pair CODE"
+      echo "RESULT=PAIRING_REQUIRED"
+      exit 30
+      ;;
+    *)
+      fail "Wireless ADB connection failed."
+      echo "RESULT=CONNECT_FAILED"
+      echo "EXIT_CODE=$rc"
+      echo "Technical details: run wireless-adb-connect"
+      exit "$rc"
+      ;;
+  esac
+}
+
+pair_adb() {
+  code="${2:-}"
+  case "$code" in
+    [0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+    *) echo "Usage: ai-info --pair 123456"; echo "RESULT=PAIRING_CODE_INVALID_FORMAT"; exit 2 ;;
+  esac
+
+  pair_state_load
+  case "$PAIRING_STATE" in
+    pending) ;;
+    stale)
+      pair_state_clear
+      echo "PAIRING_STATE=expired"
+      echo "ACTION=run_ai-info_--connect_for_new_pairing_session"
+      echo "RESULT=PAIRING_SESSION_EXPIRED"
+      exit 31
+      ;;
+    *)
+      echo "PAIRING_STATE=none"
+      echo "ACTION=run_ai-info_--connect_first"
+      echo "RESULT=NO_PENDING_PAIRING_SESSION"
+      exit 31
+      ;;
+  esac
+
+  out="$(wadb-bootstrap --pair-code "$code" 2>&1)"; rc=$?
+  pair_state_clear
+  printf '%s\n' "$out"
+  echo "PAIRING_STATE=cleared"
+  case "$rc" in
+    0)
+      echo "RESULT=PAIRED_AND_CONNECTED"
+      ;;
+    25)
+      if printf '%s\n' "$out" | grep -q 'COLOROS_ADB_PERMISSION_RESTRICTION=detected'; then
+        echo "PAIRING_STATUS=succeeded"
+        echo "PERMISSION_SETUP=blocked_by_coloros"
+        echo "ACTION=enable_disable_permission_monitoring"
+        echo "RESULT=PAIRED_PERMISSION_SETUP_REQUIRED"
+      else
+        echo "PAIRING_STATUS=succeeded"
+        echo "PERMISSION_SETUP=incomplete"
+        echo "RESULT=PAIRED_PERMISSION_SETUP_REQUIRED"
+      fi
+      ;;
+    22|23|24|26)
+      echo "PAIRING_STATUS=succeeded"
+      echo "PERMISSION_SETUP=incomplete"
+      echo "RESULT=PAIRED_FINALIZATION_FAILED"
+      ;;
+    *)
+      echo "ACTION=run_ai-info_--connect_for_new_pairing_session"
+      echo "RESULT=PAIRING_FAILED"
+      ;;
+  esac
+  echo "EXIT_CODE=$rc"
+  exit "$rc"
+}
+
+pair_reset() {
+  pair_state_load
+  previous="$PAIRING_STATE"
+  pair_state_clear
+  echo "PAIRING_STATE=cleared"
+  echo "PREVIOUS_PAIRING_STATE=$previous"
+  echo "NEXT_COMMAND=ai-info_--connect"
+  echo "RESULT=PAIRING_STATE_RESET"
+}
+
+
+
+# --- WADB v1.7.5 R2: explicit disconnect and command catalogue ---
+command_reference_path() {
+  printf '%s\n' "$TERMUX_HOME/AI_WADB_DOCS/COMMAND_REFERENCE.md"
+}
+
+show_command_catalogue() {
+  local ref
+  ref="$(command_reference_path)"
+  if [ ! -r "$ref" ]; then
+    fail "Command reference is not installed: $ref"
+    echo "Reinstall/restore this edition's AI_WADB_DOCS directory."
+    return 2
+  fi
+  printf '\n%sAI TERMUX WADB — COMMAND CATALOGUE%s\n' "$BOLD" "$RESET"
+  echo "Edition version: v$VERSION"
+  echo "The following index is taken from this installed edition's command reference:"
+  awk '/^## / { sub(/^## /, ""); print "  • " $0 }' "$ref"
+  echo
+  echo "Full descriptions, examples, side effects, confirmation rules and recovery notes:"
+  echo "$ref"
+  if [ -t 0 ] && [ -t 1 ]; then
+    if command -v less >/dev/null 2>&1; then
+      less -FRX "$ref"
+    elif command -v more >/dev/null 2>&1; then
+      more "$ref"
+    else
+      cat "$ref"
+    fi
+  else
+    cat "$ref"
+  fi
+}
+
+disconnect_transport() {
+  [ "${1:-}" = "--confirm" ] || {
+    warn "No action taken. Use the interactive ai-info --disconnect menu or pass --confirm explicitly."
+    return 2
+  }
+  get_state
+  if [ "$ADB_STATE" != "Connected" ] || [ -z "$ADB_SERIAL" ]; then
+    warn "There is no verified current ADB transport to disconnect."
+    echo "ADB_STATE=$ADB_STATE"
+    echo "No broad 'adb disconnect' was issued."
+    return 2
+  fi
+  case "$ADB_SERIAL" in
+    *:*) ;;
+    *) warn "Refusing to disconnect non-network/USB serial '$ADB_SERIAL' through this WADB-only action."; return 2 ;;
+  esac
+  case "$ADB_SERIAL" in
+    127.*|localhost:*|\[::1\]:*|emulator-*)
+      warn "Refusing to disconnect a loopback/emulator transport from the Wireless ADB action."
+      return 2
+      ;;
+  esac
+  local target="$ADB_SERIAL" out
+  echo "Exact ADB transport: $target"
+  if ! out="$(adb disconnect "$target" 2>&1)"; then
+    printf '%s\n' "$out"
+    fail "ADB transport disconnect failed."
+    return 1
+  fi
+  [ -n "$out" ] && printf '%s\n' "$out"
+  if adb devices -l 2>/dev/null | awk -v s="$target" '$1==s && $2=="device" { found=1 } END { exit found ? 0 : 1 }'; then
+    fail "The exact transport is still listed as connected: $target"
+    return 1
+  fi
+  ok "Disconnected only $target."
+  echo "Wireless Debugging remains as it was; MCP and the secure local shell were not changed."
+  return 0
+}
+
+disable_wireless_debug() {
+  [ "${1:-}" = "--confirm" ] || {
+    warn "Wireless Debugging was not changed. Use the interactive menu or pass --confirm explicitly."
+    return 2
+  }
+  if ! command -v wireless-debug-off >/dev/null 2>&1; then
+    fail "wireless-debug-off is not installed in this edition."
+    return 2
+  fi
+  local out status
+  if out="$(wireless-debug-off 2>&1)"; then
+    [ -n "$out" ] && printf '%s\n' "$out"
+  else
+    [ -n "$out" ] && printf '%s\n' "$out"
+    fail "The Bridge did not confirm Wireless Debugging OFF."
+    return 1
+  fi
+  status="$(wireless-debug-status 2>&1 || true)"
+  printf '%s\n' "$status"
+  if printf '%s\n' "$status" | grep -q 'adb_wifi_enabled=0'; then
+    ok "Android Wireless Debugging is OFF."
+    echo "This does not stop Desktop Commander MCP or the independent secure local shell."
+    return 0
+  fi
+  fail "Wireless Debugging OFF could not be verified; inspect the status above."
+  return 1
+}
+
+disconnect_menu() {
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    fail "The disconnect submenu needs an interactive terminal."
+    echo "Exact transport only: ai-info --disconnect-transport --confirm"
+    echo "Wireless Debugging OFF: ai-info --wireless-off --confirm"
+    return 2
+  fi
+  get_state
+  printf '\n%sDISCONNECT WIRELESS ADB%s\n' "$BOLD" "$RESET"
+  echo "Current ADB state: $ADB_STATE"
+  [ -n "$ADB_SERIAL" ] && echo "Verified target: $ADB_SERIAL"
+  echo
+  echo "  [1] Disconnect the current verified network ADB transport only"
+  echo "      Keeps Android Wireless Debugging ON so it can reconnect later."
+  echo "  [2] Turn Android Wireless Debugging OFF"
+  echo "      Ends Wireless ADB; does not stop MCP or the secure local shell."
+  echo "  [Q] Cancel"
+  printf '\nSelect [1/2/Q]: '
+  local choice confirm
+  read -r choice || return 2
+  case "$choice" in
+    1)
+      printf 'Disconnect only the exact verified target? [y/N]: '
+      read -r confirm || return 2
+      case "$confirm" in y|Y|yes|YES) disconnect_transport --confirm ;; *) info "Cancelled; no ADB state changed." ;; esac
+      ;;
+    2)
+      printf 'Turn Wireless Debugging OFF now? [y/N]: '
+      read -r confirm || return 2
+      case "$confirm" in y|Y|yes|YES) disable_wireless_debug --confirm ;; *) info "Cancelled; no Android setting changed." ;; esac
+      ;;
+    q|Q|cancel|exit) info "Cancelled; no ADB state changed." ;;
+    *) warn "Unknown selection; no ADB state changed."; return 2 ;;
+  esac
+}
+# --- end WADB v1.7.5 R2 additions ---
+
+control_menu() {
+  local choice max_action=9 disconnect_action=8 commands_action=9
+  if [ "${AI_INFO_HAS_LOCAL_SHELL:-0}" = 1 ]; then
+    max_action=10; disconnect_action=9; commands_action=10
+  fi
+  while :; do
+    show_dashboard
+    printf '\n%sAction [1-%s / Q]: %s' "$BOLD" "$max_action" "$RESET"
+    if ! read -r choice; then
+      printf '\n'
+      info "Input closed. Control Center closed."
+      return
+    fi
+    choice="${choice#"${choice%%[![:space:]]*}"}"
+    choice="${choice%"${choice##*[![:space:]]}"}"
+    [ -n "$choice" ] || return
+    case "$choice" in
+      1) connect_adb; return ;;
+      2)
+        printf '\n'
+        show_mcp
+        printf '\n'
+        echo "Commands: wadb-mcp-start | wadb-mcp-stop | wadb-mcp-restart | wadb-mcp-status"
+        echo "Live log: wadb-mcp-log --follow  (Ctrl+C stops the viewer)"
+        echo "Logout is separate: wadb-mcp-logout --confirm"
+        return
+        ;;
+      3)
+        printf '\n'
+        echo "Automatic recovery can restore Desktop Commander using saved authorization."
+        echo "Command: wadb-mcp-recovery-setup"
+        echo "Android may request one WADB Bridge permission approval."
+        return
+        ;;
+      4)
+        printf '\n'
+        echo "GitHub recovery is optional and is configured after the first MCP login."
+        echo "Guide: $TERMUX_HOME/AI_WADB_DOCS/RECOVERY_GITHUB.md"
+        return
+        ;;
+      5)
+        printf '\n'
+        echo "Session labels are optional and do not change authentication."
+        echo "Set:   ai-info --owner-set NAME"
+        echo "Clear: ai-info --owner-clear"
+        return
+        ;;
+      6) doctor; return ;;
+      7) [ -r "$USER_FIRST" ] && cat "$USER_FIRST" || warn "User guide not found."; return ;;
+
+      8)
+        printf '\n'
+        wadb-local-status
+        printf '\n'
+        echo "Enable: wadb-local-on"
+        echo "Shell:  wadb-local-shell -c 'id'"
+        echo "Stop:   wadb-local-off --confirm"
+        return
+        ;;
+
+      "$disconnect_action") disconnect_menu; return ;;
+      "$commands_action") show_command_catalogue; return ;;
+      q|Q|quit|exit) return ;;
+      *) warn "Choose one of the listed actions, or Q to exit." ;;
+    esac
+  done
+}
+case "$MODE" in
+  "") if [ -t 0 ] && [ -t 1 ]; then control_menu; else show_dashboard; fi ;;
+  --plain) show_dashboard ;;
+  --json|--setup-status) show_json ;;
+  --status)
+    get_state
+    echo "ADB=$ADB_STATE"
+    echo "LOCAL_ADB=$LOCAL_ADB_STATE"
+    echo "LOCAL_ADB_MODE=$LOCAL_ADB_MODE"
+    echo "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT"
+    echo "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL"
+    echo "LOCAL_ADB_LISTENER_SCOPE=$LOCAL_ADB_LISTENER_SCOPE"
+    echo "ADBD_TCP_EXPOSURE=$LOCAL_ADB_TCP_EXPOSURE"
+    echo "ADB_ENABLED=$LOCAL_ADB_ENABLED"
+    echo "WIRELESS_DEBUG=$WIRELESS_STATE"
+    echo "ADBD=$ADBD_STATE"
+    echo "PAIRING=$PAIRING_STATE"
+    echo "MCP=$MCP_STATE"
+    echo "MCP_DESIRED=$MCP_DESIRED"
+    echo "RECOVERY_ENABLED=$RECOVERY_ENABLED"
+    echo "WATCHDOG=$WATCHDOG"
+    ;;
+  --mcp) show_mcp ;;
+  --recovery) show_recovery ;;
+  --disconnect) disconnect_menu ;;
+  --disconnect-transport) shift; disconnect_transport "$@" ;;
+  --wireless-off) shift; disable_wireless_debug "$@" ;;
+  --commands) show_command_catalogue ;;
+  --doctor) doctor ;;
+  --local) wadb-local-status ;;
+  --local-on) wadb-local-on ;;
+  --local-off) shift; wadb-local-off "$@" ;;
+
+  --connect) connect_adb ;;
+  --pair) pair_adb "$@" ;;
+  --pair-reset) pair_reset ;;
+  --owner-show) get_state; echo "OWNER=$MCP_OWNER"; echo "OPTIONAL=yes" ;;
+  --owner-set) owner_set "$@" ;;
+  --owner-clear) owner_clear ;;
+  --instructions)
+    [ -r "$USER_FIRST" ] && cat "$USER_FIRST" || { echo "Guide not found: $USER_FIRST"; exit 2; }
+    ;;
+  --full)
+    [ -r "$AI_FIRST" ] && cat "$AI_FIRST"
+    printf '\n--- ENVIRONMENT REFERENCE ---\n\n'
+    [ -r "$DOC" ] && cat "$DOC" || { echo "Guide not found: $DOC"; exit 2; }
+    ;;
+  --help|-h)
+    cat <<'EOF'
+ai-info                         open the interactive Control Center (TTY)
+ai-info --plain                 print the dashboard without color or prompts
+ai-info --json                  machine-readable state for AI
+ai-info --connect               connect/recover Wireless ADB
+ai-info --pair CODE             pair only after PAIRING_REQUIRED
+ai-info --pair-reset            clear abandoned/expired pairing state
+ai-info --mcp                   Remote Desktop Commander status
+ai-info --recovery              MCP recovery status/events
+wadb-mcp-log --follow           view live MCP log; Ctrl+C only stops viewer
+ai-info --doctor                read-only diagnostics
+ai-info --local                 secure localhost shell status
+ai-info --local-on              enable/repair loopback-only uid=2000 shell
+ai-info --local-off --confirm    stop the secure local shell bridge
+wadb-local-shell -c 'COMMAND'    run a command through the secure local shell
+ai-info --owner-show            show optional MCP owner label
+ai-info --owner-set NAME        set optional MCP owner label
+ai-info --owner-clear           clear optional owner label
+ai-info --instructions          user start guide
+ai-info --full                  AI rules + full environment reference
+
+Important:
+- Owner label is optional.
+- STOP/RESTART preserve saved MCP authorization.
+- STOP changes only the MCP desired state; recovery/watchdog enablement is separate.
+- LOGOUT is not normal recovery and may require browser verification afterward.
+ai-info --disconnect             interactive, confirmed Wireless ADB disconnect menu
+ai-info --disconnect-transport --confirm  disconnect only the exact verified network ADB target
+ai-info --wireless-off --confirm  turn Android Wireless Debugging OFF through WADB Bridge
+ai-info --commands                full command catalogue and usage reference
+EOF
+    ;;
+  *)
+    echo "Unknown option: $MODE"
+    echo "Run: ai-info --help"
+    exit 2
+    ;;
+esac

@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+command -v node >/dev/null 2>&1 || {
+  echo "Node.js is required for the signed integrity check. Install it with: pkg install nodejs" >&2
+  exit 2
+}
+if [ "$#" -eq 0 ] && [ -z "${WADB_TRUSTED_RELEASE_KEY_SHA256:-}" ]; then
+  echo "An independently obtained release-key fingerprint is required:" >&2
+  echo "  wadb-integrity-check --expected-fingerprint YOUR_TRUSTED_FINGERPRINT" >&2
+  exit 2
+fi
+exec node "$PREFIX/libexec/ai-wadb/verify-installed.js" "$@"

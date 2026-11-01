@@ -1,0 +1,335 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+LOGDIR="$STATE/logs"
+
+mkdir -p "$STATE" "$LOGDIR"
+
+MCP_HOME="$TERMUX_HOME"
+MCP_TARGET="DEFAULT"
+WATCHDOG_INTERVAL=15
+GITHUB_ENABLED=0
+GITHUB_OWNER=""
+GITHUB_REPO=""
+GITHUB_BRANCH="wadb-control"
+GITHUB_FILE="wadb-control.json"
+GITHUB_READ_MODE="auto"
+GITHUB_TOKEN_FILE="$STATE/github-read-token"
+
+if [ -r "$CONFIG" ]; then
+  source "$CONFIG"
+fi
+
+NOTIFICATIONS_ENABLED="${NOTIFICATIONS_ENABLED:-1}"
+NOTIFY_MCP_STATE="${NOTIFY_MCP_STATE:-1}"
+NOTIFY_WATCHDOG_STATE="${NOTIFY_WATCHDOG_STATE:-1}"
+NOTIFY_RECOVERY_FAILURES="${NOTIFY_RECOVERY_FAILURES:-1}"
+
+watchdog_pid_live() {
+  local p="${1:-}"
+  [ -n "$p" ] && [ -r "/proc/$p/cmdline" ] || return 1
+  kill -0 "$p" 2>/dev/null || return 1
+  tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -q 'wadb-mcp-watchdog'
+}
+
+migrate_recovery_state() {
+  local wd legacy
+  if [ ! -f "$STATE/recovery_enabled" ]; then
+    if [ -r "$CONFIG" ]; then
+      wd="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
+      legacy="$(cat "$STATE/desired_state" 2>/dev/null || echo online)"
+      if watchdog_pid_live "$wd"; then
+        echo 1 > "$STATE/recovery_enabled"
+      elif [ "$legacy" = "offline" ]; then
+        echo 0 > "$STATE/recovery_enabled"
+      else
+        echo 1 > "$STATE/recovery_enabled"
+      fi
+    else
+      echo 0 > "$STATE/recovery_enabled"
+    fi
+  fi
+  if [ ! -f "$STATE/mcp_desired_state" ]; then
+    legacy="$(cat "$STATE/desired_state" 2>/dev/null || echo online)"
+    case "$legacy" in
+      offline) echo offline > "$STATE/mcp_desired_state" ;;
+      *) echo online > "$STATE/mcp_desired_state" ;;
+    esac
+  fi
+}
+migrate_recovery_state
+
+recovery_enabled() {
+  [ "$(cat "$STATE/recovery_enabled" 2>/dev/null || echo 0)" = "1" ]
+}
+
+set_recovery_enabled() {
+  case "${1:-}" in
+    1|yes|on|enabled) echo 1 > "$STATE/recovery_enabled" ;;
+    *) echo 0 > "$STATE/recovery_enabled" ;;
+  esac
+}
+
+mcp_desired_value() {
+  local v
+  v="$(cat "$STATE/mcp_desired_state" 2>/dev/null || echo online)"
+  case "$v" in online|offline) printf '%s\n' "$v" ;; *) echo online ;; esac
+}
+
+set_mcp_desired() {
+  local v="${1:-online}"
+  case "$v" in online|offline) ;; *) v=online ;; esac
+  echo "$v" > "$STATE/mcp_desired_state"
+  echo "$v" > "$STATE/desired_state"
+}
+
+notify_event() {
+  [ -x "$PREFIX/bin/wadb-notify" ] || return 0
+  "$PREFIX/bin/wadb-notify" "$@" >/dev/null 2>&1 || true
+}
+
+owner_label() {
+  local f="$MCP_HOME/REMOTE_SESSION_ID.txt"
+  if [ -r "$f" ]; then
+    sed -n 's/^OWNER=//p' "$f" | head -n1
+  fi
+}
+
+dc_path() {
+  local p=""
+  p="$(find "$TERMUX_HOME/.npm/_npx" -path '*/node_modules/@wonderwhy-er/desktop-commander/dist/index.js' -print -quit 2>/dev/null || true)"
+  if [ -z "$p" ] && [ "$MCP_HOME" != "$TERMUX_HOME" ]; then
+    p="$(find "$MCP_HOME/.npm/_npx" -path '*/node_modules/@wonderwhy-er/desktop-commander/dist/index.js' -print -quit 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$p"
+}
+
+pid_matches_mcp() {
+  local p="$1" envf="/proc/$1/environ" cmdf="/proc/$1/cmdline"
+  [ -r "$envf" ] && [ -r "$cmdf" ] || return 1
+  tr '\0' '\n' < "$envf" 2>/dev/null | grep -Fxq "HOME=$MCP_HOME" || return 1
+  local c
+  c="$(tr '\0' ' ' < "$cmdf" 2>/dev/null)"
+  case "$c" in
+    *desktop-commander*/dist/index.js*" remote"*) return 0 ;;
+    *npx*desktop-commander*" remote"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+find_mcp_pids() {
+  local envf p
+  for envf in /proc/[0-9]*/environ; do
+    p="${envf#/proc/}"; p="${p%/environ}"
+    pid_matches_mcp "$p" && printf '%s\n' "$p"
+  done
+}
+
+find_mcp_pid() {
+  find_mcp_pids 2>/dev/null | head -n1
+}
+
+credentials_state() {
+  [ -f "$MCP_HOME/.desktop-commander-device/device.json" ] && echo yes || echo no
+}
+
+ensure_online() (
+  exec 8>"$STATE/ensure.lock"
+  flock -n 8 || return 0
+
+  local reason="${1:-watchdog}" p dc newpid
+  [ "$(mcp_desired_value)" = "online" ] || return 0
+
+  p="$(cat "$STATE/remote.pid" 2>/dev/null || true)"
+  if [ -n "$p" ] && pid_matches_mcp "$p"; then
+    return 0
+  fi
+
+  p="$(find_mcp_pid 2>/dev/null || true)"
+  if [ -n "$p" ]; then
+    echo "$p" > "$STATE/remote.pid"
+    return 0
+  fi
+
+  mkdir -p "$MCP_HOME"
+  dc="$(dc_path)"
+  if [ -n "$dc" ]; then
+    (
+      cd "$MCP_HOME" || exit 1
+      nohup env HOME="$MCP_HOME" HISTFILE="$MCP_HOME/.bash_history" \
+        node "$dc" remote >> "$LOGDIR/remote.log" 2>&1 < /dev/null 8>&- 9>&- &
+      echo $! > "$STATE/remote.pid"
+    )
+  elif command -v npx >/dev/null 2>&1; then
+    (
+      cd "$MCP_HOME" || exit 1
+      nohup env HOME="$MCP_HOME" HISTFILE="$MCP_HOME/.bash_history" \
+        npx --yes @wonderwhy-er/desktop-commander@0.3.1 remote \
+        >> "$LOGDIR/remote.log" 2>&1 < /dev/null 8>&- 9>&- &
+      echo $! > "$STATE/remote.pid"
+    )
+  else
+    echo "$(date -Iseconds) ERROR Desktop Commander unavailable; install nodejs/npm first" >> "$LOGDIR/errors.log"
+    [ "${NOTIFY_RECOVERY_FAILURES:-1}" = "1" ] && notify_event MCP_START_FAILED "Desktop Commander unavailable"
+    return 1
+  fi
+
+  newpid="$(cat "$STATE/remote.pid" 2>/dev/null || true)"
+  echo "$(date -Iseconds) START_MCP pid=$newpid reason=$reason" >> "$STATE/events.log"
+  case "$reason" in
+    manual|setup) notify_event MCP_STARTED_MANUAL "$reason" ;;
+    github*) notify_event MCP_RECOVERED_GITHUB "$reason" ;;
+    job|boot) notify_event MCP_RECOVERED_JOB "$reason" ;;
+    restart) notify_event MCP_RESTARTED "$reason" ;;
+    *) notify_event MCP_RECOVERED_WATCHDOG "$reason" ;;
+  esac
+)
+
+stop_now() {
+  local reason="${1:-manual}" p pids
+  pids="$(find_mcp_pids 2>/dev/null || true)"
+  if [ -n "$pids" ]; then
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      kill "$p" 2>/dev/null || true
+    done <<< "$pids"
+    sleep 1
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      pid_matches_mcp "$p" && kill -9 "$p" 2>/dev/null || true
+    done <<< "$pids"
+  fi
+
+  rm -f "$STATE/remote.pid"
+  echo "$(date -Iseconds) STOP_MCP reason=$reason" >> "$STATE/events.log"
+  case "$reason" in restart*) ;; *) notify_event MCP_STOPPED "$reason" ;; esac
+}
+
+write_status() {
+  local p desired creds wd owner rec actual count
+  p="$(find_mcp_pid 2>/dev/null || true)"
+  count="$(find_mcp_pids 2>/dev/null | wc -l | tr -d ' ')"
+  desired="$(mcp_desired_value)"
+  creds="$(credentials_state)"
+  wd="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
+  watchdog_pid_live "$wd" || wd=""
+  owner="$(owner_label)"
+  [ -n "$owner" ] || owner="NOT_SET"
+  recovery_enabled && rec=yes || rec=no
+  [ -n "$p" ] && actual=online || actual=offline
+  {
+    echo "timestamp=$(date -Iseconds)"
+    echo "owner=$owner"
+    echo "mcp_home=$MCP_HOME"
+    echo "recovery_enabled=$rec"
+    echo "mcp_desired=$desired"
+    echo "desired=$desired"
+    echo "mcp_actual=$actual"
+    echo "mcp_process_count=${count:-0}"
+    echo "remote_pid=${p:-offline}"
+    echo "credentials=$creds"
+    echo "watchdog_pid=${wd:-none}"
+    echo "watchdog_interval=$WATCHDOG_INTERVAL"
+    echo "notifications_enabled=${NOTIFICATIONS_ENABLED:-1}"
+    echo "github_enabled=$GITHUB_ENABLED"
+    echo "github_owner=$GITHUB_OWNER"
+    echo "github_repo=$GITHUB_REPO"
+    echo "github_branch=$GITHUB_BRANCH"
+    echo "github_read_mode=$GITHUB_READ_MODE"
+    echo "github_read_mode_last=$(cat "$STATE/github.read_mode.last" 2>/dev/null || echo none)"
+    echo "github_read_error=$(cat "$STATE/github.read_error" 2>/dev/null || echo none)"
+    echo "github_generation=$(cat "$STATE/github.last_generation" 2>/dev/null || echo none)"
+    echo "github_control_identity=$(cat "$STATE/github.control_identity" 2>/dev/null || echo none)"
+    echo "target=$MCP_TARGET"
+  } > "$STATE/status"
+}
+
+github_sync() {
+  [ "$GITHUB_ENABLED" = "1" ] || return 0
+  [ -n "$GITHUB_OWNER" ] && [ -n "$GITHUB_REPO" ] || return 0
+  command -v python >/dev/null 2>&1 || {
+    echo missing_python > "$STATE/github.read_error"
+    return 0
+  }
+
+  local json parsed schema gen action target last identity saved_identity
+  json="$(/data/data/com.termux/files/usr/libexec/ai-wadb/github-control-fetch)" || return 0
+
+  parsed="$(printf '%s' "$json" | python -c 'import json,sys; d=json.load(sys.stdin); print(str(d.get("schema",""))+"\t"+str(d.get("generation",""))+"\t"+str(d.get("action",""))+"\t"+str(d.get("target","")))' 2>/dev/null)" || {
+    echo invalid_control_json > "$STATE/github.read_error"
+    return 0
+  }
+  IFS=$'\t' read -r schema gen action target <<< "$parsed"
+
+  [ "$schema" = "1" ] || {
+    echo unsupported_schema > "$STATE/github.read_error"
+    return 0
+  }
+  # Validate the persisted counter first. If a previous control file stored an
+  # oversized value, reset into a no-execution baseline state; never execute the
+  # current action as part of recovery from corrupted state.
+  local saved_last
+  saved_last="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
+  if ! [[ "$saved_last" =~ ^[0-9]{1,18}$ ]]; then
+    printf '%s\n' 'GENERATION_RESET_PENDING' > "$STATE/github.control_identity"
+    echo 0 > "$STATE/github.last_generation"
+    echo "$(date -Iseconds) GITHUB_GENERATION_RESET reason=invalid_or_oversized_saved_counter action_not_executed" >> "$STATE/events.log"
+    echo invalid_saved_generation_reset_pending > "$STATE/github.read_error"
+    return 0
+  fi
+  [[ "$gen" =~ ^[0-9]{1,18}$ ]] || {
+    echo invalid_generation_out_of_range > "$STATE/github.read_error"
+    return 0
+  }
+  [ "$target" = "$MCP_TARGET" ] || return 0
+  case "$action" in
+    START_MCP|STOP_MCP|RESTART_MCP|STATUS) ;;
+    *)
+      echo invalid_action > "$STATE/github.read_error"
+      return 0
+      ;;
+  esac
+
+  identity="$GITHUB_OWNER/$GITHUB_REPO@$GITHUB_BRANCH:$GITHUB_FILE#$MCP_TARGET"
+  saved_identity="$(cat "$STATE/github.control_identity" 2>/dev/null || true)"
+  if [ "$saved_identity" != "$identity" ]; then
+    printf '%s\n' "$identity" > "$STATE/github.control_identity"
+    printf '%s\n' "$gen" > "$STATE/github.last_generation"
+    echo "$(date -Iseconds) GITHUB_BASELINE identity=$identity generation=$gen action=$action not_executed" >> "$STATE/events.log"
+    return 0
+  fi
+
+  last="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
+  [[ "$last" =~ ^[0-9]{1,18}$ ]] || {
+    echo invalid_saved_generation > "$STATE/github.read_error"
+    return 0
+  }
+  [ "$gen" -gt "$last" ] || return 0
+
+  echo "$gen" > "$STATE/github.last_generation"
+  echo "$(date -Iseconds) GITHUB action=$action generation=$gen" >> "$STATE/events.log"
+
+  case "$action" in
+    START_MCP)
+      set_mcp_desired online
+      ensure_online github
+      ;;
+    STOP_MCP)
+      set_mcp_desired offline
+      stop_now github
+      ;;
+    RESTART_MCP)
+      set_mcp_desired offline
+      stop_now restart_github
+      sleep 2
+      set_mcp_desired online
+      ensure_online github_restart
+      ;;
+    STATUS)
+      write_status
+      ;;
+  esac
+}

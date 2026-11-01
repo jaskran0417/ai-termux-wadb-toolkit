@@ -1,0 +1,26 @@
+AI Termux WADB Toolkit
+Version: 1.7.5
+Edition: HARDENED
+
+Distribution:
+- Source-available proprietary software.
+- Free personal and non-commercial use under LICENSE.
+- Source is included for inspection; modification and redistribution are reserved to the rights holder or separately authorized contributors.
+- This is an independent project and is not an official Termux, Android, or Desktop Commander product.
+
+Core components:
+- Termux command toolkit and AI-readable documentation.
+- WADB Bridge Android companion package: com.jaskran.wadbbridge.
+- Secure Local Shell native bridge.
+- Optional local MCP watchdog recovery and optional GitHub control recovery.
+
+External dependencies:
+- Desktop Commander is installed separately by the user.
+- Termux packages are installed from the user's configured Termux repositories.
+- Termux:API and its Android companion are optional.
+
+Release integrity:
+- Ed25519-signed MANIFEST.sha256.
+- Signed installed-file inventory.
+- Installer requires independently obtained release-key, installer and verifier trust pins.
+- Integrity checks detect changes in covered files; they do not make user-controlled Termux immutable.

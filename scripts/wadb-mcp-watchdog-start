@@ -1,0 +1,11 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+recovery_enabled || exit 0
+p="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
+if watchdog_pid_live "$p"; then
+  exit 0
+fi
+rm -f "$STATE/watchdog.pid"
+rm -rf "$STATE/watchdog.lockdir"
+nohup "$PREFIX/bin/wadb-mcp-watchdog" >> "$STATE/watchdog.log" 2>&1 < /dev/null &
+echo $! > "$STATE/watchdog.pid"

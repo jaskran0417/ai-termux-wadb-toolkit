@@ -1,0 +1,152 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+TERMUX_HOME=/data/data/com.termux/files/home
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+mkdir -p "$STATE"
+
+usage() {
+  cat <<'TXT'
+Usage:
+  wadb-mcp-github-config --owner GITHUB_USER --repo REPO [options]
+  wadb-mcp-github-config --off
+
+Options:
+  --branch NAME       default: wadb-control
+  --file PATH         default: wadb-control.json
+  --target NAME       default: DEFAULT
+  --mode MODE         auto | public | gh | token
+  --token-file PATH   token mode only
+  --off               disable GitHub recovery
+Read modes:
+  auto    Try public/no-credential first, then read-only token, then existing gh login.
+  public  Public repository; no phone GitHub account/login. Requires git + curl.
+  gh      Use the existing GitHub CLI login from normal Termux HOME. Requires gh.
+  token   Use a local token file. Recommended for a private repo when the token is
+          fine-grained, restricted to this one repo, with Contents: Read-only.
+
+The AI-side GitHub connector account and phone-side GitHub account/token do NOT
+have to be the same account. The AI side needs write access; the phone side
+needs only read access to the configured repo/branch/file.
+
+Do not put a token directly on the command line, in shell history, or in AI chat.
+TXT
+}
+
+if [ "${1:-}" = "--off" ]; then
+  if [ -f "$CONFIG" ]; then
+    sed -i 's/^GITHUB_ENABLED=.*/GITHUB_ENABLED=0/' "$CONFIG"
+  fi
+  echo "GitHub MCP recovery disabled."
+  exit 0
+fi
+
+OWNER=""; REPO=""; BRANCH="wadb-control"; FILE="wadb-control.json"; TARGET="DEFAULT"
+MODE="auto"; TOKEN_FILE="$STATE/github-read-token"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --owner) OWNER="${2:-}"; shift 2 ;;
+    --repo) REPO="${2:-}"; shift 2 ;;
+    --branch) BRANCH="${2:-}"; shift 2 ;;
+    --file) FILE="${2:-}"; shift 2 ;;
+    --target) TARGET="${2:-}"; shift 2 ;;
+    --mode) MODE="${2:-}"; shift 2 ;;
+    --token-file) TOKEN_FILE="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1"; usage; exit 2 ;;
+  esac
+done
+
+[ -n "$OWNER" ] && [ -n "$REPO" ] || { usage; exit 2; }
+case "$MODE" in auto|public|gh|token) ;; *) echo "Invalid --mode: $MODE"; exit 2 ;; esac
+
+[[ "$OWNER" =~ ^[A-Za-z0-9-]+$ ]] || { echo "Invalid GitHub owner."; exit 2; }
+[[ "$REPO" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid GitHub repo."; exit 2; }
+[[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] && [[ "$BRANCH" != *".."* ]] || { echo "Invalid GitHub branch."; exit 2; }
+[[ "$FILE" =~ ^[A-Za-z0-9._/-]+$ ]] && [[ "$FILE" != *".."* ]] || { echo "Invalid GitHub file path."; exit 2; }
+[[ "$TARGET" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid MCP target."; exit 2; }
+
+case "$MODE" in
+  public)
+    command -v curl >/dev/null 2>&1 || {
+      echo "curl is required for public mode."
+      echo "Install it with: pkg install curl"
+      exit 3
+    }
+    command -v git >/dev/null 2>&1 || {
+      echo "git is required for public mode to resolve the current branch head."
+      echo "Install it with: pkg install git"
+      exit 3
+    }
+    ;;
+  token)
+    command -v curl >/dev/null 2>&1 || {
+      echo "curl is required for token mode."
+      echo "Install it with: pkg install curl"
+      exit 3
+    }
+    [ -r "$TOKEN_FILE" ] || {
+      echo "Token file is not readable: $TOKEN_FILE"
+      echo "Create it privately. Do not put the token in shell history or AI chat."
+      exit 3
+    }
+    TOKEN_MODE="$(stat -c '%a' "$TOKEN_FILE" 2>/dev/null || echo unknown)"
+    case "$TOKEN_MODE" in
+      400|600) ;;
+      *)
+        echo "Token file permissions are too broad: mode=$TOKEN_MODE"
+        echo "Required: chmod 600 '$TOKEN_FILE' (or read-only mode 400)."
+        exit 3
+        ;;
+    esac
+    ;;
+  gh)
+    command -v gh >/dev/null 2>&1 || {
+      echo "GitHub CLI (gh) is not installed."
+      echo "Install it with: pkg install gh"
+      exit 3
+    }
+    GH_CONFIG_DIR="$TERMUX_HOME/.config/gh" gh auth status >/dev/null 2>&1 || {
+      echo "No GitHub CLI login found in normal Termux HOME."
+      echo "Run: gh auth login"
+      echo "Then verify: gh auth status"
+      echo "Or use --mode token/public."
+      exit 3
+    }
+    ;;
+esac
+
+MCP_HOME="$TERMUX_HOME"; WATCHDOG_INTERVAL=15
+if [ -f "$CONFIG" ]; then
+  # Config values are written by this toolkit using Bash %q escaping.
+  # shellcheck disable=SC1090
+  source "$CONFIG"
+  MCP_HOME="${MCP_HOME:-$TERMUX_HOME}"
+  WATCHDOG_INTERVAL="${WATCHDOG_INTERVAL:-15}"
+elif [ -f "$HOME/.desktop-commander-device/device.json" ]; then
+  MCP_HOME="$HOME"
+fi
+
+{
+  printf 'MCP_HOME=%q\n' "$MCP_HOME"
+  printf 'MCP_TARGET=%q\n' "$TARGET"
+  printf 'WATCHDOG_INTERVAL=%q\n' "$WATCHDOG_INTERVAL"
+  printf 'GITHUB_ENABLED=%q\n' "1"
+  printf 'GITHUB_OWNER=%q\n' "$OWNER"
+  printf 'GITHUB_REPO=%q\n' "$REPO"
+  printf 'GITHUB_BRANCH=%q\n' "$BRANCH"
+  printf 'GITHUB_FILE=%q\n' "$FILE"
+  printf 'GITHUB_READ_MODE=%q\n' "$MODE"
+  printf 'GITHUB_TOKEN_FILE=%q\n' "$TOKEN_FILE"
+} > "$CONFIG"
+chmod 600 "$CONFIG"
+rm -f "$STATE/github.read_error"
+
+echo "GitHub recovery configured."
+echo "Repository: $OWNER/$REPO"
+echo "Branch: $BRANCH"
+echo "File: $FILE"
+echo "Target: $TARGET"
+echo "Read mode: $MODE"
+echo "Next: wadb-mcp-github-test"
+echo "Then: wadb-mcp-github-sync   # establish/verify the safe baseline while MCP is online"

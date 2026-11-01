@@ -1,0 +1,12 @@
+#!/data/data/com.termux/files/usr/bin/bash
+TERMUX_HOME=/data/data/com.termux/files/home
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+PREFIX=/data/data/com.termux/files/usr
+
+[ -r "$CONFIG" ] || exit 0
+source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
+recovery_enabled || exit 0
+"$PREFIX/bin/wadb-mcp-watchdog-start"
+[ "$(mcp_desired_value)" = "online" ] && ensure_online job || true
+write_status

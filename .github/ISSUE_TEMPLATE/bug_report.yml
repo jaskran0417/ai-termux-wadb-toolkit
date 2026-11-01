@@ -1,0 +1,44 @@
+name: Bug report
+description: Report a reproducible toolkit issue
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Toolkit version and edition
+      placeholder: "1.7.5 HARDENED"
+    validations:
+      required: true
+  - type: input
+    id: component
+    attributes:
+      label: Affected component
+      description: "Termux, Wireless ADB, WADB Bridge, Secure Local Shell, MCP, recovery, installer, etc."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized output
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: "I removed pairing codes, passwords, tokens, private keys and personal data."
+          required: true

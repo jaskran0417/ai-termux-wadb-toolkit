@@ -1,0 +1,100 @@
+AI TERMUX WADB TOOLKIT
+FREE PERSONAL AND NON-COMMERCIAL SOURCE-AVAILABLE LICENCE
+Version 1.0 — 2 November 2026
+
+Copyright (c) 2026 Jaskran Singh. All rights reserved.
+
+IMPORTANT: This is a proprietary source-available licence, not an open-source licence.
+The source is published so recipients can inspect the implementation. Public availability
+of source does not grant a general right to modify, create derivative works from, or
+redistribute the Toolkit.
+
+1. Permission to install and use
+
+The copyright holder grants you a free, personal, worldwide, non-exclusive,
+non-transferable and non-sublicensable licence to download, inspect, install and run
+an unmodified official release of AI Termux WADB Toolkit for personal, educational,
+research and other non-commercial purposes.
+
+No purchase or subscription fee is required for this permission. You may use the
+official Toolkit on devices you own or are authorized to administer.
+
+2. Source inspection
+
+You may read and inspect source code and documentation included in the official
+public distribution. Source availability is provided for transparency, learning,
+security review and confidence in what the official package contains.
+
+3. Modification and derivative works
+
+You may not modify, patch, adapt, translate, alter, create derivative works from,
+remove protection or integrity checks from, or produce a modified build of the Toolkit
+without prior written permission from the copyright holder.
+
+The copyright holder may authorize named contributors to modify specified files
+or branches through separate written permission. A public download, GitHub account,
+issue report, or pull request does not by itself grant contributor or maintainer rights.
+
+This section does not claim that technical modification is impossible on a device
+controlled by its user. It states the permission granted by this licence. Modified
+copies are not official releases and are not entitled to official release signatures,
+support or update assurances.
+
+4. Redistribution
+
+You may not redistribute, mirror, repackage, sublicense, sell, rent, host for others,
+publish modified copies of, or provide the Toolkit as a service, in source or binary
+form, without prior written permission from the copyright holder.
+
+You may share the official project page and release link so that other users can obtain
+their own copy directly from the official distribution channel.
+
+5. Commercial use
+
+This licence does not grant commercial use. Commercial use includes use in a paid
+product or service, use to provide paid access or support, resale, bundling in a
+commercial offering, or use primarily for commercial advantage or monetary
+compensation. Separate written permission is required for any commercial use.
+
+6. Notices, marks and attribution
+
+You must not remove copyright, licence, attribution or third-party notices from an
+official copy. The product name, project identity, logos and marks may not be used
+to imply endorsement by the copyright holder or to present an unofficial build as
+an official release.
+
+7. Third-party components
+
+Some bundled components are governed by their own third-party licences. Those
+licences apply to the relevant components and are not replaced by this licence.
+See THIRD_PARTY_NOTICES.md and third_party/licenses/.
+
+8. Reservation of rights
+
+All rights not expressly granted in this licence are reserved by the copyright holder.
+Nothing in this licence limits rights that cannot lawfully be restricted under
+applicable law.
+
+9. Disclaimer
+
+The Toolkit is provided "AS IS", without warranties or conditions of any kind, to the
+maximum extent permitted by applicable law. The copyright holder is not liable for
+indirect, incidental, special or consequential loss arising from use or inability to
+use the Toolkit, except to the extent such liability cannot be excluded under
+applicable law.
+
+10. Termination
+
+The permission granted by this licence terminates automatically if you materially
+breach its terms. Upon termination, stop using and delete copies of the Toolkit in
+your possession, subject to rights that cannot lawfully be excluded.
+
+11. Contact and separate permissions
+
+Requests for contributor access, permission to modify, redistribution or commercial
+licensing must be made through the official project repository. Only written
+authorization from the copyright holder grants rights beyond this licence.
+
+This licence is intended for the independent AI Termux WADB Toolkit project. It does
+not claim ownership of Android, Termux, Desktop Commander, Kotlin, JetBrains
+Annotations or other third-party software.

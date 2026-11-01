@@ -1,0 +1,72 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+NOTIFICATIONS_ENABLED=1
+NOTIFY_MCP_STATE=1
+NOTIFY_WATCHDOG_STATE=1
+NOTIFY_RECOVERY_FAILURES=1
+[ -r "$CONFIG" ] && source "$CONFIG"
+[ "${NOTIFICATIONS_ENABLED:-1}" = "1" ] || exit 0
+command -v termux-notification >/dev/null 2>&1 || exit 0
+/system/bin/pm path com.termux.api >/dev/null 2>&1 || exit 0
+
+event="${1:-}"; detail="${2:-}"
+case "$event" in
+  WATCHDOG_STARTED)
+    [ "${NOTIFY_WATCHDOG_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Recovery watchdog online • ${detail:-15}s polling" ;;
+  MCP_STARTED_MANUAL)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    title="Desktop Commander"; content="MCP started • recovery state preserved" ;;
+  MCP_RECOVERED_WATCHDOG)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Desktop Commander recovered automatically" ;;
+  MCP_RECOVERED_GITHUB)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Desktop Commander recovered through GitHub" ;;
+  MCP_RECOVERED_JOB)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Desktop Commander restored by Android recovery check" ;;
+  MCP_RESTARTED)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    title="Desktop Commander"; content="MCP restarted • saved login preserved" ;;
+  MCP_STOPPED)
+    [ "${NOTIFY_MCP_STATE:-1}" = "1" ] || exit 0
+    rec="$(cat "$STATE/recovery_enabled" 2>/dev/null || echo 0)"
+    title="Desktop Commander"
+    if [ "$rec" = "1" ]; then
+      content="MCP stopped • recovery watchdog remains enabled"
+    else
+      content="MCP stopped • recovery is disabled"
+    fi ;;
+  RECOVERY_ENABLED)
+    [ "${NOTIFY_WATCHDOG_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Automatic MCP recovery enabled" ;;
+  RECOVERY_DISABLED)
+    [ "${NOTIFY_WATCHDOG_STATE:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Automatic MCP recovery disabled • MCP login preserved" ;;
+  MCP_START_FAILED)
+    [ "${NOTIFY_RECOVERY_FAILURES:-1}" = "1" ] || exit 0
+    title="WADB Recovery"; content="Desktop Commander recovery failed${detail:+ • $detail}" ;;
+  *) exit 0 ;;
+esac
+
+mkdir -p "$STATE"
+now="$(date +%s 2>/dev/null || echo 0)"
+last_file="$STATE/notification.last"
+fingerprint="$event|$detail"
+if [ -r "$last_file" ]; then
+  IFS='|' read -r last_time last_event last_detail < "$last_file" || true
+  if [ "$last_event|$last_detail" = "$fingerprint" ] && [[ "$now" =~ ^[0-9]+$ ]] && [[ "$last_time" =~ ^[0-9]+$ ]] && [ $((now-last_time)) -lt 5 ]; then
+    exit 0
+  fi
+fi
+printf '%s|%s|%s\n' "$now" "$event" "$detail" > "$last_file"
+chmod 600 "$last_file" 2>/dev/null || true
+
+timeout 5 termux-notification --id 42117 --title "$title" --content "$content" \
+  --group "wadb-recovery" --priority default >/dev/null 2>&1 || true
+exit 0

@@ -1,0 +1,55 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+PATH="$PREFIX/bin:/system/bin:$PATH"
+export PATH
+
+TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+
+case "${1:-}" in
+  --help|-h)
+    cat <<'TXT'
+Usage:
+  wadb-local-off --confirm
+
+Stops the authenticated loopback-only uid=2000 shell bridge.
+It does not disable adb_enabled and does not enable classic adbd TCP.
+TXT
+    exit 0
+    ;;
+  --confirm) ;;
+  *)
+    echo "CONFIRMATION_REQUIRED=yes"
+    echo "Run: wadb-local-off --confirm"
+    exit 2
+    ;;
+esac
+
+if ! command -v wadb-local-shell >/dev/null 2>&1 || [ ! -s "$TOKEN_FILE" ]; then
+  echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"
+  exit 0
+fi
+
+if ! timeout 4 wadb-local-shell --ping >/dev/null 2>&1; then
+  rm -f "$TOKEN_FILE"
+  echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"
+  exit 0
+fi
+
+wadb-local-shell --stop || {
+  echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_FAILED"
+  exit 20
+}
+
+sleep 1
+if timeout 3 wadb-local-shell --ping >/dev/null 2>&1; then
+  echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_VERIFY_FAILED"
+  exit 21
+fi
+
+rm -f "$TOKEN_FILE"
+echo "ADBD_STATE=$(getprop init.svc.adbd 2>/dev/null || true)"
+echo "TCP_PORT=$(getprop service.adb.tcp.port 2>/dev/null || true)"
+echo "RESULT=SECURE_LOCAL_BRIDGE_STOPPED"

@@ -1,0 +1,250 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+. "$PREFIX/libexec/ai-wadb/wadb-common"
+APK="$HOME/.ai-wadb/wadb-bridge.apk"
+CODE=""
+IP=""
+PAIR_PORT=""
+MODE="auto"
+
+usage() {
+cat <<'EOF'
+wadb-bootstrap [options]
+
+One-time setup / pairing for the portable AI Termux WADB toolkit.
+
+Options:
+  --status                 Show current ADB/bridge state.
+  --finalize               Install WADB Bridge and grant required permissions
+                           using an already-connected uid=2000 ADB shell.
+  --pair-code CODE         Pair using Android's typed _adb-tls-pairing._tcp endpoint.
+  --ip IP                  Optional IP filter/override for manual fallback.
+  --pair-port PORT         Manual fallback when typed pairing discovery is unavailable.
+  --help                   Show this help.
+
+Preferred AI flow:
+  1. Run wireless-adb-connect first.
+  2. Only if it returns PAIRING_REQUIRED, ask the user to open:
+       Developer options > Wireless debugging > Pair device with pairing code
+  3. Ask only for the 6-digit code.
+  4. Run:
+       wadb-bootstrap --pair-code 123456
+
+The script discovers _adb-tls-pairing._tcp and uses that exact pairing endpoint.
+It does NOT infer a pairing port from ordinary open ports.
+EOF
+}
+
+show_status() {
+  echo "Device: $(getprop ro.product.manufacturer 2>/dev/null) $(getprop ro.product.model 2>/dev/null)"
+  echo "Android: $(getprop ro.build.version.release 2>/dev/null)"
+  echo "ADB devices:"
+  adb devices -l 2>/dev/null || true
+  echo "Typed ADB endpoints:"
+  adb-mdns-discover --wait 2 --type all 2>/dev/null || true
+  if command -v wireless-debug-status >/dev/null 2>&1; then
+    echo "Wireless Debugging:"
+    wireless-debug-status 2>&1 || true
+  fi
+}
+
+verify_cached_bridge_apk() {
+  local expected_file="$PREFIX/libexec/ai-wadb/wadb-bridge.apk.sha256"
+  local expected actual
+  [ -s "$expected_file" ] || { echo "BRIDGE_APK_EXPECTED_SHA256_MISSING"; return 1; }
+  expected="$(awk 'NR==1 {print $1}' "$expected_file" 2>/dev/null)"
+  [[ "$expected" =~ ^[[:xdigit:]]{64}$ ]] || { echo "BRIDGE_APK_EXPECTED_SHA256_INVALID"; return 1; }
+  [ -s "$APK" ] || { echo "BRIDGE_APK_MISSING"; return 1; }
+  actual="$(sha256sum "$APK" 2>/dev/null | awk '{print $1}')"
+  if [ "$actual" != "$expected" ]; then
+    echo "BRIDGE_APK_SHA256_MISMATCH"
+    echo "EXPECTED_SHA256=$expected"
+    echo "ACTUAL_SHA256=$actual"
+    return 1
+  fi
+  echo "BRIDGE_APK_SHA256=verified"
+}
+
+finalize() {
+  local serial bridge_ok=0 termux_ok=0 status install_out grant_blocked=0 mfr
+  serial="$(wadb_connected_serial || true)"
+  if [ -z "$serial" ] || ! wadb_verify_shell "$serial"; then
+    echo "FINALIZE_REQUIRES_CONNECTED_ADB_SHELL"
+    return 20
+  fi
+  [ -f "$APK" ] || { echo "MISSING_APK=$APK"; return 21; }
+  verify_cached_bridge_apk || return 25
+
+  # Keep the currently trusted ADB session alive while the bridge is installed/updated.
+  install_out="$(adb -s "$serial" install -r "$APK" 2>&1)" || {
+    echo "BRIDGE_INSTALL_FAILED"
+    printf '%s\n' "$install_out"
+    if printf '%s\n' "$install_out" | grep -q 'INSTALL_FAILED_UPDATE_INCOMPATIBLE'; then
+      echo "BRIDGE_SIGNER_MIGRATION_REQUIRED"
+      echo "ACTION=uninstall_old_bridge_then_rerun_connect"
+      echo "NOTE=uninstalling_the_old_bridge_removes_its_permission_grant"
+    fi
+    return 22
+  }
+
+  if ! adb -s "$serial" shell dumpsys package com.termux 2>/dev/null | grep -q 'android.permission.WRITE_SECURE_SETTINGS'; then
+    echo "TERMUX_BUILD_DOES_NOT_DECLARE_WRITE_SECURE_SETTINGS"
+    return 23
+  fi
+  if ! adb -s "$serial" shell dumpsys package com.jaskran.wadbbridge 2>/dev/null | grep -q 'android.permission.WRITE_SECURE_SETTINGS'; then
+    echo "BRIDGE_DOES_NOT_DECLARE_WRITE_SECURE_SETTINGS"
+    return 24
+  fi
+
+  has_secure_grant() {
+    adb -s "$serial" shell dumpsys package "$1" 2>/dev/null |
+      grep -q 'android.permission.WRITE_SECURE_SETTINGS: granted=true'
+  }
+
+  grant_secure_if_needed() {
+    pkg="$1"; label="$2"; last=""
+    if has_secure_grant "$pkg"; then
+      echo "${label}_WRITE_SECURE_SETTINGS=already_granted"
+      return 0
+    fi
+
+    # OEM builds differ in which package-manager entry point accepts a
+    # development permission grant. Try the normal shell forms and verify
+    # the package state after every attempt instead of trusting exit text.
+    last="$(adb -s "$serial" shell pm grant --user 0 "$pkg" android.permission.WRITE_SECURE_SETTINGS 2>&1 || true)"
+    has_secure_grant "$pkg" && { echo "${label}_WRITE_SECURE_SETTINGS=granted"; return 0; }
+
+    last="$(adb -s "$serial" shell pm grant "$pkg" android.permission.WRITE_SECURE_SETTINGS 2>&1 || true)"
+    has_secure_grant "$pkg" && { echo "${label}_WRITE_SECURE_SETTINGS=granted"; return 0; }
+
+    last="$(adb -s "$serial" shell cmd package grant --user 0 "$pkg" android.permission.WRITE_SECURE_SETTINGS 2>&1 || true)"
+    has_secure_grant "$pkg" && { echo "${label}_WRITE_SECURE_SETTINGS=granted"; return 0; }
+
+    last="$(adb -s "$serial" shell cmd package grant "$pkg" android.permission.WRITE_SECURE_SETTINGS 2>&1 || true)"
+    has_secure_grant "$pkg" && { echo "${label}_WRITE_SECURE_SETTINGS=granted"; return 0; }
+
+    echo "${label}_WRITE_SECURE_SETTINGS=not_granted"
+    [ -n "$last" ] && printf 'LAST_GRANT_ERROR=%s\n' "$last"
+    if printf '%s\n' "$last" | grep -q 'GRANT_RUNTIME_PERMISSIONS'; then
+      grant_blocked=1
+    fi
+    return 1
+  }
+
+  # Grant/verify independently. A redundant failure for one package must
+  # never prevent the other package from being attempted.
+  grant_secure_if_needed com.jaskran.wadbbridge BRIDGE && bridge_ok=1
+  grant_secure_if_needed com.termux TERMUX && termux_ok=1
+
+  if [ "$bridge_ok" -ne 1 ] || [ "$termux_ok" -ne 1 ]; then
+    echo "SECURE_SETTINGS_GRANT_INCOMPLETE"
+    if [ "$grant_blocked" -eq 1 ]; then
+      mfr="$(getprop ro.product.manufacturer 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+      case "$mfr" in
+        oppo|oneplus|realme*)
+          echo "COLOROS_ADB_PERMISSION_RESTRICTION=detected"
+          echo "ACTION=enable_disable_permission_monitoring"
+          echo "PATH=Developer_options_>_Disable_permission_monitoring_>_ON_blue"
+          echo "THEN=rerun_ai-info_--connect"
+          ;;
+        *)
+          echo "ADB_PERMISSION_GRANT_RESTRICTED=detected"
+          echo "ACTION=check_OEM_developer_options_for_ADB_permission_restrictions"
+          ;;
+      esac
+    fi
+    return 25
+  fi
+
+  status="$(wireless-debug-status 2>&1 || true)"
+  printf '%s\n' "$status"
+  if ! printf '%s\n' "$status" | grep -q '^bridge_write=ready$'; then
+    echo "BRIDGE_WRITE_VERIFY_FAILED"
+    return 26
+  fi
+
+  echo "WADB_BOOTSTRAP_COMPLETE"
+  return 0
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --status) MODE="status"; shift ;;
+    --finalize) MODE="finalize"; shift ;;
+    --pair-code) CODE="${2:-}"; MODE="pair"; shift 2 ;;
+    --ip) IP="${2:-}"; shift 2 ;;
+    --pair-port) PAIR_PORT="${2:-}"; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: $1"; usage; exit 2 ;;
+  esac
+done
+
+case "$MODE" in
+  status) show_status; exit 0 ;;
+  finalize) finalize; exit $? ;;
+esac
+
+serial="$(wadb_connected_serial || true)"
+if [ -n "$serial" ] && wadb_verify_shell "$serial"; then
+  finalize
+  exit $?
+fi
+
+if [ "$MODE" != "pair" ] || [ -z "$CODE" ]; then
+  echo "NO_AUTHENTICATED_ADB_CONNECTION"
+  echo "ACTION=run_wireless-adb-connect_first"
+  exit 3
+fi
+
+case "$CODE" in *[!0-9]*|'') echo "PAIR_CODE_MUST_BE_6_DIGITS"; exit 4;; esac
+[ "${#CODE}" -eq 6 ] || { echo "PAIR_CODE_MUST_BE_6_DIGITS"; exit 4; }
+
+rows=""
+if [ -n "$PAIR_PORT" ]; then
+  if [ -z "$IP" ]; then IP="$(wadb_wifi_ip 2>/dev/null || true)"; fi
+  [ -n "$IP" ] || { echo "CURRENT_WIFI_IP_NOT_DETECTED"; exit 5; }
+  rows=$(printf 'PAIRING\t%s\t%s\tmanual-fallback\n' "$IP" "$PAIR_PORT")
+else
+  for i in 1 2 3; do
+    rows="$(adb-mdns-discover --type pairing --wait 2.5 2>/dev/null || true)"
+    if [ -n "$IP" ] && [ -n "$rows" ]; then
+      rows="$(printf '%s\n' "$rows" | awk -F '\t' -v ip="$IP" '$2==ip')"
+    fi
+    [ -n "$rows" ] && break
+    sleep 1
+  done
+fi
+
+[ -n "$rows" ] || {
+  echo "PAIRING_SERVICE_NOT_ADVERTISED"
+  echo "ACTION=open_pair_device_with_pairing_code_and_keep_popup_open"
+  exit 6
+}
+
+paired=0
+while IFS=$'\t' read -r kind pip pport instance; do
+  [ "$kind" = PAIRING ] || continue
+  echo "PAIRING_ENDPOINT=$pip:$pport"
+  out="$(timeout 8 adb pair "$pip:$pport" "$CODE" 2>&1 || true)"
+  printf '%s\n' "$out"
+  if printf '%s\n' "$out" | grep -qi 'Successfully paired'; then
+    echo "PAIRED_ENDPOINT=$pip:$pport"
+    paired=1
+    break
+  fi
+done <<< "$rows"
+
+[ "$paired" -eq 1 ] || { echo "PAIRING_FAILED"; exit 7; }
+
+# Wait for Android to re-advertise the normal CONNECT endpoint after pairing.
+for i in 1 2 3; do
+  sleep 1
+  if wireless-adb-connect; then
+    finalize
+    exit $?
+  fi
+done
+
+echo "PAIRING_SUCCEEDED_BUT_ADB_CONNECT_NOT_VERIFIED"
+exit 8

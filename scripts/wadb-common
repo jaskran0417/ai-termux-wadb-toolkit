@@ -1,0 +1,118 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Shared helpers for AI Termux WADB bundle.
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+export HOME="${HOME:-/data/data/com.termux/files/home}"
+export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
+export PATH="$PREFIX/bin:/system/bin:$PATH"
+
+wadb_find_real_termux_shell() {
+  local pid
+  for pid in $(ps -ef 2>/dev/null | awk '/\/data\/data\/com\.termux\/files\/usr\/bin\/bash -l/ && !/awk/ {print $2}'); do
+    if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -q '^TERMUX_API_VERSION='; then
+      echo "$pid"; return 0
+    fi
+  done
+  return 1
+}
+
+wadb_wifi_ip() {
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 - <<'PY2'
+import json, os, subprocess
+pids=[]
+try:
+    out=subprocess.check_output(['ps','-ef'], text=True, errors='ignore')
+    for line in out.splitlines():
+        if '/data/data/com.termux/files/usr/bin/bash -l' in line and 'awk' not in line:
+            parts=line.split()
+            if len(parts)>1 and parts[1].isdigit(): pids.append(parts[1])
+except Exception:
+    pass
+for pid in pids:
+    try:
+        raw=open(f'/proc/{pid}/environ','rb').read().split(b'\0')
+        env={}
+        for item in raw:
+            if b'=' in item:
+                k,v=item.split(b'=',1)
+                env[k.decode(errors='ignore')]=v.decode(errors='ignore')
+        if 'TERMUX_API_VERSION' not in env: continue
+        r=subprocess.run(['termux-wifi-connectioninfo'], env=env, text=True,
+                         capture_output=True, timeout=10)
+        if r.returncode==0:
+            data=json.loads(r.stdout)
+            ip=str(data.get('ip','')).strip()
+            if ip and ip!='0.0.0.0': print(ip); raise SystemExit(0)
+    except SystemExit:
+        raise
+    except Exception:
+        pass
+# Direct fallback if the caller already has a genuine Termux environment.
+try:
+    r=subprocess.run(['termux-wifi-connectioninfo'], text=True,
+                     capture_output=True, timeout=8)
+    if r.returncode==0:
+        data=json.loads(r.stdout); ip=str(data.get('ip','')).strip()
+        if ip and ip!='0.0.0.0': print(ip); raise SystemExit(0)
+except SystemExit:
+    raise
+except Exception:
+    pass
+raise SystemExit(1)
+PY2
+}
+
+wadb_open_ports() {
+  local ip="$1"
+  python3 - "$ip" <<'PY2'
+import concurrent.futures, socket, sys
+host=sys.argv[1]
+def chk(p):
+    s=socket.socket(); s.settimeout(0.055)
+    try: return p if s.connect_ex((host,p))==0 else None
+    finally: s.close()
+with concurrent.futures.ThreadPoolExecutor(max_workers=220) as ex:
+    hits=[p for p in ex.map(chk, range(int(__import__('os').environ.get('WADB_SCAN_MIN','30000')), int(__import__('os').environ.get('WADB_SCAN_MAX','65535'))+1)) if p]
+print(' '.join(map(str,hits)))
+PY2
+}
+
+# Device identity guard: compares several stable local build/product properties.
+# This prevents accidental targeting of another ordinary ADB device. It is not
+# cryptographic attestation; a hostile endpoint can imitate getprop output.
+wadb_is_same_phone() {
+  local serial="${1:-}" remote prop expected actual
+  local -a props=(
+    ro.product.manufacturer ro.product.model ro.product.device ro.product.name
+    ro.product.brand ro.build.fingerprint ro.build.version.sdk
+  )
+  [ -n "$serial" ] || return 1
+  remote="$(adb -s "$serial" shell 'for p in ro.product.manufacturer ro.product.model ro.product.device ro.product.name ro.product.brand ro.build.fingerprint ro.build.version.sdk; do printf "%s=" "$p"; getprop "$p"; done' 2>/dev/null | tr -d '\r')" || return 1
+  [ -n "$remote" ] || return 1
+  for prop in "${props[@]}"; do
+    expected="$(getprop "$prop" 2>/dev/null || true)"
+    actual="$(printf '%s\n' "$remote" | sed -n "s/^${prop}=//p" | head -n1)"
+    [ -n "$expected" ] && [ "$actual" = "$expected" ] || return 1
+  done
+  return 0
+}
+
+wadb_verify_shell() {
+  local serial="${1:-}" ident
+  [ -n "$serial" ] || return 1
+  ident="$(adb -s "$serial" shell id 2>/dev/null)" || return 1
+  printf '%s\n' "$ident" | grep -q 'uid=2000(shell)' || return 1
+  wadb_is_same_phone "$serial"
+}
+
+wadb_connected_serial() {
+  local serial
+  while IFS= read -r serial; do
+    [ -n "$serial" ] || continue
+    if wadb_verify_shell "$serial"; then
+      printf '%s\n' "$serial"
+      return 0
+    fi
+  done < <(adb devices -l 2>/dev/null | awk '$2=="device" {print $1}')
+  return 1
+}

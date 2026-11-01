@@ -1,0 +1,15 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+set_mcp_desired offline
+if [ "${1:-}" = "--now" ]; then
+  stop_now manual
+  write_status
+else
+  nohup /data/data/com.termux/files/usr/bin/bash -c '
+    sleep 2
+    source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+    stop_now manual
+    write_status
+  ' >> "$LOGDIR/stop.log" 2>&1 < /dev/null &
+  echo "STOP_MCP scheduled; saved credentials are preserved; recovery state is unchanged."
+fi

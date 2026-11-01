@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+github_sync
+write_status
+cat "$STATE/status"

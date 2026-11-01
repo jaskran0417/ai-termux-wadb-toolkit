@@ -1,0 +1,22 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+if [ "${1:-}" != "--confirm" ]; then
+  echo "LOGOUT_MCP is destructive to saved Remote Desktop Commander authorization."
+  echo "It is NOT required for stop, restart, reboot, or recovery."
+  echo "Run: wadb-mcp-logout --confirm"
+  exit 2
+fi
+set_mcp_desired offline
+nohup /data/data/com.termux/files/usr/bin/bash -c '
+  sleep 2
+  source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+  stop_now
+  dc="$(dc_path)"
+  if [ -n "$dc" ]; then
+    HOME="$MCP_HOME" node "$dc" remote --logout >> "$LOGDIR/logout.log" 2>&1
+  else
+    HOME="$MCP_HOME" npx --yes @wonderwhy-er/desktop-commander@0.3.1 remote --logout >> "$LOGDIR/logout.log" 2>&1
+  fi
+  write_status
+' >> "$LOGDIR/logout.log" 2>&1 < /dev/null &
+echo "LOGOUT_MCP scheduled. The next start may require browser verification."

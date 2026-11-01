@@ -1,0 +1,42 @@
+#!/data/data/com.termux/files/usr/bin/sh
+export PATH=/system/bin:/data/data/com.termux/files/usr/bin:$PATH
+BRIDGE_COMPONENT=com.jaskran.wadbbridge/.WirelessDebugReceiver
+
+read_value() {
+  out=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
+    -a com.jaskran.wadbbridge.GET_WIRELESS_DEBUG \
+    -n "$BRIDGE_COMPONENT" </dev/null 2>&1)
+  printf '%s\n' "$out" | sed -n 's/.*data="adb_wifi_enabled=\([0-9-]*\)".*/\1/p' | tail -n1
+}
+
+verify_value() {
+  want="$1"; i=1
+  while [ $i -le 4 ]; do
+    [ "$(read_value)" = "$want" ] && return 0
+    [ $i -lt 4 ] && sleep 1
+    i=$((i+1))
+  done
+  return 1
+}
+
+i=1
+while [ $i -le 3 ]; do
+  out=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
+    -a com.jaskran.wadbbridge.SET_WIRELESS_DEBUG \
+    -n "$BRIDGE_COMPONENT" --ez enabled true </dev/null 2>&1)
+  rc=$?
+  printf '%s\n' "$out"
+  if [ $rc -eq 0 ] &&
+     printf '%s\n' "$out" | grep -q 'Broadcast completed: result=-1' &&
+     printf '%s\n' "$out" | grep -q 'data="adb_wifi_enabled=1; write=true"' &&
+     ! printf '%s\n' "$out" | grep -q 'SecurityException' &&
+     verify_value 1; then
+    echo "wireless_debug=on"
+    echo "write_path=bridge"
+    exit 0
+  fi
+  [ $i -lt 3 ] && sleep 1
+  i=$((i+1))
+done
+echo "WIRELESS_DEBUG_SET_FAILED"
+exit 1

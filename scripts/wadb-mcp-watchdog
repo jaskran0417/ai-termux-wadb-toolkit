@@ -1,0 +1,41 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+recovery_enabled || exit 0
+LOCKDIR="$STATE/watchdog.lockdir"
+SLEEP_PID=""
+
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+  old="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
+  if watchdog_pid_live "$old"; then
+    exit 0
+  fi
+  rm -rf "$LOCKDIR"
+  mkdir "$LOCKDIR" 2>/dev/null || exit 0
+fi
+
+echo $$ > "$STATE/watchdog.pid"
+echo "$(date -Iseconds) WATCHDOG_STARTED pid=$$ interval=$WATCHDOG_INTERVAL" >> "$STATE/events.log"
+[ "${NOTIFY_WATCHDOG_STATE:-1}" = "1" ] && notify_event WATCHDOG_STARTED "$WATCHDOG_INTERVAL"
+
+cleanup() {
+  if [ -n "$SLEEP_PID" ]; then
+    kill "$SLEEP_PID" 2>/dev/null || true
+    wait "$SLEEP_PID" 2>/dev/null || true
+  fi
+  rm -f "$STATE/watchdog.pid"
+  rmdir "$LOCKDIR" 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+
+while true; do
+  source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+  recovery_enabled || exit 0
+  github_sync || true
+  [ "$(mcp_desired_value)" = "online" ] && ensure_online watchdog || true
+  write_status
+  sleep "$WATCHDOG_INTERVAL" &
+  SLEEP_PID=$!
+  wait "$SLEEP_PID" || true
+  SLEEP_PID=""
+done

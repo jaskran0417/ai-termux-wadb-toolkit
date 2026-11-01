@@ -1,0 +1,14 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+set_mcp_desired offline
+nohup /data/data/com.termux/files/usr/bin/bash -c '
+  sleep 2
+  source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+  stop_now restart_manual
+  sleep 2
+  set_mcp_desired online
+  recovery_enabled && /data/data/com.termux/files/usr/bin/wadb-mcp-watchdog-start
+  ensure_online restart
+  write_status
+' >> "$LOGDIR/restart.log" 2>&1 < /dev/null &
+echo "RESTART_MCP scheduled; saved credentials are preserved."

@@ -1,0 +1,85 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+PATH="$PREFIX/bin:/system/bin:$PATH"
+export PATH
+
+PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
+ENDPOINT="127.0.0.1:$PORT"
+TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+
+LOCAL_ADB_STATE="not_connected"
+LOCAL_ADB_MODE="secure_shell_bridge"
+LOCAL_ADB_ENDPOINT="$ENDPOINT"
+LOCAL_ADB_SERIAL=""
+LOCAL_ADB_PORT="$PORT"
+LOCAL_ADB_SHELL_UID=""
+PROTOCOL="authenticated_shell_bridge_v1"
+BRIDGE_AUTH="token"
+LISTENER_SCOPE="not_listening"
+
+ADBD_STATE="$(getprop init.svc.adbd 2>/dev/null || true)"
+TCP_PORT="$(getprop service.adb.tcp.port 2>/dev/null || true)"
+LISTEN_ADDRS="$(getprop service.adb.listen_addrs 2>/dev/null || true)"
+USB_CONFIG="$(getprop sys.usb.config 2>/dev/null || true)"
+USB_STATE="$(getprop sys.usb.state 2>/dev/null || true)"
+ADB_SECURE="$(getprop ro.adb.secure 2>/dev/null || true)"
+ADB_ENABLED="unknown"
+ADB_WIFI_ENABLED="unknown"
+WIFI_STATE="$(dumpsys wifi 2>/dev/null | grep -m1 -E 'Wi-Fi is (enabled|disabled)' || true)"
+ADBD_TCP_EXPOSURE="unknown"
+
+if command -v wadb-local-shell >/dev/null 2>&1 && [ -s "$TOKEN_FILE" ]; then
+  ping="$(timeout 4 wadb-local-shell --ping 2>/dev/null || true)"
+  if printf '%s\n' "$ping" | grep -q 'WADB_SECURE_BRIDGE_OK uid=2000'; then
+    LOCAL_ADB_STATE="ready"
+    LOCAL_ADB_SHELL_UID="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK //p' | head -n1)"
+    LISTENER_SCOPE="loopback_only"
+    ADB_ENABLED="$(timeout 4 wadb-local-shell -c 'settings get global adb_enabled' 2>/dev/null | tr -d '\r' | tail -n1)"
+    ADB_WIFI_ENABLED="$(timeout 4 wadb-local-shell -c 'settings get global adb_wifi_enabled' 2>/dev/null | tr -d '\r' | tail -n1)"
+  fi
+fi
+
+if [ -n "$LISTEN_ADDRS" ]; then
+  case "$LISTEN_ADDRS" in
+    tcp:localhost:*|tcp:127.0.0.1:*|tcp:\[::1\]:*) ADBD_TCP_EXPOSURE="loopback_only" ;;
+    *) ADBD_TCP_EXPOSURE="custom_or_wide" ;;
+  esac
+else
+  case "$TCP_PORT" in
+    ''|0|-1) ADBD_TCP_EXPOSURE="none" ;;
+    *[!0-9]*) ADBD_TCP_EXPOSURE="unknown" ;;
+    *) ADBD_TCP_EXPOSURE="all_interfaces" ;;
+  esac
+fi
+
+echo "LOCAL_ADB_STATE=$LOCAL_ADB_STATE"
+echo "LOCAL_ADB_MODE=$LOCAL_ADB_MODE"
+echo "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT"
+echo "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL"
+echo "LOCAL_ADB_PORT=$LOCAL_ADB_PORT"
+echo "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID"
+echo "PROTOCOL=$PROTOCOL"
+echo "BRIDGE_AUTH=$BRIDGE_AUTH"
+echo "LISTENER_SCOPE=$LISTENER_SCOPE"
+echo "ADB_ENABLED=$ADB_ENABLED"
+echo "ADB_WIFI_ENABLED=$ADB_WIFI_ENABLED"
+echo "ADBD_STATE=$ADBD_STATE"
+echo "TCP_PORT=$TCP_PORT"
+echo "LISTEN_ADDRS=$LISTEN_ADDRS"
+echo "ADBD_TCP_EXPOSURE=$ADBD_TCP_EXPOSURE"
+echo "USB_CONFIG=$USB_CONFIG"
+echo "USB_STATE=$USB_STATE"
+echo "ADB_SECURE=$ADB_SECURE"
+echo "WIFI_STATE=$WIFI_STATE"
+
+if [ "$LOCAL_ADB_STATE" = "ready" ] && [ "$ADBD_TCP_EXPOSURE" = "none" ]; then
+  echo "SECURITY_STATE=loopback_bridge_no_adbd_tcp"
+elif [ "$ADBD_TCP_EXPOSURE" = "all_interfaces" ]; then
+  echo "SECURITY_STATE=adbd_tcp_exposed"
+  echo "SECURITY_WARNING=classic_adbd_tcp_listener_is_not_loopback_only"
+else
+  echo "SECURITY_STATE=needs_attention"
+fi

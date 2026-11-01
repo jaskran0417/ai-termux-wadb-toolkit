@@ -1,0 +1,67 @@
+#!/data/data/com.termux/files/usr/bin/bash
+source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+
+[ "$GITHUB_ENABLED" = "1" ] || {
+  echo "GITHUB_RECOVERY=DISABLED"
+  exit 2
+}
+
+json="$(/data/data/com.termux/files/usr/libexec/ai-wadb/github-control-fetch)" || {
+  echo "GITHUB_READ=FAIL"
+  echo "MODE=$GITHUB_READ_MODE"
+  echo "ERROR=$(cat "$STATE/github.read_error" 2>/dev/null || echo unknown)"
+  exit 3
+}
+
+parsed="$(printf '%s' "$json" | python -c 'import json,sys; d=json.load(sys.stdin); print(str(d.get("schema",""))+"\t"+str(d.get("generation",""))+"\t"+str(d.get("action",""))+"\t"+str(d.get("target","")))' 2>/dev/null)" || {
+  echo "GITHUB_READ=INVALID_JSON"
+  exit 4
+}
+IFS=$'\t' read -r schema gen action target <<< "$parsed"
+
+echo "GITHUB_READ=PASS"
+echo "MODE_REQUESTED=$GITHUB_READ_MODE"
+echo "MODE_USED=$(cat "$STATE/github.read_mode.last" 2>/dev/null || echo unknown)"
+echo "SCHEMA=$schema"
+echo "GENERATION=$gen"
+echo "ACTION=$action"
+echo "TARGET=$target"
+echo "EXPECTED_TARGET=$MCP_TARGET"
+
+[ "$schema" = "1" ] || {
+  echo "GITHUB_CONTROL_VALID=FAIL"
+  echo "ERROR=unsupported_schema"
+  exit 5
+}
+[[ "$gen" =~ ^[0-9]+$ ]] || {
+  echo "GITHUB_CONTROL_VALID=FAIL"
+  echo "ERROR=invalid_generation"
+  exit 5
+}
+case "$action" in
+  START_MCP|STOP_MCP|RESTART_MCP|STATUS) ;;
+  *)
+    echo "GITHUB_CONTROL_VALID=FAIL"
+    echo "ERROR=invalid_action"
+    exit 5
+    ;;
+esac
+[ "$target" = "$MCP_TARGET" ] || {
+  echo "GITHUB_CONTROL_VALID=FAIL"
+  echo "ERROR=target_mismatch"
+  exit 5
+}
+
+identity="$GITHUB_OWNER/$GITHUB_REPO@$GITHUB_BRANCH:$GITHUB_FILE#$MCP_TARGET"
+baseline_identity="$(cat "$STATE/github.control_identity" 2>/dev/null || true)"
+last="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
+echo "CONTROL_IDENTITY=$identity"
+echo "LAST_PROCESSED_GENERATION=$last"
+if [ "$baseline_identity" = "$identity" ]; then
+  echo "BASELINE_ON_NEXT_SYNC=no"
+else
+  echo "BASELINE_ON_NEXT_SYNC=yes"
+  echo "BASELINE_NOTE=current_generation_will_be_recorded_without_executing_current_action"
+fi
+echo "ACTION_EXECUTED=no"
+echo "GITHUB_CONTROL_VALID=PASS"

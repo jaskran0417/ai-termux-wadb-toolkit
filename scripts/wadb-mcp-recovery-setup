@@ -1,0 +1,198 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+mkdir -p "$STATE"
+
+MCP_HOME=""
+MCP_TARGET="DEFAULT"
+WATCHDOG_INTERVAL=15
+GITHUB_ENABLED=0
+GITHUB_OWNER=""
+GITHUB_REPO=""
+GITHUB_BRANCH="wadb-control"
+GITHUB_FILE="wadb-control.json"
+GITHUB_READ_MODE="auto"
+GITHUB_TOKEN_FILE="$STATE/github-read-token"
+NOTIFICATIONS_ENABLED=1
+NOTIFY_MCP_STATE=1
+NOTIFY_WATCHDOG_STATE=1
+NOTIFY_RECOVERY_FAILURES=1
+
+# Preserve an existing recovery configuration when setup is run again.
+if [ -r "$CONFIG" ]; then
+  source "$CONFIG"
+fi
+SAVED_MCP_HOME="$MCP_HOME"
+EXPLICIT_HOME=""
+EXPLICIT_TARGET=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mcp-home) EXPLICIT_HOME="${2:-}"; shift 2 ;;
+    --target) EXPLICIT_TARGET="${2:-}"; shift 2 ;;
+    -h|--help)
+      echo "Usage: wadb-mcp-recovery-setup [--mcp-home PATH] [--target NAME]"
+      echo "Without --mcp-home, setup prefers the current authenticated MCP HOME,"
+      echo "then an existing saved recovery HOME, then the normal Termux HOME."
+      echo "If several other authenticated MCP HOMEs exist, it asks which one to use."
+      exit 0
+      ;;
+    *) echo "Unknown option: $1"; exit 2 ;;
+  esac
+done
+
+has_creds() {
+  [ -n "${1:-}" ] && [ -f "$1/.desktop-commander-device/device.json" ]
+}
+
+choose_home() {
+  local -a found=()
+  local p answer i
+
+  if [ -n "$EXPLICIT_HOME" ]; then
+    has_creds "$EXPLICIT_HOME" || {
+      echo "MCP_HOME_NOT_AUTHENTICATED=$EXPLICIT_HOME"
+      echo "Authenticate Desktop Commander there first, then rerun setup."
+      exit 3
+    }
+    printf '%s\n' "$EXPLICIT_HOME"
+    return
+  fi
+
+  # When setup is invoked through the target MCP, $HOME is the strongest signal.
+  if has_creds "$HOME"; then
+    printf '%s\n' "$HOME"
+    return
+  fi
+
+  # A previously configured recovery HOME is preferred on repeat setup.
+  if has_creds "$SAVED_MCP_HOME"; then
+    printf '%s\n' "$SAVED_MCP_HOME"
+    return
+  fi
+
+  if has_creds "$TERMUX_HOME"; then
+    printf '%s\n' "$TERMUX_HOME"
+    return
+  fi
+
+  while IFS= read -r p; do
+    [ -n "$p" ] && found+=("$p")
+  done < <(find "$TERMUX_HOME" -mindepth 2 -maxdepth 3 -type f     -path '*/.desktop-commander-device/device.json' -printf '%h\n' 2>/dev/null     | sed 's#/.desktop-commander-device$##' | sort -u)
+
+  if [ "${#found[@]}" -eq 1 ]; then
+    printf '%s\n' "${found[0]}"
+    return
+  fi
+
+  if [ "${#found[@]}" -gt 1 ]; then
+    if [ -t 0 ] && [ -t 1 ]; then
+      echo "Multiple authenticated Desktop Commander HOMEs found:" >&2
+      i=1
+      for p in "${found[@]}"; do
+        printf '  [%d] %s\n' "$i" "$p" >&2
+        i=$((i+1))
+      done
+      printf 'Select MCP HOME [1-%d]: ' "${#found[@]}" >&2
+      read -r answer
+      [[ "$answer" =~ ^[0-9]+$ ]] || exit 4
+      [ "$answer" -ge 1 ] && [ "$answer" -le "${#found[@]}" ] || exit 4
+      printf '%s\n' "${found[$((answer-1))]}"
+      return
+    fi
+
+    echo "MCP_HOME_AMBIGUOUS" >&2
+    for p in "${found[@]}"; do echo "CANDIDATE=$p" >&2; done
+    echo "Rerun with: wadb-mcp-recovery-setup --mcp-home PATH" >&2
+    exit 4
+  fi
+
+  echo "MCP_AUTH_NOT_FOUND" >&2
+  echo "First run: npx @wonderwhy-er/desktop-commander@0.3.1 remote" >&2
+  echo "Complete its browser/AI authentication, then rerun recovery setup." >&2
+  exit 3
+}
+
+MCP_HOME="$(choose_home)"
+[ -n "$EXPLICIT_TARGET" ] && MCP_TARGET="$EXPLICIT_TARGET"
+
+{
+  printf 'MCP_HOME=%q\n' "$MCP_HOME"
+  printf 'MCP_TARGET=%q\n' "$MCP_TARGET"
+  printf 'WATCHDOG_INTERVAL=%q\n' "$WATCHDOG_INTERVAL"
+  printf 'GITHUB_ENABLED=%q\n' "$GITHUB_ENABLED"
+  printf 'GITHUB_OWNER=%q\n' "$GITHUB_OWNER"
+  printf 'GITHUB_REPO=%q\n' "$GITHUB_REPO"
+  printf 'GITHUB_BRANCH=%q\n' "$GITHUB_BRANCH"
+  printf 'GITHUB_FILE=%q\n' "$GITHUB_FILE"
+  printf 'GITHUB_READ_MODE=%q\n' "$GITHUB_READ_MODE"
+  printf 'GITHUB_TOKEN_FILE=%q\n' "$GITHUB_TOKEN_FILE"
+  printf 'NOTIFICATIONS_ENABLED=%q\n' "$NOTIFICATIONS_ENABLED"
+  printf 'NOTIFY_MCP_STATE=%q\n' "$NOTIFY_MCP_STATE"
+  printf 'NOTIFY_WATCHDOG_STATE=%q\n' "$NOTIFY_WATCHDOG_STATE"
+  printf 'NOTIFY_RECOVERY_FAILURES=%q\n' "$NOTIFY_RECOVERY_FAILURES"
+} > "$CONFIG"
+chmod 600 "$CONFIG"
+
+PROP="$TERMUX_HOME/.termux/termux.properties"
+PREV_PROP="$STATE/allow-external-apps.previous.json"
+mkdir -p "$TERMUX_HOME/.termux"
+touch "$PROP"
+python - "$PROP" "$PREV_PROP" <<'PYPROP'
+import json,re,sys
+from pathlib import Path
+prop=Path(sys.argv[1]); prev=Path(sys.argv[2])
+lines=prop.read_text(errors="ignore").splitlines()
+rx=re.compile(r'^\s*(#\s*)?allow-external-apps\s*=')
+if not prev.exists():
+    original=next((line for line in lines if rx.match(line)), None)
+    prev.write_text(json.dumps({"original_line": original})+"\n")
+    try: prev.chmod(0o600)
+    except OSError: pass
+lines=[line for line in lines if not rx.match(line)]
+if lines and lines[-1] != "":
+    lines.append("")
+lines.append("allow-external-apps = true")
+prop.write_text("\n".join(lines)+"\n")
+PYPROP
+termux-reload-settings >/dev/null 2>&1 || true
+
+# Recovery enablement and MCP desired state are independent.
+echo 1 > "$STATE/recovery_enabled"
+if [ ! -f "$STATE/mcp_desired_state" ]; then
+  legacy="$(cat "$STATE/desired_state" 2>/dev/null || echo online)"
+  case "$legacy" in offline) echo offline > "$STATE/mcp_desired_state" ;; *) echo online > "$STATE/mcp_desired_state" ;; esac
+fi
+source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
+"$PREFIX/bin/wadb-mcp-watchdog-start"
+[ "$(mcp_desired_value)" = "online" ] && ensure_online setup || true
+notify_event RECOVERY_ENABLED
+write_status
+
+BRIDGE_STATE="unknown"
+if command -v wireless-debug-status >/dev/null 2>&1; then
+  if wireless-debug-status >/dev/null 2>&1; then
+    BRIDGE_STATE="ready"
+  else
+    BRIDGE_STATE="not_ready"
+  fi
+fi
+
+RUN_PERMISSION="not_requested"
+if [ "$BRIDGE_STATE" = "ready" ]; then
+  /system/bin/am start -n com.jaskran.wadbbridge/.PermissionActivity >/dev/null 2>&1 || true
+  RUN_PERMISSION="requested_if_needed"
+fi
+
+echo "MCP_RECOVERY=CONFIGURED"
+echo "MCP_HOME=$MCP_HOME"
+echo "LOCAL_WATCHDOG=STARTED"
+echo "ALLOW_EXTERNAL_APPS=true"
+echo "WADB_BRIDGE=$BRIDGE_STATE"
+echo "RUN_COMMAND_PERMISSION=$RUN_PERMISSION"
+echo
+echo "If Android shows a WADB Bridge permission dialog, tap Allow once."
+echo "GitHub recovery is optional and is configured separately."

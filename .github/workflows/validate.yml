@@ -1,0 +1,62 @@
+name: Validate source and release metadata
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n install.sh
+          bash -n uninstall.sh
+          while IFS= read -r -d '' file; do
+            if head -n 1 "$file" | grep -Eq 'bash|/sh$'; then
+              bash -n "$file"
+            fi
+          done < <(find scripts -maxdepth 1 -type f -print0)
+      - name: Check Python syntax
+        run: python -m py_compile scripts/adb-mdns-discover
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find security -maxdepth 1 -type f -name '*.js' -print0 |
+            while IFS= read -r -d '' file; do node --check "$file"; done
+      - name: Validate JSON
+        run: python -m json.tool toolkit-manifest.json >/dev/null
+      - name: Check release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "1.7.5"
+          test "$(cat EDITION)" = "HARDENED"
+          python - <<'PY'
+          import json
+          with open("toolkit-manifest.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assert data["version"] == "1.7.5"
+          assert data["edition"] == "HARDENED"
+          assert data["name"] == "AI Termux WADB Toolkit"
+          PY
+      - name: Check for accidental private signing material
+        shell: bash
+        run: |
+          if find . -type f \( -iname '*.p12' -o -iname '*.pfx' -o -iname '*.jks' -o -iname '*.keystore' -o -name 'keystore.pass' -o -name 'apksigner.pass' -o -name 'key.b64' \) -print -quit | grep -q .; then
+            echo "Private signing material found in repository tree."
+            exit 1
+          fi

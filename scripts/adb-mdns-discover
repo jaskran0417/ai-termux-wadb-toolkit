@@ -1,0 +1,154 @@
+#!/data/data/com.termux/files/usr/bin/python3
+import argparse, json, socket, struct, time
+
+SERVICES = {
+    '_adb-tls-connect._tcp.local': 'CONNECT',
+    '_adb-tls-pairing._tcp.local': 'PAIRING',
+}
+
+def enc_name(name):
+    return b''.join(bytes([len(x)]) + x.encode() for x in name.rstrip('.').split('.')) + b'\0'
+
+def dec_name(data, off, depth=0):
+    if depth > 30:
+        raise ValueError('dns compression loop')
+    labels, jumped, ret = [], False, None
+    while True:
+        if off >= len(data):
+            raise ValueError('name overflow')
+        l = data[off]
+        if l == 0:
+            off += 1
+            if not jumped:
+                ret = off
+            break
+        if l & 0xC0 == 0xC0:
+            if off + 1 >= len(data):
+                raise ValueError('bad pointer')
+            ptr = ((l & 0x3F) << 8) | data[off + 1]
+            if not jumped:
+                ret = off + 2
+            jumped = True
+            n, _ = dec_name(data, ptr, depth + 1)
+            labels.append(n)
+            break
+        off += 1
+        labels.append(data[off:off+l].decode(errors='ignore'))
+        off += l
+    return '.'.join(x for x in labels if x), ret
+
+def build_query(name):
+    return struct.pack('!HHHHHH', 0, 0, 1, 0, 0, 0) + enc_name(name) + struct.pack('!HH', 12, 1)
+
+def parse_packet(data, sender_ip, records):
+    if len(data) < 12:
+        return
+    try:
+        _, _, qd, an, ns, ar = struct.unpack('!HHHHHH', data[:12])
+        off = 12
+        for _ in range(qd):
+            _, off = dec_name(data, off)
+            off += 4
+        for _ in range(an + ns + ar):
+            name, off = dec_name(data, off)
+            if off + 10 > len(data):
+                return
+            typ, cls, ttl, rdlen = struct.unpack('!HHIH', data[off:off+10])
+            off += 10
+            rstart = off
+            off += rdlen
+            if off > len(data):
+                return
+            if typ == 12:  # PTR
+                target, _ = dec_name(data, rstart)
+                records.append(('PTR', name, target, sender_ip))
+            elif typ == 33 and rdlen >= 6:  # SRV
+                _, _, port = struct.unpack('!HHH', data[rstart:rstart+6])
+                target, _ = dec_name(data, rstart + 6)
+                records.append(('SRV', name, target, port, sender_ip))
+            elif typ == 1 and rdlen == 4:  # A
+                records.append(('A', name, socket.inet_ntoa(data[rstart:rstart+4]), sender_ip))
+    except Exception:
+        return
+
+def discover(wait=2.5):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind(('', 5353))
+    except OSError:
+        sock.bind(('', 0))
+    try:
+        mreq = socket.inet_aton('224.0.0.251') + socket.inet_aton('0.0.0.0')
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    except OSError:
+        pass
+    sock.settimeout(0.25)
+    records = []
+    start = time.time()
+    next_send = 0
+    while time.time() - start < wait:
+        now = time.time()
+        if now >= next_send:
+            for svc in SERVICES:
+                try:
+                    sock.sendto(build_query(svc), ('224.0.0.251', 5353))
+                except OSError:
+                    pass
+            next_send = now + 0.8
+        try:
+            data, addr = sock.recvfrom(65535)
+            parse_packet(data, addr[0], records)
+        except socket.timeout:
+            pass
+        except OSError:
+            pass
+    sock.close()
+
+    ptr_map = {}
+    srv_map = {}
+    a_map = {}
+    for r in records:
+        if r[0] == 'PTR':
+            ptr_map.setdefault(r[1].lower(), set()).add(r[2])
+        elif r[0] == 'SRV':
+            srv_map[r[1].lower()] = {'target': r[2], 'port': r[3], 'sender_ip': r[4]}
+        elif r[0] == 'A':
+            a_map[r[1].lower()] = r[2]
+
+    out = []
+    for svc, kind in SERVICES.items():
+        for inst in sorted(ptr_map.get(svc.lower(), [])):
+            srv = srv_map.get(inst.lower())
+            if not srv:
+                continue
+            ip = a_map.get(srv['target'].lower()) or srv['sender_ip']
+            out.append({'type': kind, 'service': svc, 'instance': inst, 'host': srv['target'], 'ip': ip, 'port': srv['port']})
+    # Deduplicate
+    dedup = []
+    seen = set()
+    for x in out:
+        key = (x['type'], x['ip'], x['port'])
+        if key not in seen:
+            seen.add(key); dedup.append(x)
+    return dedup
+
+def main():
+    ap = argparse.ArgumentParser(description='Discover Android Wireless ADB DNS-SD endpoints')
+    ap.add_argument('--wait', type=float, default=2.5)
+    ap.add_argument('--type', choices=['all','connect','pairing'], default='all')
+    ap.add_argument('--json', action='store_true')
+    args = ap.parse_args()
+    rows = discover(max(0.5, min(args.wait, 10.0)))
+    if args.type != 'all':
+        want = args.type.upper()
+        rows = [x for x in rows if x['type'] == want]
+    if args.json:
+        print(json.dumps(rows, indent=2))
+    else:
+        for x in rows:
+            print(f"{x['type']}\t{x['ip']}\t{x['port']}\t{x['instance']}")
+    raise SystemExit(0 if rows else 1)
+
+if __name__ == '__main__':
+    main()

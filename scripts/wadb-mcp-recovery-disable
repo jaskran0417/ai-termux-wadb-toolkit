@@ -1,0 +1,58 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+TERMUX_HOME=/data/data/com.termux/files/home
+PREFIX=/data/data/com.termux/files/usr
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+PROP="$TERMUX_HOME/.termux/termux.properties"
+PREV_PROP="$STATE/allow-external-apps.previous.json"
+KEEP_EXTERNAL=0
+
+case "${1:-}" in
+  "") ;;
+  --keep-external-apps) KEEP_EXTERNAL=1 ;;
+  -h|--help)
+    echo "Usage: wadb-mcp-recovery-disable [--keep-external-apps]"
+    echo "Disables automatic recovery/watchdog only; it does not stop or log out an already-running MCP."
+    echo "By default this restores the allow-external-apps setting that existed before recovery setup."
+    exit 0
+    ;;
+  *) echo "Unknown option: $1"; exit 2 ;;
+esac
+
+source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
+set_recovery_enabled 0
+
+p="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
+[ -n "$p" ] && kill "$p" 2>/dev/null || true
+sleep 1
+[ -n "$p" ] && kill -0 "$p" 2>/dev/null && kill -9 "$p" 2>/dev/null || true
+rm -f "$STATE/watchdog.pid"
+rm -rf "$STATE/watchdog.lockdir"
+notify_event RECOVERY_DISABLED
+write_status
+
+if [ "$KEEP_EXTERNAL" -eq 0 ] && [ -r "$PREV_PROP" ]; then
+  python - "$PROP" "$PREV_PROP" <<'PYPROP'
+import json,re,sys
+from pathlib import Path
+prop=Path(sys.argv[1]); prev=Path(sys.argv[2])
+data=json.loads(prev.read_text())
+original=data.get("original_line")
+lines=prop.read_text(errors="ignore").splitlines() if prop.exists() else []
+rx=re.compile(r'^\s*(#\s*)?allow-external-apps\s*=')
+lines=[line for line in lines if not rx.match(line)]
+if original is not None:
+    if lines and lines[-1] != "":
+        lines.append("")
+    lines.append(original)
+prop.parent.mkdir(parents=True,exist_ok=True)
+prop.write_text("\n".join(lines)+("\n" if lines else ""))
+PYPROP
+  rm -f "$PREV_PROP"
+  termux-reload-settings >/dev/null 2>&1 || true
+  echo "ALLOW_EXTERNAL_APPS=RESTORED"
+else
+  echo "ALLOW_EXTERNAL_APPS=UNCHANGED"
+fi
+
+echo "Local MCP recovery disabled. Running MCP and saved Desktop Commander credentials were NOT removed."

@@ -1,0 +1,82 @@
+#!/data/data/com.termux/files/usr/bin/bash
+TERMUX_HOME=/data/data/com.termux/files/home
+STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
+CONFIG="$STATE/config"
+[ -r "$CONFIG" ] || exit 2
+source "$CONFIG"
+MODE="${GITHUB_READ_MODE:-auto}"
+TOKEN_FILE="${GITHUB_TOKEN_FILE:-$STATE/github-read-token}"
+rm -f "$STATE/github.read_error"
+
+fetch_public() {
+  command -v curl >/dev/null 2>&1 || return 1
+  command -v git >/dev/null 2>&1 || return 1
+  local sha
+  sha="$(GIT_TERMINAL_PROMPT=0 git -c credential.helper= ls-remote "https://github.com/$GITHUB_OWNER/$GITHUB_REPO.git" "refs/heads/$GITHUB_BRANCH" 2>/dev/null | awk 'NR==1{print $1}')"
+  [ -n "$sha" ] || return 1
+  curl -fsSL --connect-timeout 5 --max-time 10 \
+    "https://raw.githubusercontent.com/$GITHUB_OWNER/$GITHUB_REPO/$sha/$GITHUB_FILE" 2>/dev/null
+}
+
+fetch_gh() {
+  command -v gh >/dev/null 2>&1 || return 1
+  GH_CONFIG_DIR="$TERMUX_HOME/.config/gh"     gh api --method GET       -H 'Accept: application/vnd.github.raw+json'       "repos/$GITHUB_OWNER/$GITHUB_REPO/contents/$GITHUB_FILE"       -f "ref=$GITHUB_BRANCH" 2>/dev/null
+}
+fetch_token() {
+  command -v curl >/dev/null 2>&1 || return 1
+  command -v python >/dev/null 2>&1 || return 1
+  [ -r "$TOKEN_FILE" ] || return 1
+  local token file_enc ref_enc url body
+  token="$(tr -d '\r\n' < "$TOKEN_FILE")"
+  [ -n "$token" ] || return 1
+  file_enc="$(python -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe="/"))' "$GITHUB_FILE")"
+  ref_enc="$(python -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$GITHUB_BRANCH")"
+  url="https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/contents/$file_enc?ref=$ref_enc"
+  body="$(
+    {
+      printf 'silent\nshow-error\nfail\n'
+      printf 'connect-timeout = 5\nmax-time = 10\n'
+      printf 'header = "Authorization: Bearer %s"\n' "$token"
+      printf 'header = "Accept: application/vnd.github+json"\n'
+      printf 'url = "%s"\n' "$url"
+    } | curl --config - 2>/dev/null
+  )" || return 1
+  printf '%s' "$body" | python -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.write(base64.b64decode(d["content"]).decode())'
+}
+out=""
+case "$MODE" in
+  public)
+    out="$(fetch_public)" || true
+    [ -n "$out" ] || { echo public_read_failed > "$STATE/github.read_error"; exit 3; }
+    echo public > "$STATE/github.read_mode.last"
+    ;;
+  gh)
+    out="$(fetch_gh)" || true
+    [ -n "$out" ] || { echo gh_read_failed > "$STATE/github.read_error"; exit 3; }
+    echo gh > "$STATE/github.read_mode.last"
+    ;;
+  token)
+    out="$(fetch_token)" || true
+    [ -n "$out" ] || { echo token_read_failed > "$STATE/github.read_error"; exit 3; }
+    echo token > "$STATE/github.read_mode.last"
+    ;;
+  auto)
+    out="$(fetch_public)" || true
+    if [ -n "$out" ]; then
+      echo public > "$STATE/github.read_mode.last"
+    elif [ -r "$TOKEN_FILE" ] && out="$(fetch_token)" && [ -n "$out" ]; then
+      echo token > "$STATE/github.read_mode.last"
+    elif out="$(fetch_gh)" && [ -n "$out" ]; then
+      echo gh > "$STATE/github.read_mode.last"
+    else
+      echo no_read_path > "$STATE/github.read_error"
+      exit 3
+    fi
+    ;;
+  *)
+    echo invalid_read_mode > "$STATE/github.read_error"
+    exit 3
+    ;;
+esac
+
+printf '%s' "$out"

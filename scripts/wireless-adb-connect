@@ -1,0 +1,162 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+export HOME=/data/data/com.termux/files/home
+export PREFIX=/data/data/com.termux/files/usr
+export TMPDIR=$PREFIX/tmp
+export PATH=$PREFIX/bin:/system/bin:$PATH
+
+. "$PREFIX/libexec/ai-wadb/wadb-common"
+
+is_same_phone() {
+  wadb_is_same_phone "$1"
+}
+
+verify_connected() {
+  local s require_network="${WADB_REQUIRE_NETWORK:-0}"
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
+    if [ "$require_network" = "1" ]; then
+      case "$s" in
+        127.*|localhost:*|emulator-*|\[::1\]:*) continue ;;
+      esac
+    fi
+    adb -s "$s" shell id 2>/dev/null | grep -q 'uid=2000(shell)' || continue
+    is_same_phone "$s" || continue
+    echo "ADB_CONNECTED=$s"
+    adb -s "$s" shell id 2>/dev/null | sed -n '1p'
+    return 0
+  done < <(adb devices -l 2>/dev/null | awk '$2=="device"{print $1}')
+  return 1
+}
+
+tcp_open() {
+  python3 - "$1" "$2" <<'PY'
+import socket,sys
+s=socket.socket(); s.settimeout(1.0)
+try:
+    ok=s.connect_ex((sys.argv[1],int(sys.argv[2])))==0
+finally:s.close()
+raise SystemExit(0 if ok else 1)
+PY
+}
+
+wifi_ip() {
+  python3 - <<'PY'
+import json,os,subprocess
+for pid in os.listdir('/proc'):
+    if not pid.isdigit(): continue
+    try:
+        cmd=open(f'/proc/{pid}/cmdline','rb').read().replace(b'\0',b' ').decode(errors='ignore')
+        if '/data/data/com.termux/files/usr/bin/bash' not in cmd: continue
+        env={}
+        for x in open(f'/proc/{pid}/environ','rb').read().split(b'\0'):
+            if b'=' in x:
+                k,v=x.split(b'=',1); env[k.decode(errors='ignore')]=v.decode(errors='ignore')
+        if 'TERMUX_API_VERSION' not in env: continue
+        r=subprocess.run(['termux-wifi-connectioninfo'],env=env,text=True,capture_output=True,timeout=8)
+        if r.returncode==0:
+            ip=str(json.loads(r.stdout).get('ip','')).strip()
+            if ip and ip!='0.0.0.0': print(ip); raise SystemExit(0)
+    except SystemExit: raise
+    except Exception: pass
+raise SystemExit(1)
+PY
+}
+
+scan_ports() {
+  python3 - "$1" <<'PY'
+import socket,sys,concurrent.futures
+host=sys.argv[1]
+def c(p):
+    s=socket.socket(); s.settimeout(.05)
+    try:return p if s.connect_ex((host,p))==0 else None
+    finally:s.close()
+with concurrent.futures.ThreadPoolExecutor(max_workers=220) as ex:
+    print(' '.join(str(p) for p in ex.map(c,range(int(__import__('os').environ.get('WADB_SCAN_MIN','30000')), int(__import__('os').environ.get('WADB_SCAN_MAX','65535'))+1)) if p))
+PY
+}
+
+if verify_connected; then exit 0; fi
+
+try_typed_connect() {
+  local connect_rows kind ip port instance
+
+  connect_rows="$(adb-mdns-discover --type connect --wait 3 2>/dev/null || true)"
+  [ -n "$connect_rows" ] || return 2
+
+  while IFS=$'	' read -r kind ip port instance; do
+    [ "$kind" = CONNECT ] || continue
+    echo "CONNECT_ENDPOINT=$ip:$port"
+    if ! tcp_open "$ip" "$port"; then
+      echo "CONNECT_ENDPOINT_NOT_REACHABLE=$ip:$port"
+      continue
+    fi
+    adb connect "$ip:$port" >/dev/null 2>&1 || true
+    sleep .5
+    if verify_connected; then
+      return 0
+    fi
+  done <<< "$connect_rows"
+
+  # One clean local adb-server restart, then retry the exact CONNECT endpoint(s).
+  adb kill-server >/dev/null 2>&1 || true
+  adb start-server >/dev/null 2>&1 || true
+  sleep .5
+  while IFS=$'	' read -r kind ip port instance; do
+    [ "$kind" = CONNECT ] || continue
+    tcp_open "$ip" "$port" || continue
+    adb connect "$ip:$port" >/dev/null 2>&1 || true
+    sleep .5
+    if verify_connected; then
+      return 0
+    fi
+  done <<< "$connect_rows"
+
+  echo 'PAIRING_REQUIRED'
+  echo 'REASON=typed_connect_endpoint_reachable_but_existing_adb_key_not_accepted'
+  return 30
+}
+
+# Fresh setup: discover an already-running Wireless Debugging service BEFORE
+# asking the Bridge to enable it. This lets an unpaired phone reach the pairing flow.
+if try_typed_connect; then
+  exit 0
+else
+  trc=$?
+  [ "$trc" -eq 30 ] && exit 30
+fi
+
+status="$(wireless-debug-status 2>&1 || true)"
+if ! printf '%s
+' "$status" | grep -q 'adb_wifi_enabled=1'; then
+  wireless-debug-on >/dev/null 2>&1 || {
+    echo 'WIRELESS_DEBUG_ENABLE_FAILED'
+    exit 20
+  }
+  sleep 3
+fi
+
+# Bridge may have just enabled Wireless Debugging; discover the new endpoint.
+if try_typed_connect; then
+  exit 0
+else
+  trc=$?
+  [ "$trc" -eq 30 ] && exit 30
+fi
+
+# If typed mDNS is unavailable, fall back to current-IP probing. Candidate role is UNKNOWN.
+ip="$(wifi_ip 2>/dev/null || true)"
+[ -n "$ip" ] || { echo 'CURRENT_WIFI_IP_NOT_DETECTED'; exit 40; }
+echo "CURRENT_WIFI_IP=$ip"
+ports="$(scan_ports "$ip" 2>/dev/null || true)"
+[ -n "$ports" ] || { echo 'NO_CANDIDATE_PORTS_FOUND'; exit 41; }
+for port in $ports; do
+  echo "UNVERIFIED_CANDIDATE=$ip:$port"
+  adb connect "$ip:$port" >/dev/null 2>&1 || true
+  sleep .3
+  if verify_connected; then exit 0; fi
+done
+
+echo 'ADB_CONNECT_FAILED_WITH_UNTYPED_CANDIDATES'
+echo 'DO_NOT_INFER_PAIRING_PORT_FROM_FAILURE'
+exit 42

@@ -1,0 +1,85 @@
+#!/data/data/com.termux/files/usr/bin/python3
+import os
+import socket
+import struct
+import sys
+
+HOME = "/data/data/com.termux/files/home"
+TOKEN_FILE = os.path.join(HOME, ".ai-wadb", "local-bridge.token")
+PORT = int(os.environ.get("WADB_LOCAL_BRIDGE_PORT", "47173"))
+HOST = "127.0.0.1"
+MAGIC = b"WB01"
+
+def usage(code=2):
+    print("Usage:")
+    print("  wadb-local-shell --ping")
+    print("  wadb-local-shell --stop")
+    print("  wadb-local-shell -c 'COMMAND'")
+    print("  wadb-local-shell COMMAND ...")
+    raise SystemExit(code)
+
+def recv_exact(s, n):
+    data = bytearray()
+    while len(data) < n:
+        chunk = s.recv(n - len(data))
+        if not chunk:
+            raise RuntimeError("bridge closed connection")
+        data.extend(chunk)
+    return bytes(data)
+
+def load_token():
+    try:
+        token = open(TOKEN_FILE, "rt", encoding="ascii").read().strip()
+    except OSError as e:
+        raise RuntimeError(f"token unavailable: {e}")
+    if len(token) != 64 or any(c not in "0123456789abcdefABCDEF" for c in token):
+        raise RuntimeError("invalid bridge token")
+    return token.encode("ascii")
+
+def run(cmd):
+    token = load_token()
+    raw = cmd.encode("utf-8")
+    if not raw or len(raw) > 1024 * 1024:
+        raise RuntimeError("invalid command size")
+
+    with socket.create_connection((HOST, PORT), timeout=3.0) as s:
+        s.settimeout(30.0)
+        s.sendall(token + struct.pack("!I", len(raw)) + raw)
+        hdr = recv_exact(s, 12)
+        if hdr[:4] != MAGIC:
+            raise RuntimeError("invalid bridge response")
+        status, n = struct.unpack("!II", hdr[4:])
+        if n > 16 * 1024 * 1024:
+            raise RuntimeError("invalid bridge response size")
+        out = recv_exact(s, n) if n else b""
+
+    sys.stdout.buffer.write(out)
+    sys.stdout.buffer.flush()
+    return status
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        usage()
+
+    if args == ["--ping"]:
+        cmd = "__WADB_BRIDGE_PING__"
+    elif args == ["--stop"]:
+        cmd = "__WADB_BRIDGE_STOP__"
+    elif len(args) == 2 and args[0] in ("-c", "--command"):
+        cmd = args[1]
+    elif args[0] in ("-h", "--help"):
+        usage(0)
+    else:
+        cmd = " ".join(args)
+
+    try:
+        rc = run(cmd)
+    except Exception as e:
+        print(f"WADB_LOCAL_BRIDGE_ERROR={e}", file=sys.stderr)
+        return 70
+
+    return int(rc) & 0xff
+
+if __name__ == "__main__":
+    raise SystemExit(main())
