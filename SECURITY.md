@@ -6,7 +6,7 @@ Security reports should identify the exact AI Termux WADB Toolkit version, editi
 
 ## Reporting a vulnerability
 
-Please use GitHub's **Report a vulnerability** / private vulnerability reporting feature for this repository when it is enabled. Do not open a public issue for an unpatched vulnerability.
+Use GitHub's **Report a vulnerability** / private vulnerability reporting feature for this repository. Do not open a public issue for an unpatched vulnerability.
 
 Include:
 - A concise description of the issue and its impact.
@@ -18,6 +18,8 @@ Do not include pairing codes, ADB keys, MCP tokens, GitHub tokens, signing keys,
 
 ## Scope and limitations
 
-The toolkit provides release integrity checks, not an immutable security boundary. A person or process controlling the same Termux application UID can modify local scripts or bypass local checks. The toolkit does not bypass Android permissions and does not claim to be independently security-certified.
+The Toolkit provides release integrity checks, not an immutable security boundary. A person or process controlling the same Termux application UID can modify local scripts or bypass local checks. The Toolkit does not bypass Android permissions and does not claim to be independently security-certified.
+
+The project is licensed under Apache-2.0. Security fixes and improvements may be contributed through the public repository, but sensitive vulnerability details should be sent through private reporting.
 
 Reports concerning Android, Termux, Desktop Commander or other third-party dependencies should be directed to their respective maintainers as well.

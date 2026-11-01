@@ -230,14 +230,26 @@
     },
     {
       "kind": "TERMUX_HOME_DOCS",
+      "path": "ANDROID_ARCHITECTURE.md",
+      "sha256": "3fd3f1187893ce2b9695605aff403b85f110d703f9d7f6b326f63ac48adb57dc",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
       "path": "COMMAND_REFERENCE.md",
       "sha256": "75363a67c2ab8c3a3dad88276034cd6f3168e9a2281f9b736bfdb6e8a09b8136",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
+      "path": "FEATURES_AND_BENEFITS.md",
+      "sha256": "c5eba4662a4b0626f1ba9df1ea1ca1c81fe87481f7154af3de515da8ade642ce",
+      "mode": "644"
+    },
+    {
+      "kind": "TERMUX_HOME_DOCS",
       "path": "INTEGRITY_VERIFICATION.md",
-      "sha256": "dbe9fa8304e3829da80876507fce162086a20a3ce060b0d53996a45509a5a862",
+      "sha256": "ea0dfed615ed56afae3f032ab50cadcd0a08f144154637fc510596fe027aa9d1",
       "mode": "644"
     },
     {
@@ -255,7 +267,7 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "README_FIRST.md",
-      "sha256": "c77f92b2e51bd7ebccfdf7a38170dbc8b55efc3779fc9cdb71a34853662c3be1",
+      "sha256": "51617450e9cb53d4c6980cf66e90b8c7c2031cbbd331a0baa84f3fd990720844",
       "mode": "644"
     },
     {
@@ -291,13 +303,13 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "START_HERE.md",
-      "sha256": "55cd0342ad8353aee08e3d05abd5835862da1a841bd13fc0935a665547848b17",
+      "sha256": "cc9da5693f34127d202b526cbf75113f844c5261eb89a97b63a2e61b9accc38f",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "toolkit-manifest.json",
-      "sha256": "4aa62371f3bbb740429f5ec7d9fd6404030d2988b57b3549c826aaa11e929cfe",
+      "sha256": "7f2c440b897c6e392a26a533932301491f9ad0d93f329a58c466cca492d58530",
       "mode": "644"
     },
     {

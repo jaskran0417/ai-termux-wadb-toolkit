@@ -35,24 +35,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          find security -maxdepth 1 -type f -name '*.js' -print0 |
+          find security release-tools -maxdepth 1 -type f -name '*.js' -print0 |
             while IFS= read -r -d '' file; do node --check "$file"; done
-      - name: Validate JSON
-        run: python -m json.tool toolkit-manifest.json >/dev/null
+      - name: Validate JSON and SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool toolkit-manifest.json >/dev/null
+          python -m json.tool SBOM.cdx.json >/dev/null
+      - name: Check Apache-2.0 license metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f LICENSE
+          test -f NOTICE
+          grep -q "Apache License" LICENSE
+          grep -q "Version 2.0, January 2004" LICENSE
+          python - <<'PY'
+          import json
+          with open("toolkit-manifest.json", encoding="utf-8") as f:
+              data = json.load(f)
+          assert data["license"] == "Apache-2.0"
+          assert data["version"] == "1.7.5"
+          assert data["edition"] == "HARDENED"
+          assert data["name"] == "AI Termux WADB Toolkit"
+          with open("SBOM.cdx.json", encoding="utf-8") as f:
+              sbom = json.load(f)
+          root = sbom["metadata"]["component"]
+          assert root["licenses"][0]["license"]["id"] == "Apache-2.0"
+          PY
       - name: Check release identity
         shell: bash
         run: |
           set -euo pipefail
           test "$(cat VERSION)" = "1.7.5"
           test "$(cat EDITION)" = "HARDENED"
-          python - <<'PY'
-          import json
-          with open("toolkit-manifest.json", encoding="utf-8") as f:
-              data = json.load(f)
-          assert data["version"] == "1.7.5"
-          assert data["edition"] == "HARDENED"
-          assert data["name"] == "AI Termux WADB Toolkit"
-          PY
+          test -s docs/ANDROID_ARCHITECTURE.md
+          test -s docs/FEATURES_AND_BENEFITS.md
       - name: Check for accidental private signing material
         shell: bash
         run: |

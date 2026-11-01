@@ -125,6 +125,8 @@ fs.writeFileSync(path.join(securityDir, 'installed-files.json.sig'), crypto.sign
 function walk(dir, prefix = '') {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // A developer's local Git metadata is never part of the distributable package.
+    if (entry.isDirectory() && entry.name === '.git') continue;
     if (entry.name.includes(String.fromCharCode(92)) || entry.name.split('').some(ch => ch.charCodeAt(0) < 32)) throw new Error('Unsupported character in release filename.');
     const rel = prefix ? prefix + '/' + entry.name : entry.name;
     const full = path.join(dir, entry.name);

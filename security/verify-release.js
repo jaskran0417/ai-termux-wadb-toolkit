@@ -40,6 +40,8 @@ function insideRoot(relativePath) {
 function walk(directory, prefix = '') {
   const found = [];
   for (const item of fs.readdirSync(directory, { withFileTypes: true })) {
+    // Local Git metadata belongs to the checkout, not to the distributable package.
+    if (item.isDirectory() && item.name === '.git') continue;
     if (item.name.includes(String.fromCharCode(92)) || item.name.split('').some(ch => ch.charCodeAt(0) < 32)) fail('Unsupported character in release filename.');
     const rel = prefix ? prefix + '/' + item.name : item.name;
     const absolute = path.join(directory, item.name);
