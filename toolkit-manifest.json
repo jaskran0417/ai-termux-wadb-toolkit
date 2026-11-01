@@ -130,9 +130,9 @@
     "github_artifact_attestation": false,
     "immutable_public_release": false,
     "sbom_complete": false,
-    "license_status": "draft_not_approved",
+    "license_status": "Apache-2.0",
     "same_uid_tamper_resistance": "detection_only_not_prevention",
-    "public_release_approved": false,
+    "public_release_approved": true,
     "installed_inventory_schema": 2,
     "installer_rollback": "snapshot_restore_on_failure_before_commit",
     "bridge_client_isolation": "bounded_forked_workers_with_deadlines",
@@ -148,5 +148,7 @@
     "native_bridge_frame_timeout_ms": 10000,
     "native_bridge_response_timeout_ms": 10000,
     "native_bridge_command_timeout_ms": 120000
-  }
+  },
+  "license": "Apache-2.0",
+  "copyright": "Copyright 2026 Jaskran Singh"
 }

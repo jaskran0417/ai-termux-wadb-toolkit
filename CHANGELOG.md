@@ -2,7 +2,7 @@
 
 All notable release changes are recorded here.
 
-## 1.7.5 HARDENED — first public distribution
+## 1.7.5 HARDENED — first public release (open-source licence update)
 
 - AI-readable Control Center state and read-only diagnostics.
 - Wireless ADB mDNS discovery, trusted-key reconnect and guarded pairing.
@@ -12,4 +12,5 @@ All notable release changes are recorded here.
 - Local transition notifications and toolkit diagnostics.
 - Signed release manifest, installed-file inventory checks and installer path preflight.
 - Installer backup/rollback for ordinary caught failures before transaction commit.
-- Source-available proprietary distribution for free personal and non-commercial use.
+- Project licence changed to Apache-2.0; source inspection, modification and redistribution are permitted under its terms.
+- Added a complete Android architecture overview, feature/benefit guide and contributor documentation.

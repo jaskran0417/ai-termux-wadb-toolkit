@@ -1,1 +1,1 @@
-SHA256 882a3337235ddcc73fffe5b376f92cfbfad6551b1666ddb2f6398791e459ef85 security/verify-release.js
+SHA256 1b675c9dd8ab97a765cab6344b4edc877788ea873f64772181a03fb5c9b86d56 security/verify-release.js

@@ -1,126 +1,168 @@
 # AI Termux WADB Toolkit
 
-**Let a compatible AI assistant work with your Android phone through Termux.**
+**Make your Android phone a working command-line environment for a compatible AI assistant.**
 
-AI Termux WADB Toolkit connects an AI assistant to Termux using Desktop Commander Remote MCP and adds a maintained set of Android Wireless ADB, shell-access, diagnostics, recovery and file-work workflows.
+AI Termux WADB Toolkit connects an AI assistant to Termux through Desktop Commander Remote MCP. Once the owner has authorized the connection, the assistant can run normal Termux commands, use installed programs, work with accessible phone files and call the Toolkit's Android-management workflows. The same commands remain available to the owner manually.
 
-It is an independent project. It is not an official Termux, Android, Google, OpenAI or Desktop Commander product.
+This is an independent project, not an official Android, Termux, Google, OpenAI or Desktop Commander product.
 
-## What it lets you do
+## Why use it?
 
-After you authorize the MCP connection, a compatible AI assistant can use the tools available through Termux to:
+Instead of repeatedly copying commands into a terminal, pasting output back into a chat and uploading every file separately, a compatible AI assistant can work through the connected Termux environment.
 
-- Run normal Termux commands, scripts and installed tools.
-- Run ADB commands through an authorized ADB connection.
-- Inspect, edit, create, organize and process files that Termux can access.
-- Work with source-code projects, scripts, APKs, archives, documents and other file types supported by the tools installed on the phone.
-- Run project checks, compilers, tests and build commands where the required toolchains are installed.
-- Save generated or modified files directly to accessible phone storage.
-- Diagnose Termux, MCP, ADB, Bridge and local-shell states.
+That opens up a practical phone-based workflow:
 
-The AI is not limited to the toolkit's own commands. It can run commands available in the connected Termux environment, subject to Android permissions, installed packages and any user authorization required by the command. The owner can also run every command manually.
+- Ask the AI to run commands and scripts that are already available in Termux—not just the Toolkit's own commands.
+- Ask it to inspect a source-code project, search files, run tests or invoke installed build tools.
+- Work with APKs, logs, archives, documents and other accessible files using appropriate installed utilities.
+- Ask it to create or edit a working copy and save the result directly to shared phone storage that Termux is allowed to access.
+- Run authorized ADB commands when the Wireless ADB connection is ready.
+- Use a separate Secure Local Shell route for supported Android shell commands after it has been initialized.
+- Ask it to inspect diagnostics, troubleshoot connection problems and verify the state after a change.
+- Keep using Termux manually whenever you prefer.
 
-File access happens through MCP tools; it does not require attaching every file through a chat upload interface. This does not bypass an AI provider's account, usage, tool-call, context or safety limits. The assistant can only access paths and permissions that the connected Termux environment actually exposes.
+The AI is not restricted to the Toolkit's command catalogue. If a command or program is installed and the connected execution tool can invoke it, the AI can use it subject to the current user and Android permissions.
 
-## Main features
+## The working model
 
-| Component | Purpose |
-|---|---|
-| `ai-info` Control Center | Human dashboard, guided actions, JSON state and read-only diagnostics |
-| Wireless ADB | mDNS service discovery, trusted-key reconnect, guarded first-time pairing and transport controls |
-| WADB Bridge | Android-side Wireless Debugging control and permission verification |
-| Secure Local Shell | Separate authenticated loopback shell route using Android shell-user permissions |
-| MCP manager | Start, stop, restart, status and log controls for the external Desktop Commander process |
-| Local recovery | Optional watchdog that can restore an MCP process when recovery is enabled and the desired state is online |
-| GitHub recovery | Optional remote control-file fallback for MCP start, stop, restart and status |
-| Notifications | Local state-change notifications with Termux:API support |
-| Integrity and rollback | Signed package manifest, installed-file checks, installer preflight and rollback for ordinary failures |
+```text
+AI app / compatible assistant
+        |
+        | Remote MCP tool connection
+        v
+Desktop Commander on the Android phone
+        |
+        v
+Termux command environment
+        |
+        +---- normal Termux programs and files
+        +---- AI Termux WADB Toolkit
+        |
+        +---- Wireless ADB route ---- Android adbd
+        |
+        +---- Secure Local Shell ---- Android shell user
 
-## Rooted and non-rooted Android phones
+WADB Bridge is the Android companion for the supported
+Wireless Debugging setting workflow and recovery integration.
+```
+
+MCP is the route that lets the AI call tools. Termux is where ordinary shell commands and file work happen. ADB and Secure Local Shell are separate Android-shell routes. WADB Bridge is a narrow Android companion; it is not the MCP server or an AI app.
+
+Uploading the Toolkit ZIP or its AI instructions to a chat does not itself connect the AI to the phone. The Remote MCP connection and Android permissions must be completed.
+
+For a full explanation of the Android system layers and how the components cooperate, read [Android and Toolkit Architecture](docs/ANDROID_ARCHITECTURE.md).
+
+## What is included
+
+| Feature | What it does | Why it is useful |
+|---|---|---|
+| **AI command execution** | Lets the assistant run commands available in Termux through MCP | The assistant can carry out the work, inspect output and retry after diagnosis instead of only suggesting commands |
+| **Phone file workflows** | Uses Termux-accessible storage for listing, reading, searching, processing and saving files | Reduces the need to attach every file through a chat upload form |
+| **Project inspection and builds** | Uses installed Git, Python, compilers, Gradle/Android tools and other utilities where available | Supports code review, debugging, tests and builds on the phone |
+| **ai-info Control Center** | Human-friendly dashboard and guided menu | The owner can inspect and manage the Toolkit without memorizing every command |
+| **AI-readable state** | Structured status output for MCP, ADB, Bridge, local shell and recovery | The assistant can check the real state before choosing an action |
+| **Read-only diagnostics** | System checks and capability reporting | Makes it easier to identify missing permissions, packages or connections |
+| **Wireless ADB management** | Typed service discovery, trusted-key reconnect, guarded first pairing and separate disconnect controls | Avoids guessing network endpoints and unnecessary repeated pairing |
+| **WADB Bridge** | Android companion for supported Wireless Debugging setting control and verification | Provides a permission-gated Android-side helper |
+| **Secure Local Shell** | Separate authenticated local route for supported Android shell commands | Allows supported shell work without keeping Wireless Debugging active after setup |
+| **MCP manager** | Start, stop, restart, status and log controls for Desktop Commander | Separates the AI tool service's lifecycle from Wireless ADB |
+| **Local recovery** | Optional Termux watchdog and Bridge-side recovery trigger | Can repair a missing MCP process when recovery is enabled and Android permits it to run |
+| **GitHub recovery** | Optional remote control-file fallback | Gives the phone a separate, narrow recovery channel when MCP is unavailable |
+| **Notifications** | Local state-transition notifications through Termux:API and WADB Bridge | Shows important recovery and process changes without a cloud push service |
+| **Release integrity** | Ed25519 package signature, signed installed-file inventory and permission-mode checks | Helps users verify the official package and detect covered file changes |
+| **Installer rollback** | Path checks, backup snapshots and rollback for ordinary caught failures before commit | Reduces the chance that an unsuccessful upgrade leaves a partial Toolkit installation |
+| **Manual operation** | Interactive commands and full reference remain available | AI is an optional operator, not a requirement |
+
+See [Features and Practical Workflows](docs/FEATURES_AND_BENEFITS.md) for examples and [Command Reference](docs/COMMAND_REFERENCE.md) for the actual commands.
+
+## Phone files and AI attachment limits
+
+The phone can act as the AI's working file store. If Termux has permission to access a folder, the connected assistant can use Termux tools to inspect or process files there and save results back to the phone.
+
+This can avoid uploading every file as a chat attachment. It is useful when an AI service has a limited attachment allowance or when a project contains many files.
+
+It does **not** remove the AI provider's limits. The provider still decides whether Remote MCP is supported on the account, how much context and tool use is allowed, and any rate or usage limits. Large files can often be filtered, searched, hashed, parsed or summarized locally so the model receives only the relevant results.
+
+The Toolkit does not grant Google Drive access, unlock a paid AI plan or provide unrestricted access to Android storage.
+
+## Rooted and non-rooted devices
 
 Root is **not required**.
 
-On a non-rooted device, commands run with the normal permissions available to Termux and Android's authorized shell interfaces.
+- On a non-rooted phone, normal commands run with Termux's available permissions; Wireless ADB and Secure Local Shell use Android's shell-user permissions.
+- On a rooted phone, the owner may approve a command through an installed `su` mechanism when it requires elevated privileges.
+- Root does not silently change the privilege level of Wireless ADB or Secure Local Shell.
 
-On a rooted device, Termux may also run commands through an installed `su` mechanism when the owner explicitly approves the request in the root manager. The Wireless ADB and Secure Local Shell paths remain Android shell-user routes; they do not silently become root.
+The Toolkit does not bypass Android's permission model.
 
-The toolkit does not bypass Android's permission model.
+## Android storage boundaries
 
-## How the connection works
+Android separates app-private storage from shared user storage and applies scoped-access rules. Termux must be granted the relevant storage access before it can work in shared folders. It does not automatically see every other app's private files or protected system data.
 
-1. Install Termux and the toolkit.
-2. Start the external Desktop Commander Remote MCP service from Termux.
-3. Connect a compatible AI client to the Remote MCP endpoint and complete its authorization flow.
-4. Use `ai-info --connect` to configure or reconnect Wireless ADB when needed.
-5. Grant the Android permissions requested by the supported setup flow.
-6. Use the AI to run commands and work with files, or operate the same commands manually.
+See [Android storage documentation](https://developer.android.com/training/data-storage) and the [Termux storage guide](https://github.com/termux/termux-tools/blob/master/doc/termux.1.md.in).
 
-Uploading the toolkit's ZIP or instructions into an AI chat does not itself grant phone access. The MCP connection and Android authorization must actually be completed.
+## How the components work together
+
+1. **AI client:** the owner uses an AI app or client that supports the required Remote MCP integration.
+2. **Desktop Commander:** the phone-side Remote MCP service exposes the authorized command and file tools.
+3. **Termux:** commands execute inside the installed Termux environment with its permissions and packages.
+4. **Toolkit:** `ai-info` and its helper commands coordinate status, Wireless ADB, WADB Bridge, Secure Local Shell, MCP lifecycle, recovery and integrity.
+5. **Android:** ADB and the local shell helper provide distinct Android-shell routes. WADB Bridge handles the supported setting and recovery integration.
+6. **Verification:** the assistant checks the resulting state and reports the observed outcome.
 
 ## Requirements
 
-- Android device with Termux installed from a compatible, trusted distribution source.
+- Android with Termux installed from a compatible, trusted distribution source.
 - Node.js and npm in Termux for Desktop Commander.
-- Desktop Commander package `@wonderwhy-er/desktop-commander@0.3.1`, installed separately.
-- Required Termux packages: Python, Android tools, coreutils, util-linux, curl and Git. The installer checks for required commands.
-- Android Developer Options and Wireless Debugging for initial Wireless ADB/Bridge setup.
-- Optional Termux:API command package and compatible Android companion app for local notifications and some device information.
-
-See [docs/START_HERE.md](docs/START_HERE.md), [docs/USER_SETUP.md](docs/USER_SETUP.md) and [docs/REMOTE_MCP_AI_CONNECTION.md](docs/REMOTE_MCP_AI_CONNECTION.md).
+- Desktop Commander Remote MCP installed separately (the Toolkit's documented package version is 0.3.1).
+- Required Termux utilities checked by the installer, including Python, Android tools, coreutils, util-linux, curl and Git.
+- Developer Options and Wireless Debugging for initial Wireless ADB setup.
+- Optional Termux:API command package and compatible Android companion app for notifications and some device information.
+- Storage permissions for any shared folders the owner wants Termux to access.
 
 ## Installation
 
-Download the official **AI Termux WADB Toolkit v1.7.5 HARDENED** ZIP from the GitHub Releases page.
+Download the official **AI Termux WADB Toolkit v1.7.5 HARDENED** ZIP from [GitHub Releases](https://github.com/jaskran0417/ai-termux-wadb-toolkit/releases/tag/v1.7.5).
 
-Before running the installer, obtain these three values from the independent release announcement:
+Before running the installer, compare its SHA-256 and the release verifier SHA-256 against the values published independently in the release notes and [DEV.to announcement](https://dev.to/jaskran0417/wireless-adb-on-android-with-termux-a-non-root-workflow-ce6). Then provide the independently obtained release-key fingerprint, installer hash and verifier hash to the installer. Do not trust values copied only from the ZIP being verified.
 
-- Ed25519 release-key SHA-256 fingerprint.
-- SHA-256 of `security/verify-release.js`.
-- SHA-256 of `install.sh`.
+Start with [Start Here](docs/START_HERE.md), then follow [User Setup](docs/USER_SETUP.md) and [Remote MCP Connection](docs/REMOTE_MCP_AI_CONNECTION.md).
 
-Compare the installer and verifier hashes manually. Then run the installer with the independently obtained values:
+## Why the release is called 1.7.5 HARDENED
 
-```bash
-unzip AI-Termux-WADB-Toolkit-v1.7.5-HARDENED.zip
-cd AI-Termux-WADB-Toolkit-v1.7.5
-sha256sum install.sh security/verify-release.js
+**1.7.5 is the Toolkit's existing software version.** This was the first public release, but the project already had versioned code and release metadata at 1.7.5. The public release kept that real version rather than renumbering the same code as 1.0 and creating conflicting metadata.
 
-WADB_TRUSTED_RELEASE_KEY_SHA256=YOUR_TRUSTED_FINGERPRINT \
-WADB_TRUSTED_VERIFIER_SHA256=YOUR_TRUSTED_VERIFIER_SHA256 \
-WADB_TRUSTED_INSTALLER_SHA256=YOUR_TRUSTED_INSTALLER_SHA256 \
-./install.sh --yes
-```
+**HARDENED describes the release build's additional integrity and installer protections.** The release includes signed package metadata, independent trust-pin checks, a signed inventory of installed files and their permission modes, managed-path preflight checks, installer locking and rollback snapshots for ordinary caught failures before the install transaction commits.
 
-Do not substitute values copied only from the same ZIP being verified. The official DEV.to release update and GitHub release notes will carry the independent trust values.
+"HARDENED" is a release designation, not a claim that the software is tamper-proof, independently certified or immune to a person who controls the Termux account. The owner can still modify locally controlled files, and Android's permissions remain the security boundary.
 
-## Source and licence
+## Open-source licence
 
-The complete readable toolkit source is included in this repository, including Bash, Java and C sources, build configuration, documentation and release assets.
+The Toolkit is now released under the **Apache License 2.0 (Apache-2.0)**. This is an OSI-approved open-source licence. It permits use, modification and redistribution, including commercial use, subject to its conditions, attribution, notice and patent provisions.
 
-The project uses a **free personal and non-commercial source-available proprietary licence**. Users may inspect the source and install/run an unmodified official release for permitted non-commercial use. The licence does not grant general permission to modify, create derivative works, redistribute or commercially use the Toolkit. The owner may authorize selected contributors separately.
+The source is included in this repository. Contributions are welcome under the same project licence; see [CONTRIBUTING.md](CONTRIBUTING.md). Third-party components remain subject to their own notices and licences.
 
-This is not an OSI open-source licence. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- [LICENSE](LICENSE)
+- [NOTICE](NOTICE)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Dependency inventory / SBOM](SBOM.cdx.json)
 
-## Security model and limits
+## Security and limitations
 
-- Release authenticity uses Ed25519 signatures and an independently published key fingerprint.
-- The installer checks the installer and verifier hashes before executing the verifier.
-- The installed-file inventory checks covered file hashes and permission modes.
-- The installer snapshots affected paths and can roll back ordinary caught failures before commit.
-- The Secure Local Shell path uses an authenticated loopback endpoint and Android shell-user identity.
-- A user who controls the Termux account can patch local scripts, the verifier or local trust configuration. Integrity verification is tamper detection, not immutable execution.
-- The toolkit is not independently security-certified. Do not treat an integrity check as a complete Android device security audit.
+- Android permissions and app sandboxing still apply.
+- ADB and Secure Local Shell run as Android's shell user, not root.
+- Root execution requires a rooted phone and owner-approved `su`.
+- Integrity checks detect changes to covered files; they do not make Termux immutable.
+- Installer rollback covers ordinary caught failures before commit, not power loss or forced kernel termination.
+- Background recovery depends on Android process scheduling and device-manufacturer restrictions.
+- The Toolkit is not independently security-certified.
 
-Read [docs/INTEGRITY_VERIFICATION.md](docs/INTEGRITY_VERIFICATION.md) and [docs/SECURITY_AND_ROLLBACK.md](docs/SECURITY_AND_ROLLBACK.md).
+For security issues use GitHub's private vulnerability reporting feature. Do not publish ADB pairing codes, access tokens, private keys, passwords or personal backups in issues.
 
-## Support
+## Project status
 
-Use GitHub Issues for reproducible bugs and feature requests. Do not post ADB pairing codes, access tokens, private keys, device backups or sensitive logs in public issues.
-
-For suspected security vulnerabilities, use the repository's private vulnerability reporting feature when available. See [SECURITY.md](SECURITY.md).
-
-## Version
-
-- Toolkit: **1.7.5**
-- Edition: **HARDENED**
-- Android companion: WADB Bridge **1.5** (package versionCode 6)
+- Toolkit version: **1.7.5**
+- Release designation: **HARDENED**
+- Android companion: **WADB Bridge 1.5** (versionCode 6)
+- Licence: **Apache-2.0**
+- Distribution: complete source plus official release ZIP

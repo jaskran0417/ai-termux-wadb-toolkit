@@ -1,10 +1,14 @@
 # Start Here — AI Termux WADB Toolkit v1.7.5
 
+This is the first stop for a person installing or using the Toolkit. For the
+system-level explanation, see docs/ANDROID_ARCHITECTURE.md and
+docs/FEATURES_AND_BENEFITS.md before proceeding.
+
 This toolkit combines:
 - Remote Desktop Commander MCP access to Termux,
 - Wireless ADB setup and reconnect helpers using Android's authorized debugging interface,
 - WADB Bridge,
-- optional automatic MCP restart/reboot recovery,
+- optional local and Android-triggered MCP recovery,
 - optional GitHub remote recovery.
 
 The normal order is intentionally simple.

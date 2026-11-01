@@ -1,0 +1,9 @@
+AI Termux WADB Toolkit
+Copyright 2026 Jaskran Singh
+
+This product includes software developed for the AI Termux WADB Toolkit project.
+The project-owned source, documentation, scripts and native components are licensed
+under the Apache License, Version 2.0. A copy of that license is included in LICENSE.
+
+Third-party software included in the distribution is identified in
+THIRD_PARTY_NOTICES.md and SBOM.cdx.json and remains subject to its own licence.

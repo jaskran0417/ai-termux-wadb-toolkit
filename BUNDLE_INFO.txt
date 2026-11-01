@@ -2,11 +2,9 @@ AI Termux WADB Toolkit
 Version: 1.7.5
 Edition: HARDENED
 
-Distribution:
-- Source-available proprietary software.
-- Free personal and non-commercial use under LICENSE.
-- Source is included for inspection; modification and redistribution are reserved to the rights holder or separately authorized contributors.
-- This is an independent project and is not an official Termux, Android, or Desktop Commander product.
+Licence: Apache-2.0 (OSI-approved open-source licence)
+Source: complete Bash, Java and C source is included in the public repository.
+Copyright: 2026 Jaskran Singh
 
 Core components:
 - Termux command toolkit and AI-readable documentation.
@@ -21,6 +19,8 @@ External dependencies:
 
 Release integrity:
 - Ed25519-signed MANIFEST.sha256.
-- Signed installed-file inventory.
+- Signed installed-file inventory with hashes and modes.
 - Installer requires independently obtained release-key, installer and verifier trust pins.
 - Integrity checks detect changes in covered files; they do not make user-controlled Termux immutable.
+
+This is an independent project and is not an official Termux, Android or Desktop Commander product.

@@ -20,7 +20,20 @@
       "type": "application",
       "name": "AI Termux WADB Toolkit",
       "version": "1.7.5",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.7.5"
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.7.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ai-termux-wadb:copyright",
+          "value": "Copyright 2026 Jaskran Singh"
+        }
+      ]
     }
   },
   "components": [
@@ -33,7 +46,18 @@
       "properties": [
         {
           "name": "ai-termux-wadb:distribution",
-          "value": "HARDENED release; source-available proprietary"
+          "value": "HARDENED release; Apache-2.0 open-source project"
+        },
+        {
+          "name": "ai-termux-wadb:copyright",
+          "value": "Copyright 2026 Jaskran Singh"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
         }
       ]
     },
@@ -49,7 +73,20 @@
           "content": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4"
         }
       ],
-      "scope": "required"
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ai-termux-wadb:copyright",
+          "value": "Copyright 2026 Jaskran Singh"
+        }
+      ]
     },
     {
       "type": "file",
@@ -62,7 +99,20 @@
           "content": "af6d437e479ca5015685916b89db156f00f359cc30519e8cbeb6a8da9b414e56"
         }
       ],
-      "scope": "required"
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ai-termux-wadb:copyright",
+          "value": "Copyright 2026 Jaskran Singh"
+        }
+      ]
     },
     {
       "type": "library",
@@ -4987,6 +5037,18 @@
     {
       "name": "ai-termux-wadb:license-metadata",
       "value": "22 build-time Maven components have no SPDX licence declaration in the cached POM metadata; this does not imply they are distributed in the runtime package."
+    },
+    {
+      "name": "ai-termux-wadb:license",
+      "value": "Apache-2.0"
+    },
+    {
+      "name": "ai-termux-wadb:copyright",
+      "value": "Copyright 2026 Jaskran Singh"
+    },
+    {
+      "name": "ai-termux-wadb:license-scope",
+      "value": "Project-owned scripts, source, native helper, documentation and WADB Bridge source are licensed under Apache-2.0; third-party components retain their own licences."
     }
   ]
 }
