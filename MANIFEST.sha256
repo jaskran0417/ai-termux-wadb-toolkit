@@ -24,7 +24,7 @@ c3d01e684210a2bcec3bfe87d0cf948d43c49a3d0ecad5b24f4f66fc2f4528fb  ./bridge-sourc
 6e94fd7d3deb45d681a1a2c33d78e47bfcabcfcfbbebc9edc156791d292006d9  ./bridge-source/build.gradle
 e1e5bf4c82f49765635622f8cfcb0539e5e5edc6d40272b7e8d1fe8d3fc726dd  ./bridge-source/gradle.properties
 bc9bd5d0a2427998dada33ae72bd7de95db29d1b8cfe2ede1173a8ab4ae16d23  ./bridge-source/settings.gradle
-d73ea69e0b7b166dcd8e946ce9e514269641232c016302b85945688e3cac8d7c  ./docs/AI_GUIDE.md
+9030f420576bdae9b6c492b444fca3131513181ab700b5ad72aed884d6039fb4  ./docs/AI_GUIDE.md
 8f02a9984cd15a4e08355ea02beaab3abbda3da9a71a7c247f924c992e3ee7c3  ./docs/COMMAND_REFERENCE.md
 05c8926ff23f4593860fd2b5d1cb88745f2832a0634d2f8ac0d2f323592635f4  ./docs/TECHNICAL_REFERENCE.md
 c4d61ac4b1edbf66cc4e175f2cea1fcf0fe3b620011bde97021a3b6708faf76c  ./docs/USER_GUIDE.md
@@ -65,8 +65,8 @@ f5d8c5e81c2790c567446eab535ea77192b45e647e8aa200ba7bd31d78db9dd7  ./scripts/wadb
 7b0e36d5dac0a74feb50f5705a01ac81b5a31300b575f574cbb9d21d48db1aa4  ./scripts/wireless-debug-on
 eace1bd3b04cecced8df6b10f2f3edf4f73f3a8d6d988eb7b530f518753724f2  ./scripts/wireless-debug-status
 c585b3dd2bf5d35a5371371488be81783ada0539fde61a119fc282ac242315d5  ./security/install-path-preflight.js
-d03079cb9b399d178bdb9951017c1bd017471e249e9320d7f0466f62c2385784  ./security/installed-files.json
-30615fc2814c741a864afe9a795a8ef04059dcb29ca51e9462c87ab8346f5a35  ./security/installed-files.json.sig
+c047d238b07a4b1bbd6d977df95e69651527064565a093707fb8f9a5fddf972c  ./security/installed-files.json
+7204542a71d72f2ba21e8c49e62f80c24fce0bc0872ba99c8985dc8147d82dbb  ./security/installed-files.json.sig
 8e910a134b4b56986f23cbfa25a21a051cac97cf3b9b0a387eb7614eb0dca5f8  ./security/verify-installed.js
 1b675c9dd8ab97a765cab6344b4edc877788ea873f64772181a03fb5c9b86d56  ./security/verify-release.js
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./third_party/licenses/Apache-2.0.txt
