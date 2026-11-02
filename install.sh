@@ -8,7 +8,7 @@ YES=0
 
 usage() {
   cat <<'TXT'
-AI Termux WADB Toolkit v1.0.1 installer
+AI Termux WADB Toolkit v1.0.2 installer
 
 Usage:
   ./install.sh [--yes] [--help]
@@ -57,7 +57,7 @@ fi
 
 title() {
   printf '%s╭────────────────────────────────────────────────────────────╮%s\n' "$M" "$X"
-  printf '%s│%s%s      AI TERMUX WADB v1.0.1           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
+  printf '%s│%s%s      AI TERMUX WADB v1.0.2           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
   printf '%s╰────────────────────────────────────────────────────────────╯%s\n' "$M" "$X"
 }
 

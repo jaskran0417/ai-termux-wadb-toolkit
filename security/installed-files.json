@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "name": "AI Termux WADB Toolkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "signature_algorithm": "Ed25519",
   "release_key_sha256": "87aaf967095808f2e384ed912a3d28c6e1d969774d4975a905468f26b4078ca5",
   "targets": [
@@ -14,7 +14,7 @@
     {
       "kind": "PREFIX_BIN",
       "path": "ai-info",
-      "sha256": "7bedce0e2a58b6410dc724d0415de1d7a5a936d21816f1490861f38740937231",
+      "sha256": "af661468bdeca91bc609735460ddd7de84112a3c9e24254b16d580cda02f864a",
       "mode": "755"
     },
     {
@@ -194,7 +194,7 @@
     {
       "kind": "PREFIX_LIBEXEC",
       "path": "verify-installed.js",
-      "sha256": "8e910a134b4b56986f23cbfa25a21a051cac97cf3b9b0a387eb7614eb0dca5f8",
+      "sha256": "8839dd3b79dea80d00c488d2a5f8097bf377bf8ad440d4f5b7f7418814a44200",
       "mode": "755"
     },
     {
@@ -224,37 +224,37 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "AI_GUIDE.md",
-      "sha256": "9030f420576bdae9b6c492b444fca3131513181ab700b5ad72aed884d6039fb4",
+      "sha256": "ea20757df4992e8f6a37da25fe46f821327361fcd5449e47d9f782c5839b49e6",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "COMMAND_REFERENCE.md",
-      "sha256": "8f02a9984cd15a4e08355ea02beaab3abbda3da9a71a7c247f924c992e3ee7c3",
+      "sha256": "15d534bfa768b7f5d89f458f2c9bb69ea3ffdc0eadba7b669e7060b3d13fd23e",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "TECHNICAL_REFERENCE.md",
-      "sha256": "d29217b3741be5d409df32006bf76519e23abfc62b6b1786bd4823dc4b20a485",
+      "sha256": "936811feaba8b2bbf3c1ae0c3219536d8f2f46838c5806f7d864b4939b283653",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "toolkit-manifest.json",
-      "sha256": "01b4b619c2a1cf010af4bca5e35866c97d15997bb661e179a96e33ad158b6440",
+      "sha256": "0376f802de468197b100ccb3508651cf04a193af6cb2fc0f2b2994c9b38c1276",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "USER_GUIDE.md",
-      "sha256": "c4d61ac4b1edbf66cc4e175f2cea1fcf0fe3b620011bde97021a3b6708faf76c",
+      "sha256": "0635661d62feaf4b8070a5d4bdbfe27dbebed983191d4de9ab502726922b5386",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME",
       "path": "AI_ENVIRONMENT.md",
-      "sha256": "84248ce19b1ff4c4f1667a610ffa615184ebab9c6ce8da8e604c006532646ba4",
+      "sha256": "8062146331b6e2bc5dcd9726824926f1f135142192b9453aa0a6cd71c0f2e05d",
       "mode": "644"
     }
   ]

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2 — installed-integrity version hotfix (2026-11-02)
+
+- Fixed the installed-file verifier's release identity check: it now requires the same 1.0.2 version written into the signed installed inventory.
+- Fixed the v1.0.1 installer failure where the generated inventory identified itself as 1.0.1 but the verifier accepted only 1.0, causing the transactional installer to roll back.
+- Added a CI assertion that the package VERSION, generated installed inventory and installed verifier all agree.
+- No Wireless ADB, MCP, recovery, Secure Local Shell or Android Bridge behavior changed.
+
 ## Unreleased — technical documentation parity (2026-11-02)
 
 - Added source-verified Android Settings.Global calls and explicit WADB Bridge broadcast actions.
