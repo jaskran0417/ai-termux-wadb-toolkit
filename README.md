@@ -4,7 +4,7 @@ AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termu
 
 It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
-Just send this tool kit to ai like chat gpt,Claude or grock and ask how to setup the tool kit and tell ai to do the setup,Ai should give u instruction to setup initial desktop commander plugin or MCP and after the desktop commander is set the ai can install the tool kit by it self I'm termux or u can tell it to do so and then u only need to to initial wireless adb and bootstrap set which is automatically done by tool u just need to provide the pairing code to ai when it ask u to.If you face any problem ask ai to check the instructions and reference md or text files or u can ask here feel free.
+For AI-assisted setup, give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. Before connecting the phone, the AI must follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the exact Android-app setup path. The ChatGPT and Claude Android paths are documented there. The tested Grok Android app does not expose the same custom MCP/connector path, so do not assume it can connect through this route. Once Desktop Commander is connected, the AI can perform the supported Toolkit setup through Termux and will ask you only for the Android/browser approvals or pairing codes that require your action.
 
 ## What it does
 
@@ -43,7 +43,7 @@ Main installed paths:
 |---|---|
 | `$PREFIX/bin/` (normally `/data/data/com.termux/files/usr/bin/`) | User-facing Toolkit commands |
 | `$PREFIX/libexec/ai-wadb/` | Shared helpers, native local bridge and verifier |
-| `~/AI_WADB_DOCS/` | Installed User, AI, Command and Technical guides |
+| `~/AI_WADB_DOCS/` | Installed User, AI, Remote MCP Connection, Command and Technical guides |
 | `~/AI_ENVIRONMENT.md` | Installed environment reference |
 | `~/.ai-wadb/` | Private runtime state, cached Bridge APK, recovery config and local-shell token |
 
@@ -57,13 +57,11 @@ npx @wonderwhy-er/desktop-commander@0.3.1 remote
 
 ## Initial setup
 
-“Initial setup” means establishing the AI connection and the Android trust/permission grants once:
-
-Just send this tool kit to ai like chat gpt,Claude or grock and ask how to setup the tool kit and tell ai to do the setup,Ai should give u instruction to setup initial desktop commander plugin or MCP and after the desktop commander is set the ai can install the tool kit by it self I'm termux or u can tell it to do so and then u only need to to initial wireless adb and bootstrap set which is automatically done by tool u just need to provide the pairing code to ai when it ask u to.If you face any problem ask ai to check the instructions and reference md or text files
+“Initial setup” means establishing the AI connection and the Android trust/permission grants once. The provider-specific Android-app connection steps are in `docs/REMOTE_MCP_AI_CONNECTION.md` and must be followed as written.
 
 1. Install and open Termux. Run `termux-setup-storage` and approve the storage permission if the AI should work with shared folders such as Downloads.
 2. Extract the official release ZIP in a Termux-accessible folder. Download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier hashes in that file, set the three independent WADB trust environment variables required by install.sh, and then run `bash install.sh`. The installer repeats the checks and verifies the signed package inventory before it writes any Toolkit files. Do not copy trust values only from inside the ZIP.
-3. Start the separate Desktop Commander service from Termux using the command above. Complete browser/device verification and connect a compatible AI client through its Remote MCP integration.
+3. Start the separate Desktop Commander service from Termux using the command above. Complete browser/device verification and connect the AI app by following `docs/REMOTE_MCP_AI_CONNECTION.md` exactly for its Android-app setup path.
 4. Run `ai-info --connect`. On a fresh device, manually enable Developer Options → Wireless debugging, open Android's pairing-code screen when requested, and run `ai-info --pair CODE` using the current code. Some ColorOS/OPPO/OnePlus/realme builds also require **Disable permission monitoring** to be ON (blue).
 5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and uses the ADB shell to grant and verify the required `WRITE_SECURE_SETTINGS` permissions to Termux and the Bridge. Completion requires `RESULT=CONNECTED_AND_READY` and `bridge_write=ready`.
 
@@ -103,7 +101,7 @@ wadb-mcp-github-sync
 wadb-toolkit-uninstall --all --dry-run
 ```
 
-The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, and use `docs/TECHNICAL_REFERENCE.md` for architecture and security details. The installed copies are under `~/AI_WADB_DOCS/`.
+The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, read `docs/REMOTE_MCP_AI_CONNECTION.md` for the tested ChatGPT, Claude and Grok Android-app connection instructions, and use `docs/TECHNICAL_REFERENCE.md` for architecture and security details. The installed copies are under `~/AI_WADB_DOCS/`.
 
 ## Important distinctions
 
