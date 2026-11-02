@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — technical documentation parity (2026-11-02)
+
+- Added source-verified Android Settings.Global calls and explicit WADB Bridge broadcast actions.
+- Documented the separate Wireless ADB pairing/connection mDNS service identifiers.
+- Expanded the Android recovery receiver, alarm schedule, fixed Termux RUN_COMMAND hand-off, and permission-activity boundaries.
+- Clarified Secure Local Shell loopback binding/token authentication and separated Desktop Commander MCP tool names from Toolkit commands.
+- Documented the optional Termux:API commands and the distinct Bridge notification channel.
+
+
 ## 1.0.1 — documentation and setup clarity update (2026-11-02)
 
 - Expanded the user guide with Termux installation paths, the role of each app/component, and a clear first-time setup definition.
