@@ -1,5 +1,15 @@
 # Command Reference
 
+## Connection layers at a glance
+
+- Desktop Commander MCP connects the AI client to Termux. It is managed with wadb-mcp-start/stop/restart/status/log.
+- Wireless ADB is Android's authenticated debugging transport. It is managed with ai-info --connect, wireless-adb-connect, adb-mdns-discover and the wireless-debug-* helpers.
+- WADB Bridge changes Android's Wireless Debugging setting through its protected receiver. After the one-time ADB permission setup, wireless-debug-on/off do not need an already-connected ADB transport for each later toggle.
+- Secure Local Shell is a separate authenticated loopback Android shell route. It is managed with wadb-local-on/status/shell/off.
+
+A transport-only disconnect leaves Wireless Debugging ON. Switching Wireless Debugging OFF ends the ADB wireless route but does not stop MCP or Secure Local Shell. Always choose the exact layer the owner asked to change.
+
+
 ### wadb-integrity-check
 
 Use case: Verify the signed release identity and the installed WADB files covered by the signed installed-file inventory.
@@ -116,7 +126,7 @@ Users should not manually copy a replacement APK into the cache; updating the to
 
 ### Secure localhost shell bridge
 
-The maintained v1.0 local-control path no longer exposes Android adbd on classic TCP port 5555.
+The maintained v1.0.1 local-control path no longer exposes Android adbd on classic TCP port 5555.
 
 The local-control architecture is:
 

@@ -147,6 +147,13 @@ If an owner label exists, verify it before changing a sensitive multi-session se
 
 ### Do not mix these concepts
 
+The AI must treat MCP, Wireless ADB and Secure Local Shell as separate connections. Desktop Commander MCP is the AI-to-Termux path. Wireless ADB is the authenticated Android debugging transport. Secure Local Shell is a separate authenticated loopback route. WADB Bridge is the Android companion used for protected Wireless Debugging setting changes and Android-side recovery.
+
+After the initial ADB-authorised setup grants and verifies WRITE_SECURE_SETTINGS for both Termux and WADB Bridge, wireless-debug-on and wireless-debug-off use the Bridge receiver directly. They do not require an already-connected ADB transport for each later toggle. Enabling the setting does not pair/connect ADB; run ai-info --connect for that separate operation. The AI must check wireless-debug-status before and after a toggle and report the observed result.
+
+The disconnect menu has two different actions: disconnect only the exact current network ADB transport (Wireless Debugging remains ON), or switch Wireless Debugging OFF through WADB Bridge. Neither action stops Desktop Commander MCP or Secure Local Shell. wadb-mcp-stop, wadb-local-off --confirm and wadb-mcp-logout --confirm each affect different layers and must never be presented as synonyms.
+
+
 - Desktop Commander MCP and Wireless ADB are separate connections.
 - MCP can remain online while ADB is off.
 - Existing trusted ADB reconnect is not first-time pairing.
@@ -188,11 +195,11 @@ READ instruction
 
 Use `ai-info --json` for machine-readable state. Do not parse the colorful human dashboard when JSON is available.
 
-### v1.0 security/rollback rule
+### v1.0.1 security/rollback rule
 
 Before enabling recovery or discussing security behavior, read `TECHNICAL_REFERENCE.md`.
 
-Key changes in v1.0:
+Key changes in v1.0.1:
 - non-exported MCP recovery receiver,
 - recovery disable restores the previous `allow-external-apps` state by default,
 - recovery config values are shell-escaped and GitHub identifiers validated,

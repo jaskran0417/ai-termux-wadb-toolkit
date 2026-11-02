@@ -6,6 +6,34 @@ Architecture, Android permission boundaries, system behaviour, release verificat
 
 This document explains the working model at the component and Android-platform level. It is intentionally an architectural overview, not a copy of the implementation source.
 
+### Implementation map: which file performs each job
+
+The v1.0.1 source is organised around these primary entry points and components:
+
+| Source path / component | Function |
+|---|---|
+| scripts/ai-info | Human Control Center, structured JSON state, read-only diagnostics, connect/pair, local-shell, recovery and disconnect actions |
+| scripts/wireless-adb-connect | ADB client bootstrap, trusted-key connection, typed endpoint discovery and authenticated reconnect |
+| scripts/adb-mdns-discover | Discovers Android's typed pairing and connection mDNS services; it does not guess service role from a port number |
+| scripts/wadb-bootstrap | Installs/updates the cached WADB Bridge APK and performs the one-time ADB permission-grant and Bridge-readiness checks |
+| scripts/wireless-debug-status | Reads the Bridge setting and verifies the protected write path with a no-op write of the current value |
+| scripts/wireless-debug-on and scripts/wireless-debug-off | Send the Bridge SET_WIRELESS_DEBUG request, then read back and verify adb_wifi_enabled |
+| bridge-source/.../WirelessDebugReceiver.java | Android receiver that reads/writes Settings.Global adb_wifi_enabled and returns the actual value/write result |
+| bridge-source/.../PermissionActivity.java | Requests the Android runtime permissions used for Termux RUN_COMMAND integration and optional notifications |
+| bridge-source/.../McpRecoveryReceiver.java | Handles supported boot/package-replaced/recovery events, schedules the slower Android alarm and requests the fixed Termux recovery job |
+| scripts/wadb-local-on/off/status/shell | Starts, inspects, stops and authenticates the Secure Local Shell route |
+| native/wadb-local-bridge.c | Native Android-side shell helper; accepts authenticated loopback requests and executes them with the shell-user identity |
+| scripts/mcp-recovery-common and scripts/wadb-mcp-* | Manage MCP desired/actual state, saved-session lifecycle, local watchdog and optional recovery configuration |
+| scripts/wadb-mcp-github-* and scripts/github-control-fetch | Configure, read, validate and process the optional GitHub recovery control file |
+| scripts/phone-capabilities | Reports installed command and Android capability state for diagnostics |
+| install.sh / uninstall.sh | Preflight, package installation, documentation placement, rollback, and removal of Toolkit-owned components |
+
+The key Android setting is Settings.Global key adb_wifi_enabled. During first setup, the authorised ADB shell grants WRITE_SECURE_SETTINGS to both the Termux package and WADB Bridge. The exported Bridge receiver is protected by that permission. After these grants are verified, wireless-debug-on and wireless-debug-off can call the Bridge directly and do not need an already-connected ADB transport for every later toggle. Turning the setting ON still does not pair the ADB key or establish a network transport; wireless-adb-connect handles that separate job.
+
+The Secure Local Shell is not an ADB protocol listener. The Termux-side command uses the native C helper over an authenticated loopback connection on 127.0.0.1:47173. The helper runs as Android uid=2000(shell); the random token is stored privately under the Termux home directory. The ordinary steady state keeps classic adbd TCP exposure disabled.
+
+External components remain distinct: Desktop Commander supplies the Remote MCP process/tool interface; Termux supplies the shell and package environment; Android supplies the protected APIs and permission model; the AI client supplies the model and user-facing interaction. The Toolkit orchestrates these components rather than replacing them.
+
 ### 1. The whole system at a glance
 
 The toolkit connects an AI assistant to a real Termux environment on an Android device. The AI client, Remote MCP service, Termux environment, Android Debug Bridge and WADB Bridge are separate components. They work together, but none of them is a substitute for the others.
@@ -367,7 +395,7 @@ WADB Bridge is deliberately narrow:
 
 ### Secure localhost shell bridge
 
-The maintained v1.0 local-control mode does not expose Android `adbd` on classic TCP port 5555. In the verified secure state:
+The maintained v1.0.1 local-control mode does not expose Android `adbd` on classic TCP port 5555. In the verified secure state:
 
 ```text
 adb_enabled=1
@@ -526,44 +554,38 @@ MANIFEST.sha256 covers the toolkit files. It detects accidental or unauthorized 
 
 This release adds an Ed25519 signature over MANIFEST.sha256. The verifier requires an independently published public-key fingerprint, checks the detached signature, checks every hash, rejects symlinks and unsafe paths, and rejects missing or unlisted files. The installer performs this verification before package installation, backup creation, or toolkit file changes.
 
-The production installer has no candidate-only override. It requires independent trust pins for the release key, the installer and the verifier before making any toolkit changes.
+The installer has no verification-bypass option. It requires independent trust pins for the release key, the installer and the verifier before making any Toolkit changes.
 
 wadb-integrity-check verifies a signed inventory of installed commands, shared helpers, selected documentation, and the cached Bridge APK. It is read-only. The inventory does not directly measure the installed Android Bridge APK, the operating system, third-party tools, mutable user configuration, or running process memory.
 
-The first-time key fingerprint must be published independently of the bundle. A fingerprint contained only in the same ZIP is not a trust anchor. GitHub build attestations, immutable releases, a complete SBOM, and a final legal licence are not yet implemented in this candidate.
+The first-time key fingerprint must be obtained independently of the bundle. A fingerprint contained only in the same ZIP is not a trust anchor. The release also includes a CycloneDX SBOM and third-party licence notices. The SBOM describes the dependency information collected for the release; it is not an independent security certification or a GitHub build-provenance attestation.
 
 A user controlling the Termux UID can replace the verifier, alter the local pin, or execute a modified copy. This design authenticates a release when its key pin is independently trusted and detects local file changes; it does not make Termux immutable or make modification impossible.
 
 
 
 
-### Maintenance-audit residuals (v1.0)
+### v1.0.1 safeguards, known limitations and verification scope
 
-The current maintenance update fixes the false-ready Wireless Debugging diagnostic, synchronizes both MCP desired-state files during logout, adds cached-APK SHA-256 verification, adds a multi-property same-phone guard, pins Desktop Commander fallback commands to the installed `0.3.1` package, and bounds GitHub generation values. These changes do not change the toolkit version.
+The v1.0.1 implementation includes the following safeguards:
+
+- The installer checks the Termux PREFIX/HOME directory chains and managed destinations before writing, rejecting symlinked or unsafe path components.
+- A private lock serialises concurrent installer runs so two upgrades cannot interleave their snapshots and writes.
+- The installer captures a rollback snapshot before replacing managed commands, documentation, helper files and release-integrity metadata. Ordinary caught failures before commit restore the prior state; power loss, kernel termination, storage failure or SIGKILL during replacement cannot be guaranteed recoverable.
+- The native local bridge uses bounded per-client workers, authentication deadlines, bounded request/response handling and a command timeout. It remains bound to 127.0.0.1 and requires its random token.
+- The signed installed-file inventory checks both content and expected POSIX permission modes.
+- Every installed-integrity invocation requires an independently supplied release-key fingerprint. The local copy is consistency metadata, not a trust anchor.
 
 Two important limits remain explicit:
 
-- The Android Bridge APK was not redesigned in this maintenance pass. Termux still needs its existing `WRITE_SECURE_SETTINGS` grant because the exported Wireless Debug receiver requires that permission from callers. Removing this broad Termux grant needs a token-authenticated receiver redesign, a signed APK build, and live installation/permission regression tests; simply revoking the permission would break the current control path. Android documents `WRITE_SECURE_SETTINGS` as not for use by ordinary third-party apps.
-- The boot/package-replaced receiver's `startService()` recovery path has not been verified by a cold-boot test on Android 16. It logs failures. Do not treat reboot recovery as proven solely from source inspection.
+- Termux still needs its WRITE_SECURE_SETTINGS grant because the exported Wireless Debug receiver requires that permission from callers. Removing this broad Termux grant requires a token-authenticated receiver redesign, a rebuilt/signed Android companion and live installation/permission regression tests; simply revoking the permission would break the current control path. Android documents WRITE_SECURE_SETTINGS as not for use by ordinary third-party apps.
+- The Bridge boot/package-replaced receiver requests the fixed Termux recovery job, but background execution is subject to Android and manufacturer rules. A source review does not prove that every device will execute recovery after every cold boot. Verify this behavior on the target phone before relying on it.
 
-GitHub recovery and its polling are currently disabled in the inspected device configuration (`recovery_enabled=0`, `GITHUB_ENABLED=0`), so the 15-second watcher interval is not producing GitHub polls in that state. The installer uses `pkg update` only when required packages or Termux:API CLI are missing; it does not execute `pkg upgrade` or partially upgrade installed packages. A user who changes repository mirrors should follow Termux's documented package-upgrade guidance as a separate maintenance operation.
-
-### Fixed-candidate security maintenance — 2026-11-01
-
-This fixed candidate adds the following controls over the 2026-10-31 candidate:
-
-- Before package installation or toolkit writes, a Node.js preflight walks every existing component of the Termux PREFIX/HOME directory chains with lstat, rejecting symlinked or non-directory components. It checks all managed command/helper destinations and the documentation files that will be replaced. AI_READ_ME_FIRST.md is accepted only when it is a symlink to the expected AI_ENVIRONMENT.md file. A private HOME-level flock lock file serializes concurrent installer runs without needing to create the toolkit state directory first.
-- The installer uses the persistent private lock file ~/.ai-wadb.install.lock (mode 600) under Termux HOME; it is intentionally left in place so concurrent installers can serialize on the same inode.
-- Immediately before the first managed write, the installer repeats the path preflight and captures a rollback snapshot of all managed command files, the complete WADB libexec directory, the complete WADB documentation directory, environment/read-me files, .bashrc, the cached Bridge APK, release-integrity metadata, and pairing-pending state. If a later install step fails or exits before commit, an EXIT/INT/TERM handler restores the previous state and removes paths that did not previously exist. The snapshot remains under ~/.ai-wadb/backups/<timestamp>/rollback/ for manual recovery.
-- The native bridge uses bounded per-client workers (maximum eight), a two-second authentication-token deadline, bounded request-frame reads, bounded response writes, and a two-minute shell-command deadline. A slow unauthenticated client no longer blocks other authenticated clients. The listener remains bound to 127.0.0.1, and the 256-bit token is still required.
-- The signed installed-file inventory now records POSIX permission modes as well as content hashes. wadb-integrity-check rejects a mode-only change.
-- Every installed-integrity invocation requires an independently supplied release-key fingerprint. The local pin is consistency metadata only and is no longer used as a fallback trust anchor.
-
-Rollback handles ordinary command failures and caught process termination signals. It cannot guarantee recovery from power loss, kernel termination, storage failure, or SIGKILL during the narrow period of file replacement; retain the timestamped backup and do not interrupt an installation.
+The installer runs pkg update only when required package metadata or missing packages need it; it does not run a blanket pkg upgrade or partially upgrade installed packages. Changing Termux repository mirrors or performing a full package upgrade is a separate owner maintenance task.
 
 ## Release authenticity and installed integrity
 
-This document applies to AI Termux WADB Toolkit 1.0.
+This document applies to AI Termux WADB Toolkit 1.0.1.
 
 ### What is checked
 

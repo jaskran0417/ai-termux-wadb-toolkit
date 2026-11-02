@@ -2,11 +2,61 @@
 
 This guide brings installation, first-time setup, AI connection, manual operation, troubleshooting and optional recovery into one place. Start with the setup sequence, then use the troubleshooting and prompt sections when needed.
 
+## What is installed, where it lives, and which app does what
+
+The Toolkit is installed **inside the Termux app**. It is not a separate Android launcher app and it does not contain an AI model.
+
+| Component | What it does |
+|---|---|
+| Termux | Android terminal, shell, package manager and filesystem home where the Toolkit commands run |
+| Desktop Commander | Separate Node.js-based Remote MCP service that exposes authorised terminal, filesystem, directory and process tools to the AI client |
+| AI client (ChatGPT, Claude, or another compatible client) | The interface where the owner describes the work; it must support the required MCP/connector integration |
+| AI Termux WADB Toolkit | Bash command suite, dashboard, Android connection helpers, diagnostics, local-shell controls and optional recovery |
+| WADB Bridge | Separate Android companion package for protected Wireless Debugging setting operations and Android-to-Termux recovery hand-off; it has no normal launcher screen |
+| Termux:API | Optional Termux command package plus a separate compatible Android companion app for notifications and extra device information |
+
+The normal Termux installation paths are:
+
+~~~text
+/data/data/com.termux/files/usr/bin/
+    User-facing commands such as ai-info, wireless-debug-on,
+    wireless-debug-off, wadb-local-on and wadb-mcp-start
+
+/data/data/com.termux/files/usr/libexec/ai-wadb/
+    Shared shell helpers, the native local bridge and integrity verifier
+
+/data/data/com.termux/files/home/AI_WADB_DOCS/
+    Installed USER_GUIDE.md, AI_GUIDE.md, COMMAND_REFERENCE.md,
+    TECHNICAL_REFERENCE.md and toolkit manifest
+
+/data/data/com.termux/files/home/AI_ENVIRONMENT.md
+    Installed environment reference
+
+/data/data/com.termux/files/home/.ai-wadb/
+    Private toolkit state, cached Bridge APK, recovery settings
+    and the Secure Local Shell authentication token
+~~~
+
+Shared user files are reached only after the owner grants Termux storage access. Run termux-setup-storage in Termux and approve Android's prompt if Downloads or shared storage should be accessible. The usual shortcut is ~/storage/downloads; Android app-private data remains isolated.
+
+### What “initial setup” means
+
+Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
+
+1. Install Termux and grant it shared-storage access if required.
+2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
+3. Start the separate Desktop Commander service from Termux with npx @wonderwhy-er/desktop-commander@0.3.1 remote, complete the browser/device verification and connect the AI client through its supported MCP integration.
+4. Run ai-info --connect. For a fresh phone, enable Developer Options > Wireless debugging manually, open Android's pairing-code screen when requested, and use ai-info --pair CODE with the current six-digit code.
+5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and grants/verifies the required WRITE_SECURE_SETTINGS permission for both Termux and the Bridge. Setup is complete only when the output includes RESULT=CONNECTED_AND_READY and bridge_write=ready.
+
+On OPPO/ColorOS, OnePlus and realme builds affected by the OEM restriction, Developer options > **Disable permission monitoring** may also need to be ON (blue) before the secure-settings grants. Android/browser prompts and pairing still require the owner's approval.
+
+After this initial grant is complete, WADB Bridge can be used to switch Wireless Debugging ON or OFF without an already-connected ADB transport for every toggle. This is the key difference between the first bootstrap and normal operation. Turning Wireless Debugging ON does not itself pair or connect ADB; a trusted ADB key and normal Android pairing are still required for an ADB connection.
+
 ## Quick start and recommended setup order
 
 This is the first stop for a person installing or using the Toolkit. For the
-system-level explanation, see docs/TECHNICAL_REFERENCE.md and
-docs/TECHNICAL_REFERENCE.md before proceeding.
+system-level explanation, see docs/TECHNICAL_REFERENCE.md before proceeding.
 
 This toolkit combines:
 - Remote Desktop Commander MCP access to Termux,
@@ -38,6 +88,8 @@ After the AI confirms it can run Termux commands through Desktop Commander, the 
 **Ownership boundary:** Desktop Commander is an external dependency/control path, not a WADB-toolkit component. Toolkit uninstall must not stop it, log it out, remove its saved device login, or delete Termux's `~/.android/adbkey`.
 
 ### 2. Install this toolkit
+
+Before running the installer, download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier values in that file, then set the three independent WADB trust environment variables required by install.sh. The README and Technical Reference explain why those values must be obtained separately. The installer repeats the checks before changing Toolkit files.
 
 From the extracted bundle:
 
@@ -124,6 +176,24 @@ Disable permission monitoring = ON / blue
 Then rerun `ai-info --connect`.
 
 The toolkit reports `DISABLE_PERMISSION_MONITORING=on|off|unknown` when the ColorOS property is readable. If it says `off`, turn **Disable permission monitoring ON (blue)** before continuing to the pairing-code step. The switch does **not** grant `WRITE_SECURE_SETTINGS`; it only removes the OEM restriction so the authenticated ADB shell can perform and verify the real one-time grants.
+
+### After initial setup: toggle Wireless Debugging without an active ADB transport
+
+Once both Termux and WADB Bridge have the required WRITE_SECURE_SETTINGS grants, the Toolkit can use the protected WADB Bridge receiver to change Android's Wireless Debugging setting. These commands do not require an already-connected ADB transport for each later ON/OFF toggle:
+
+~~~bash
+wireless-debug-status
+wireless-debug-on
+wireless-debug-off
+~~~
+
+wireless-debug-status reads the state and performs a no-op write of the same value to verify that the permission path is still ready. wireless-debug-on and wireless-debug-off change the setting and verify the returned value.
+
+The interactive ai-info Control Center > Disconnect Wireless ADB menu keeps two choices separate:
+- disconnect only the exact currently verified network ADB transport (Wireless Debugging stays ON);
+- turn Android Wireless Debugging OFF through WADB Bridge.
+
+The headless forms are ai-info --disconnect-transport --confirm and ai-info --wireless-off --confirm. Neither action stops Desktop Commander MCP or Secure Local Shell. Turning Wireless Debugging back ON does not pair ADB by itself; ai-info --connect performs the connection/pairing workflow when Android requires it.
 
 ### 4. Optional: secure Wi-Fi-independent local shell
 
@@ -229,7 +299,7 @@ The simplest first prompt is:
 
 ### Security and rollback
 
-For the exact security boundaries and v1.0 security and rollback protections, read:
+For the exact security boundaries and v1.0.1 security and rollback protections, read:
 
 ```text
 docs/TECHNICAL_REFERENCE.md
@@ -492,7 +562,7 @@ Normal MCP stop/restart/reboot should keep authorization. Do not use logout unle
 
 ### Another AI only repeats command names
 
-Plain ai-info v1.7 provides the human status dashboard and explained actions. The AI should use those descriptions before presenting choices. It should not guess command meaning from the name alone and should not open the full guide unless the user asks for it.
+The v1.0.1 ai-info Control Center provides the human status dashboard and explained actions. The AI should use those descriptions before presenting choices. It should not guess command meaning from the name alone and should not open the full guide unless the user asks for it.
 
 ### Existing helpers fail
 

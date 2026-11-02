@@ -1,70 +1,117 @@
-# AI Termux WADB Toolkit v1.0
+# AI Termux WADB Toolkit v1.0.1
 
-A Termux toolkit for managing Wireless ADB, the WADB Bridge Android companion, a separate authenticated local shell route, and Desktop Commander Remote MCP lifecycle and recovery on Android.
+AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termux environment on Android. It gives the owner and the AI a consistent way to inspect status, run available Termux commands, manage Wireless ADB, use a separate Secure Local Shell, and configure optional Desktop Commander recovery.
 
-It is designed for rooted and non-rooted devices. Root is optional; normal Toolkit operation uses Termux permissions, while the ADB and Secure Local Shell routes use Android's shell identity where applicable.
+It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
 ## What it does
 
-- Provides an ai-info control center, machine-readable status (ai-info --json) and diagnostics (ai-info --doctor).
-- Discovers and connects Wireless ADB using Android's supported pairing and debugging workflow.
-- Integrates the WADB Bridge companion for the supported Android settings and recovery handoff.
-- Provides an authenticated loopback Secure Local Shell route as a separate option from Wireless ADB.
-- Manages Desktop Commander MCP start, stop, restart, status and logs without treating logout as an ordinary restart.
-- Offers optional local watchdog, Android-side and GitHub-based recovery paths.
-- Includes signed release metadata and an installed-file integrity check.
-- Keeps source code, Android Bridge source and documentation in this repository.
+- **AI-to-phone connection:** works with Desktop Commander Remote MCP so a compatible AI client can use authorised terminal, filesystem, directory and process tools exposed from the phone.
+- **Termux command execution:** the AI can use commands and packages installed in Termux, not only Toolkit commands.
+- **ai-info Control Center:** human dashboard, interactive menu, structured state with `ai-info --json`, read-only diagnostics with `ai-info --doctor`, and the full command index with `ai-info --commands`.
+- **Wireless ADB management:** typed mDNS discovery, trusted-key reconnect, pairing-state protection, Bridge readiness checks, and separate controls to disconnect one ADB transport or switch Wireless Debugging OFF.
+- **WADB Bridge:** Android companion used for the protected Wireless Debugging setting workflow and Android-to-Termux recovery hand-off.
+- **Secure Local Shell:** authenticated loopback-only Android shell route on `127.0.0.1:47173`, designed to remain usable after Wireless Debugging is off once it has been initialised.
+- **Desktop Commander lifecycle:** start, stop, restart, status and log controls that preserve saved authorisation during normal lifecycle operations.
+- **Optional recovery:** Termux watchdog, Android Bridge trigger and GitHub control-file recovery.
+- **Optional notifications and device details:** Termux:API integration and Bridge recovery notifications.
+- **Release and installation integrity:** signed package verification, preflight checks, installed-file integrity checks and rollback handling for ordinary caught installation failures.
 
-## How the system fits together
+## How the pieces fit together
 
-The AI client connects to Desktop Commander Remote MCP. Desktop Commander exposes authorized command and file operations in Termux. The Toolkit supplies Android/ADB helpers, status, recovery and integrity checks. Android still enforces app sandboxing, scoped storage, ADB authorization and permission boundaries.
+```text
+AI app/client
+   -> compatible MCP connection
+   -> Desktop Commander on Android
+   -> Termux shell
+   -> AI Termux WADB Toolkit and installed Termux packages
+   -> Wireless ADB or Secure Local Shell when Android shell access is needed
+   -> Android
+```
 
-The Toolkit is not an AI model, does not create an MCP connection by itself, and does not grant access to another app's private data. AI access depends on a supported MCP client, an authenticated Desktop Commander connection and the permissions available to Termux.
+MCP, Wireless ADB and Secure Local Shell are separate connections. An active AI-to-Termux MCP connection does not require Wireless Debugging to remain ON. After the one-time authorised setup, WADB Bridge can switch the Wireless Debugging setting through its protected Android receiver without requiring an already-connected ADB transport for each later toggle. Turning the setting ON does not itself pair or connect ADB; the ADB trust flow is still required.
 
-## Start here
+## Apps, dependencies and installation location
 
-1. Read the User Guide at docs/USER_GUIDE.md.
-2. Read the AI Guide at docs/AI_GUIDE.md before asking an AI to perform setup or system changes.
-3. Use docs/COMMAND_REFERENCE.md for exact commands and behaviour.
-4. Use docs/TECHNICAL_REFERENCE.md for architecture, security and recovery details.
-5. Read AI_ENVIRONMENT.md for the installed Termux environment reference.
+The Toolkit is installed **inside the Termux app**; it is not a launcher app.
 
-## Requirements
+Main installed paths:
 
-- Android with a compatible Termux installation.
-- Node.js and npm in Termux for Desktop Commander.
-- Desktop Commander Remote MCP installed separately.
-- The Termux packages checked by the installer, including Python, Android tools, coreutils, util-linux, curl and Git.
-- Developer Options and Wireless Debugging for initial Wireless ADB setup.
-- Optional Termux:API command package and compatible Android companion app for notifications and some device information.
-- Storage permissions for shared folders that Termux should access.
+| Location | Purpose |
+|---|---|
+| `$PREFIX/bin/` (normally `/data/data/com.termux/files/usr/bin/`) | User-facing Toolkit commands |
+| `$PREFIX/libexec/ai-wadb/` | Shared helpers, native local bridge and verifier |
+| `~/AI_WADB_DOCS/` | Installed User, AI, Command and Technical guides |
+| `~/AI_ENVIRONMENT.md` | Installed environment reference |
+| `~/.ai-wadb/` | Private runtime state, cached Bridge APK, recovery config and local-shell token |
 
-## Installation and verification
+The installer checks/uses Termux packages such as Python, Android platform-tools (`adb`), core utilities, util-linux (`flock`), curl and Git. **Node.js/npm** are needed for Desktop Commander, which is installed/launched separately:
 
-Download the official AI Termux WADB Toolkit v1.0 release from GitHub Releases:
-https://github.com/jaskran0417/ai-termux-wadb-toolkit/releases
+```bash
+npx @wonderwhy-er/desktop-commander@0.3.1 remote
+```
 
-Before installing, verify the archive and installer against the SHA-256 values and release-key fingerprint published separately with the release. Do not trust verification values copied only from inside the archive.
+**WADB Bridge** is the Android companion package `com.jaskran.wadbbridge`; it is not the AI or MCP server and has no normal app-drawer launcher screen. **Termux:API** consists of an optional Termux command package and a separate compatible Android companion app. They add device details and notifications; they are not required for the basic command workflow. GitHub CLI (`gh`) is optional and only used for one GitHub recovery read mode.
 
-Follow docs/USER_GUIDE.md for setup. After installation, ai-info --doctor provides read-only diagnostics and wadb-integrity-check checks the signed installed-file inventory.
+## Initial setup
 
-## Security boundaries
+“Initial setup” means establishing the AI connection and the Android trust/permission grants once:
 
-- Android permissions and app sandboxing remain in force.
-- ADB and Secure Local Shell operate as Android's shell user, not root.
-- Root commands require a rooted device and owner-approved su.
-- Integrity checks detect changes to covered files; they do not make Termux immutable.
-- Rollback covers ordinary caught failures before the installer commits; it cannot guarantee recovery from power loss or forced process termination.
-- Android background recovery is subject to OS and manufacturer process-management rules.
+1. Install and open Termux. Run `termux-setup-storage` and approve the storage permission if the AI should work with shared folders such as Downloads.
+2. Extract the official release ZIP in a Termux-accessible folder. Download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier hashes in that file, set the three independent WADB trust environment variables required by install.sh, and then run `bash install.sh`. The installer repeats the checks and verifies the signed package inventory before it writes any Toolkit files. Do not copy trust values only from inside the ZIP.
+3. Start the separate Desktop Commander service from Termux using the command above. Complete browser/device verification and connect a compatible AI client through its Remote MCP integration.
+4. Run `ai-info --connect`. On a fresh device, manually enable Developer Options → Wireless debugging, open Android's pairing-code screen when requested, and run `ai-info --pair CODE` using the current code. Some ColorOS/OPPO/OnePlus/realme builds also require **Disable permission monitoring** to be ON (blue).
+5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and uses the ADB shell to grant and verify the required `WRITE_SECURE_SETTINGS` permissions to Termux and the Bridge. Completion requires `RESULT=CONNECTED_AND_READY` and `bridge_write=ready`.
 
-## Project and licensing
+The owner may need to approve Android dialogs, browser authorisation and pairing. Android controls those prompts. Uploading the ZIP or AI guide to a chat does not establish the MCP connection.
 
-The Toolkit's own source is licensed under **Apache License 2.0 (Apache-2.0)**. It may be used, modified, redistributed and included in commercial products subject to the licence conditions, including its attribution, notice and patent terms. Third-party components retain their own licences and notices in THIRD_PARTY_NOTICES.md and SBOM.cdx.json.
+After this initial setup, the saved ADB trust and Bridge permissions can normally be reused. The AI can use the Bridge to switch Wireless Debugging ON/OFF without an active ADB transport, as long as the required permissions remain granted.
 
-Contributions and security reports: see CONTRIBUTING.md and SECURITY.md.
+## Main controls
 
-## Release identity
+```bash
+ai-info                         # human dashboard / Control Center
+ai-info --json                  # machine-readable status
+ai-info --doctor                # read-only diagnostics
+ai-info --connect               # Wireless ADB connect/setup
+wireless-debug-status           # Wireless Debugging + Bridge status
+wireless-debug-on               # turn Wireless Debugging on via Bridge
+wireless-debug-off              # turn Wireless Debugging off via Bridge
+ai-info --disconnect            # choose transport disconnect or Wireless OFF
+ai-info --disconnect-transport --confirm
+ai-info --wireless-off --confirm
 
-- Toolkit version: 1.0
-- Android companion: WADB Bridge 1.5 (versionCode 6)
-- Source: this repository
+wadb-local-on                   # enable/repair Secure Local Shell
+wadb-local-status
+wadb-local-shell -c 'id'
+wadb-local-off --confirm
+
+wadb-mcp-status
+wadb-mcp-start
+wadb-mcp-stop
+wadb-mcp-restart
+wadb-mcp-log --follow
+wadb-mcp-recovery-setup         # optional local recovery
+wadb-mcp-recovery-disable
+wadb-mcp-github-config          # optional GitHub recovery setup
+wadb-mcp-github-test
+wadb-mcp-github-sync
+wadb-toolkit-uninstall --all --dry-run
+```
+
+The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, and use `docs/TECHNICAL_REFERENCE.md` for architecture and security details. The installed copies are under `~/AI_WADB_DOCS/`.
+
+## Important distinctions
+
+- Disconnecting the current ADB transport leaves Wireless Debugging ON.
+- Turning Wireless Debugging OFF through WADB Bridge ends Wireless ADB but does not stop Desktop Commander MCP or Secure Local Shell.
+- `wadb-mcp-stop` stops the managed Desktop Commander process but does not delete its saved authorisation.
+- `wadb-mcp-logout --confirm` removes saved Desktop Commander authorisation and may require browser verification again.
+- `wadb-local-off --confirm` stops only Secure Local Shell.
+- Secure Local Shell is loopback-only and runs as Android `uid=2000(shell)`, not root. Its steady-state connection is Wi-Fi-independent; reinitialising a missing helper may temporarily require Wi-Fi and authenticated Wireless ADB.
+- Root is optional. On rooted devices, root operations still require the owner-authorised `su` path. On non-rooted devices, commands are limited to Termux and Android shell permissions.
+- Android app sandboxing, storage permissions, background-process restrictions and AI-provider usage limits remain in force.
+
+## Licence
+
+The Toolkit's own source is licensed under **Apache License 2.0 (Apache-2.0)**. Third-party components retain their own licences and notices in `THIRD_PARTY_NOTICES.md` and the included SBOM.

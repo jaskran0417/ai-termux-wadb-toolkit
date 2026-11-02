@@ -19,8 +19,8 @@
     "component": {
       "type": "application",
       "name": "AI Termux WADB Toolkit",
-      "version": "1.0",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0",
+      "version": "1.0.1",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.1",
       "licenses": [
         {
           "license": {
@@ -39,7 +39,7 @@
   "components": [
     {
       "type": "application",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.1",
       "name": "AI Termux WADB Toolkit",
       "version": "1.0",
       "scope": "required",
@@ -92,7 +92,7 @@
       "type": "file",
       "bom-ref": "urn:ai-termux-wadb:native:wadb-local-bridge",
       "name": "wadb-local-bridge",
-      "version": "candidate-binary",
+      "version": "1.0.1",
       "hashes": [
         {
           "alg": "SHA-256",
@@ -4857,7 +4857,7 @@
   ],
   "dependencies": [
     {
-      "ref": "urn:ai-termux-wadb:toolkit:1.0",
+      "ref": "urn:ai-termux-wadb:toolkit:1.0.1",
       "dependsOn": [
         "urn:ai-termux-wadb:toolkit:1.0",
         "urn:ai-termux-wadb:wadb-bridge:1.5",
