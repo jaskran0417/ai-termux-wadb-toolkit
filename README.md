@@ -4,6 +4,8 @@ AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termu
 
 It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
+Just send this tool kit to ai like chat gpt,Claude or grock and ask how to setup the tool kit and tell ai to do the setup,Ai should give u instruction to setup initial desktop commander plugin or MCP and after the desktop commander is set the ai can install the tool kit by it self I'm termux or u can tell it to do so and then u only need to to initial wireless adb and bootstrap set which is automatically done by tool u just need to provide the pairing code to ai when it ask u to.If you face any problem ask ai to check the instructions and reference md or text files or u can ask here feel free.
+
 ## What it does
 
 - **AI-to-phone connection:** works with Desktop Commander Remote MCP so a compatible AI client can use authorised terminal, filesystem, directory and process tools exposed from the phone.
