@@ -59,6 +59,8 @@ npx @wonderwhy-er/desktop-commander@0.3.1 remote
 
 “Initial setup” means establishing the AI connection and the Android trust/permission grants once:
 
+Just send this tool kit to ai like chat gpt,Claude or grock and ask how to setup the tool kit and tell ai to do the setup,Ai should give u instruction to setup initial desktop commander plugin or MCP and after the desktop commander is set the ai can install the tool kit by it self I'm termux or u can tell it to do so and then u only need to to initial wireless adb and bootstrap set which is automatically done by tool u just need to provide the pairing code to ai when it ask u to.If you face any problem ask ai to check the instructions and reference md or text files
+
 1. Install and open Termux. Run `termux-setup-storage` and approve the storage permission if the AI should work with shared folders such as Downloads.
 2. Extract the official release ZIP in a Termux-accessible folder. Download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier hashes in that file, set the three independent WADB trust environment variables required by install.sh, and then run `bash install.sh`. The installer repeats the checks and verifies the signed package inventory before it writes any Toolkit files. Do not copy trust values only from inside the ZIP.
 3. Start the separate Desktop Commander service from Termux using the command above. Complete browser/device verification and connect a compatible AI client through its Remote MCP integration.
