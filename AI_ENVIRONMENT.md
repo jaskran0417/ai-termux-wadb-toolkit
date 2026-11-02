@@ -1,12 +1,12 @@
-# AI Termux WADB Environment — v1.7.5
+# AI Termux WADB Environment — v1.0
 
 This file is the installed environment reference. The mandatory AI workflow is in:
 
-`~/AI_WADB_DOCS/READ_THIS_FIRST_AI.md`
+`~/AI_WADB_DOCS/AI_GUIDE.md`
 
 The human start guide is:
 
-`~/AI_WADB_DOCS/START_HERE.md`
+`~/AI_WADB_DOCS/USER_GUIDE.md`
 
 ## Primary interface
 
@@ -100,7 +100,7 @@ Do not infer endpoint role from the port number.
 
 ## Secure localhost shell / Wi-Fi-independent control
 
-v1.7.5 keeps Android `adbd` alive with `adb_enabled=1` but no longer exposes classic adbd TCP in the secure local mode.
+v1.0 keeps Android `adbd` alive with `adb_enabled=1` but no longer exposes classic adbd TCP in the secure local mode.
 
 ```text
 Termux / Remote MCP
@@ -157,7 +157,7 @@ A new owner/repo/branch/file/target identity is baselined on first sync, so the 
 
 Read:
 
-`~/AI_WADB_DOCS/RECOVERY_GITHUB.md`
+`~/AI_WADB_DOCS/TECHNICAL_REFERENCE.md`
 
 ## Optional owner label
 
@@ -184,13 +184,13 @@ For documented toolkit functions:
 
 Do not replace a known-working helper with a random alternative unless the documented path genuinely fails and has been diagnosed.
 
-## v1.7.5 first-setup and Bridge update rules
+## v1.0 first-setup and Bridge update rules
 
 On ColorOS/OPPO/OnePlus/realme first setup, enable **Wireless Debugging** and **Disable permission monitoring (ON/blue)** together before pairing. `ai-info --connect` exposes `DISABLE_PERMISSION_MONITORING=on|off|unknown`, and `ai-info --json` exposes the same state as `wireless_adb.disable_permission_monitoring`.
 
 The authoritative install source for WADB Bridge is `~/.ai-wadb/wadb-bridge.apk`, populated from the release's `apk/wadb-bridge.apk` by `install.sh`. A newer toolkit replaces that cache automatically. On the next authenticated ADB connection, `ai-info --connect` compares cached and installed Bridge versionCode values and installs the cached APK when the installed Bridge is missing or older.
 
-## v1.7.5 uninstall ownership rule
+## v1.0 uninstall ownership rule
 
 Desktop Commander itself is external to the WADB toolkit. Toolkit uninstall must never stop it, log it out, remove its saved device login, or delete Termux's ~/.android/adbkey.
 
@@ -247,12 +247,12 @@ Pressing Ctrl+C in this log viewer stops only the viewer. Manually running the r
 Ordinary shell `exit` or removing Termux from Recents is not treated as `wadb-mcp-stop`; detached processes may continue running. Android force-stop or OEM process restrictions can still prevent scheduled recovery until Android permits the affected app/process to run again.
 
 
-## Release integrity check (hardened candidate)
+## Release integrity check
 
-Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.7.5 HARDENED release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/INTEGRITY_VERIFICATION.md.
+Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.0 release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/TECHNICAL_REFERENCE.md.
 
 
-## Control Center — disconnect and command catalogue (v1.7.5 R2)
+## Control Center — disconnect and command catalogue (v1.0 R2)
 
 Run `ai-info` in an interactive Termux terminal. Choose **Disconnect Wireless ADB** to select either:
 - disconnect only the exact verified network ADB transport (Wireless Debugging stays ON), or
@@ -262,5 +262,5 @@ The action asks for confirmation. It does not stop the MCP host or the secure lo
 - MCP process: `wadb-mcp-stop` / `wadb-mcp-start`
 - Secure local shell: `wadb-local-off --confirm` / `wadb-local-on`
 
-Choose **All commands & usage** or run `ai-info --commands` to open the edition-specific full command reference. For headless use, the explicit safe forms are `ai-info --disconnect-transport --confirm` and `ai-info --wireless-off --confirm`.
+Choose **All commands & usage** or run `ai-info --commands` to open the current full command reference. For headless use, the explicit safe forms are `ai-info --disconnect-transport --confirm` and `ai-info --wireless-off --confirm`.
 

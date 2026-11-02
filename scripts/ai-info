@@ -6,10 +6,10 @@ PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
 [ -r "$PREFIX/libexec/ai-wadb/wadb-common" ] && . "$PREFIX/libexec/ai-wadb/wadb-common"
-VERSION="1.7.5"
+VERSION="1.0"
 DOC="$TERMUX_HOME/AI_ENVIRONMENT.md"
-AI_FIRST="$TERMUX_HOME/AI_WADB_DOCS/READ_THIS_FIRST_AI.md"
-USER_FIRST="$TERMUX_HOME/AI_WADB_DOCS/START_HERE.md"
+AI_FIRST="$TERMUX_HOME/AI_WADB_DOCS/AI_GUIDE.md"
+USER_FIRST="$TERMUX_HOME/AI_WADB_DOCS/USER_GUIDE.md"
 MODE="${1:-}"
 PAIR_STATE_FILE="$TERMUX_HOME/.ai-wadb/pairing.pending"
 PAIR_STATE_TTL=600
@@ -749,7 +749,7 @@ pair_reset() {
 
 
 
-# --- WADB v1.7.5 R2: explicit disconnect and command catalogue ---
+# --- WADB Control Center: explicit disconnect and command catalogue ---
 command_reference_path() {
   printf '%s\n' "$TERMUX_HOME/AI_WADB_DOCS/COMMAND_REFERENCE.md"
 }
@@ -759,12 +759,12 @@ show_command_catalogue() {
   ref="$(command_reference_path)"
   if [ ! -r "$ref" ]; then
     fail "Command reference is not installed: $ref"
-    echo "Reinstall/restore this edition's AI_WADB_DOCS directory."
+    echo "Reinstall/restore this Toolkit's AI_WADB_DOCS directory."
     return 2
   fi
   printf '\n%sAI TERMUX WADB — COMMAND CATALOGUE%s\n' "$BOLD" "$RESET"
-  echo "Edition version: v$VERSION"
-  echo "The following index is taken from this installed edition's command reference:"
+  echo "Toolkit version: v$VERSION"
+  echo "The following index is taken from this installed command reference:"
   awk '/^## / { sub(/^## /, ""); print "  • " $0 }' "$ref"
   echo
   echo "Full descriptions, examples, side effects, confirmation rules and recovery notes:"
@@ -827,7 +827,7 @@ disable_wireless_debug() {
     return 2
   }
   if ! command -v wireless-debug-off >/dev/null 2>&1; then
-    fail "wireless-debug-off is not installed in this edition."
+    fail "wireless-debug-off is not installed in this Toolkit."
     return 2
   fi
   local out status
@@ -884,7 +884,7 @@ disconnect_menu() {
     *) warn "Unknown selection; no ADB state changed."; return 2 ;;
   esac
 }
-# --- end WADB v1.7.5 R2 additions ---
+# --- end WADB Control Center additions ---
 
 control_menu() {
   local choice max_action=9 disconnect_action=8 commands_action=9
@@ -923,7 +923,7 @@ control_menu() {
       4)
         printf '\n'
         echo "GitHub recovery is optional and is configured after the first MCP login."
-        echo "Guide: $TERMUX_HOME/AI_WADB_DOCS/RECOVERY_GITHUB.md"
+        echo "Guide: $TERMUX_HOME/AI_WADB_DOCS/TECHNICAL_REFERENCE.md"
         return
         ;;
       5)

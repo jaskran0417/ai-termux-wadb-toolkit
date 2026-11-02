@@ -111,7 +111,7 @@ if (docsStat.isSymbolicLink() || !docsStat.isDirectory()) fail('Release docs sou
 for (const name of fs.readdirSync(docsSource).filter(name => name.endsWith('.md'))) {
   checkFile(path.join(home, 'AI_WADB_DOCS', name), 'HOME/AI_WADB_DOCS/' + name);
 }
-for (const name of ['README_FIRST.md', 'toolkit-manifest.json']) {
+for (const name of ['toolkit-manifest.json']) {
   checkFile(path.join(home, 'AI_WADB_DOCS', name), 'HOME/AI_WADB_DOCS/' + name);
 }
 

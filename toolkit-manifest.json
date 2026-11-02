@@ -1,7 +1,7 @@
 {
   "name": "AI Termux WADB Toolkit",
-  "version": "1.7.5",
-  "release_date": "2026-11-01",
+  "version": "1.0",
+  "release_date": "2026-11-02",
   "interface": {
     "human": "ai-info",
     "guided": "ai-info",
@@ -119,7 +119,6 @@
   "privilege": "Termux user by default; optional owner-authorized su access on rooted devices. Wireless ADB and Secure Local Shell use Android shell permissions.",
   "wadb_bridge_apk_sha256": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4",
   "wadb_bridge_certificate_sha256": "e99e14787a8e24e8b12b59f2b3d71f4a114ddcaa72d4d837e4839de87436579a",
-  "edition": "HARDENED",
   "release_security": {
     "signature_algorithm": "Ed25519",
     "signed_package_manifest": true,

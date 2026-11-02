@@ -6,8 +6,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Toolkit version and edition
-      placeholder: "1.7.5 HARDENED"
+      label: Toolkit version
+      placeholder: "1.0"
     validations:
       required: true
   - type: input

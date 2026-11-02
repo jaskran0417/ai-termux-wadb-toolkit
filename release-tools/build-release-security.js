@@ -88,7 +88,6 @@ for (const name of fs.readdirSync(path.join(root, 'docs')).filter(x => x.endsWit
   addTarget(targets, 'TERMUX_HOME_DOCS', name, 'docs/' + name);
 }
 for (const [targetPath, sourcePath] of [
-  ['README_FIRST.md', 'README_FIRST.md'],
   ['toolkit-manifest.json', 'toolkit-manifest.json']
 ]) addTarget(targets, 'TERMUX_HOME_DOCS', targetPath, sourcePath);
 addTarget(targets, 'PRIVATE_HOME', 'wadb-bridge.apk', 'apk/wadb-bridge.apk');
@@ -110,8 +109,7 @@ targets.sort((a, b) => (a.kind + '/' + a.path).localeCompare(b.kind + '/' + b.pa
 const installed = {
   schema: 2,
   name: 'AI Termux WADB Toolkit',
-  version: '1.7.5',
-  edition: 'HARDENED',
+  version: '1.0',
   signature_algorithm: 'Ed25519',
   release_key_sha256: fingerprint,
   targets

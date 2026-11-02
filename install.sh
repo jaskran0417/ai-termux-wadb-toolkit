@@ -8,7 +8,7 @@ YES=0
 
 usage() {
   cat <<'TXT'
-AI Termux WADB Toolkit v1.7.5 HARDENED installer
+AI Termux WADB Toolkit v1.0 installer
 
 Usage:
   ./install.sh [--yes] [--help]
@@ -52,7 +52,7 @@ fi
 
 title() {
   printf '%s╭────────────────────────────────────────────────────────────╮%s\n' "$M" "$X"
-  printf '%s│%s%s      AI TERMUX WADB v1.7.5 HARDENED RELEASE           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
+  printf '%s│%s%s      AI TERMUX WADB v1.0           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
   printf '%s╰────────────────────────────────────────────────────────────╯%s\n' "$M" "$X"
 }
 
@@ -65,7 +65,6 @@ title
 
 [ -d "$PREFIX/bin" ] || die "This installer must run inside Termux."
 [ -d "$TERMUX_HOME" ] || die "Termux HOME was not found."
-[ "$(cat "$ROOT/EDITION" 2>/dev/null)" = "HARDENED" ] || die "Unexpected release edition marker."
 command -v node >/dev/null 2>&1 || die "Node.js is required to verify the signed release. Install it with: pkg install nodejs"
 TRUST_PIN="${WADB_TRUSTED_RELEASE_KEY_SHA256:-}"
 VERIFIER_PIN="${WADB_TRUSTED_VERIFIER_SHA256:-}"
@@ -247,6 +246,29 @@ snapshot_target "$TERMUX_HOME/.ai-wadb/pairing.pending"
 transaction_active=1
 
 mkdir -p "$TERMUX_HOME/AI_WADB_DOCS" "$PREFIX/libexec/ai-wadb"
+# Remove documentation files shipped by earlier layouts while preserving any
+# unrelated files the owner may have placed in this directory.
+obsolete_docs=(
+  README_FIRST.md
+  START_HERE.md
+  USER_SETUP.md
+  REMOTE_MCP_AI_CONNECTION.md
+  TROUBLESHOOTING.md
+  RECOVERY_TROUBLESHOOTING.md
+  PROMPTS_FOR_AI.md
+  SHIZUKU_OPTIONAL.md
+  READ_THIS_FIRST_AI.md
+  AI_RULES.md
+  ANDROID_ARCHITECTURE.md
+  FEATURES_AND_BENEFITS.md
+  SECURITY_AND_ROLLBACK.md
+  INTEGRITY_VERIFICATION.md
+  RECOVERY_GITHUB.md
+)
+for obsolete in "${obsolete_docs[@]}"; do
+  rm -f "$TERMUX_HOME/AI_WADB_DOCS/$obsolete"
+done
+unset obsolete_docs
 ok "Rollback snapshot captured before the first toolkit write."
 
 step "3/5  Installing commands"
@@ -271,7 +293,6 @@ ln -s "$TERMUX_HOME/AI_ENVIRONMENT.md" "$TERMUX_HOME/AI_READ_ME_FIRST.md"
 for f in "$ROOT"/docs/*.md; do
   install -m 644 "$f" "$TERMUX_HOME/AI_WADB_DOCS/$(basename "$f")"
 done
-install -m 644 "$ROOT/README_FIRST.md" "$TERMUX_HOME/AI_WADB_DOCS/README_FIRST.md"
 install -m 644 "$ROOT/toolkit-manifest.json" "$TERMUX_HOME/AI_WADB_DOCS/toolkit-manifest.json"
 cp "$ROOT/apk/wadb-bridge.apk" "$TERMUX_HOME/.ai-wadb/wadb-bridge.apk"
 chmod 600 "$TERMUX_HOME/.ai-wadb/wadb-bridge.apk"

@@ -1,6 +1,6 @@
-# Command Reference — Authoritative v1.7 Interface
+# Command Reference
 
-## wadb-integrity-check
+### wadb-integrity-check
 
 Use case: Verify the signed release identity and the installed WADB files covered by the signed installed-file inventory.
 
@@ -14,11 +14,11 @@ Expected success includes SIGNATURE=VALID, FILES_FAILED=0, and INSTALLED_INTEGRI
 
 The default trust pin is the fingerprint accepted by the installer and stored in ~/.ai-wadb/release-integrity/trusted-key-fingerprint.txt. For stronger assurance, pass the fingerprint published independently through the official project channel. A local stored pin can itself be changed by an actor who controls the Termux UID.
 
-This is tamper detection, not an immutable boundary. A determined device owner can patch the checker or run a modified copy. See docs/INTEGRITY_VERIFICATION.md.
+This is tamper detection, not an immutable boundary. A determined device owner can patch the checker or run a modified copy. See docs/TECHNICAL_REFERENCE.md.
 
 For a toolkit task, use these commands before substituting lower-level Android commands.
 
-## `ai-info`
+### `ai-info`
 
 **Use case:** Human-friendly current status and available options.
 
@@ -36,7 +36,7 @@ ai-info --json
 ai-info --doctor
 ```
 
-## `ai-info --json`
+### `ai-info --json`
 
 **Use case:** Machine-readable preflight for an AI.
 
@@ -44,13 +44,13 @@ ai-info --doctor
 
 **AI rule:** Prefer this over parsing colored terminal output.
 
-## `ai-info`
+### `ai-info`
 
 **Use case:** Guided human setup/menu.
 
 **Changes system:** Only when the user chooses an action.
 
-## `ai-info --connect`
+### `ai-info --connect`
 
 **Use case:** Normal Wireless ADB connection/recovery.
 
@@ -73,7 +73,7 @@ adb shell id
 
 The JSON must show `"bridge_write":"ready"` before the AI reports the WADB setup complete.
 
-## `ai-info --pair CODE`
+### `ai-info --pair CODE`
 
 **Use case:** First-time/fresh trust pairing after `PAIRING_REQUIRED`.
 
@@ -90,7 +90,7 @@ If pairing succeeds but ColorOS blocks the later WRITE_SECURE_SETTINGS grants, t
 
 Turn Developer options > Disable permission monitoring > ON (blue), then rerun ai-info --connect. Do not pair again.
 
-## `ai-info --pair-reset`
+### `ai-info --pair-reset`
 
 **Use case:** The Android pairing popup was closed, its code changed, or a pending pairing cycle was intentionally abandoned before `--pair CODE` was run.
 
@@ -100,7 +100,7 @@ ai-info --pair-reset
 
 This clears only the toolkit's pairing-pending marker; it does not delete the ADB key or change Android settings. Then run `ai-info --connect` to start a fresh pairing cycle if needed.
 
-### Bridge APK update synchronization
+#### Bridge APK update synchronization
 
 The toolkit uses three distinct Bridge APK stages:
 
@@ -114,9 +114,9 @@ On the next authenticated `ai-info --connect`, the toolkit compares cached and i
 
 Users should not manually copy a replacement APK into the cache; updating the toolkit updates the authoritative cached installer automatically.
 
-## Secure localhost shell bridge
+### Secure localhost shell bridge
 
-The maintained v1.7.5 local-control path no longer exposes Android adbd on classic TCP port 5555.
+The maintained v1.0 local-control path no longer exposes Android adbd on classic TCP port 5555.
 
 The local-control architecture is:
 
@@ -135,7 +135,7 @@ The bridge is restricted to loopback and is separate from the ADB wire protocol.
 
 This bridge is **not the ADB wire protocol**. It is a toolkit-owned, authenticated local shell transport launched from an already-authenticated ADB shell. Normal secure operation uses `wadb-local-shell`, not `adb -s 127.0.0.1:5555 shell`.
 
-### `wadb-local-status` / `ai-info --local`
+#### `wadb-local-status` / `ai-info --local`
 
 Read-only status:
 
@@ -158,7 +158,7 @@ ADBD_TCP_EXPOSURE=none
 SECURITY_STATE=loopback_bridge_no_adbd_tcp
 ```
 
-### `wadb-local-shell`
+#### `wadb-local-shell`
 
 Run Android shell commands through the local authenticated bridge:
 
@@ -172,7 +172,7 @@ wadb-local-shell -c 'svc wifi disable'
 
 The bridge runs as Android `uid=2000(shell)`. It binds only `127.0.0.1` and requires a random 256-bit token stored in Termux as `~/.ai-wadb/local-bridge.token` with mode 600. The staged token is consumed and unlinked by the Android-side bridge.
 
-### `wadb-local-on` / `ai-info --local-on`
+#### `wadb-local-on` / `ai-info --local-on`
 
 Enables or repairs secure local control.
 
@@ -191,7 +191,7 @@ If recovery/bootstrap is required, the command can temporarily:
 
 Temporary Wi-Fi is therefore only a bootstrap/recovery path. The steady-state local bridge itself does not use Wi-Fi.
 
-### `wadb-local-off --confirm`
+#### `wadb-local-off --confirm`
 
 Stops the secure local bridge:
 
@@ -201,13 +201,13 @@ wadb-local-off --confirm
 
 It does not set `adb_enabled=0` and does not re-enable classic adbd TCP.
 
-### Connection security model
+#### Connection security model
 
 The secure local bridge is authenticated and restricted to the phone's loopback interface. It runs with Android shell-user permissions. It is separate from the ADB network transport and does not grant root access.
 
 The toolkit uses the supported Android permission and ADB authorization flows. On rooted devices, additional commands may be run from Termux through an owner-authorized su route when one is available; this does not change the permissions of Wireless ADB or Secure Local Shell.
 
-### Integrity and device-target checks
+#### Integrity and device-target checks
 
 Before `wadb-bootstrap` installs the cached WADB Bridge APK, it now compares its SHA-256 with the expected hash recorded by the verified toolkit installer. A missing or mismatched cache fails closed; rerun the official toolkit installer to restore the bundled APK and expected hash.
 
@@ -215,7 +215,7 @@ The ADB connection selector now checks multiple local/remote properties (manufac
 
 The GitHub generation counter is limited to 18 decimal digits. If a previously stored counter is malformed or oversized, the toolkit resets to a safe baseline and deliberately does not execute the control action in that recovery cycle; the next valid matching control is baselined before later actions are accepted.
 
-## `wireless-debug-status`
+### `wireless-debug-status`
 
 **Use case:** Read Wireless Debugging and `adbd` state and verify that WADB Bridge can write the setting.
 
@@ -228,7 +228,7 @@ bridge_write=ready
 
 `bridge_write=denied` means the Bridge still needs its one-time secure-settings grant.
 
-## `wireless-debug-on`
+### `wireless-debug-on`
 
 **Use case:** Enable Wireless Debugging through WADB Bridge.
 
@@ -239,7 +239,7 @@ bridge_write=ready
 wireless-debug-status
 ```
 
-## `wireless-debug-off`
+### `wireless-debug-off`
 
 **Use case:** Disable Wireless ADB while leaving Desktop Commander MCP independent.
 
@@ -254,13 +254,13 @@ adb_wifi_enabled=0
 adbd=stopped
 ```
 
-## `wireless-adb-connect`
+### `wireless-adb-connect`
 
 **Use case:** Lower-level Wireless ADB reconnect/diagnostic path.
 
 Use `ai-info --connect` for normal operation.
 
-## `adb-mdns-discover`
+### `adb-mdns-discover`
 
 **Use case:** Typed Android mDNS endpoint discovery.
 
@@ -271,11 +271,11 @@ _adb-tls-pairing._tcp.local = temporary pairing
 
 Do not infer role from port number.
 
-## `phone-capabilities --details`
+### `phone-capabilities --details`
 
 **Use case:** Read-only capability report.
 
-## `wadb-mcp-recovery-setup`
+### `wadb-mcp-recovery-setup`
 
 **Use case:** Enable local automatic Desktop Commander recovery after the first MCP login.
 
@@ -307,7 +307,7 @@ wadb-mcp-status
 ai-info --recovery
 ```
 
-## `wadb-mcp-start`
+### `wadb-mcp-start`
 
 **Use case:** Start/ensure Remote Desktop Commander online.
 
@@ -318,7 +318,7 @@ ai-info --recovery
 wadb-mcp-status
 ```
 
-## `wadb-mcp-stop`
+### `wadb-mcp-stop`
 
 **Use case:** Intentionally stop this managed MCP process.
 
@@ -328,7 +328,7 @@ wadb-mcp-status
 
 **Note:** Default stop is delayed briefly so a remote AI can receive the command result before its own MCP disappears.
 
-## `wadb-mcp-restart`
+### `wadb-mcp-restart`
 
 **Use case:** Clean MCP restart.
 
@@ -336,7 +336,7 @@ wadb-mcp-status
 
 **Does not:** Require browser verification when saved authorization remains valid.
 
-## `wadb-mcp-status`
+### `wadb-mcp-status`
 
 **Use case:** Compact recovery/MCP state, including `recovery_enabled`, `mcp_desired`, `mcp_actual`, process count, watchdog state/interval, and GitHub state.
 
@@ -345,7 +345,7 @@ wadb-mcp-status
 wadb-mcp-status --json
 ```
 
-## `wadb-mcp-logout --confirm`
+### `wadb-mcp-logout --confirm`
 
 **Use case:** Intentionally remove/clear Remote Desktop Commander authorization.
 
@@ -353,7 +353,7 @@ wadb-mcp-status --json
 
 Never use it as a recovery shortcut.
 
-## `wadb-mcp-github-config`
+### `wadb-mcp-github-config`
 
 **Use case:** Configure optional GitHub control.
 
@@ -400,7 +400,7 @@ When owner/repo/branch/file/target changes, the first valid sync records the cur
 wadb-mcp-github-config --off
 ```
 
-## `wadb-mcp-github-test`
+### `wadb-mcp-github-test`
 
 **Use case:** Read-only verification that the phone can fetch and validate the configured control JSON, including schema, generation, action, and target.
 
@@ -411,7 +411,7 @@ wadb-mcp-github-config --off
 wadb-mcp-github-test
 ```
 
-## `wadb-mcp-github-sync`
+### `wadb-mcp-github-sync`
 
 **Use case:** Force an immediate read **and processing** of a configured GitHub control generation.
 
@@ -419,13 +419,13 @@ For a newly selected control identity, the first sync only establishes the basel
 
 `STATUS` refreshes only the phone's local status; the read-only phone path does not publish a status response back to GitHub.
 
-## `wadb-mcp-recovery-disable`
+### `wadb-mcp-recovery-disable`
 
 **Use case:** Disable local watchdog/recovery without deleting saved MCP authorization.
 
 **Does not:** stop or log out an already-running Desktop Commander process. This is the recovery master switch; `wadb-mcp-stop` is the separate MCP process stop.
 
-## `wadb-mcp-log`
+### `wadb-mcp-log`
 
 **Use case:** View the managed Desktop Commander log without starting a second MCP process.
 
@@ -437,7 +437,7 @@ wadb-mcp-log --events 40
 
 Ctrl+C while `--follow` is active stops only the log viewer.
 
-## Owner commands
+### Owner commands
 
 Owner labels are optional identification guards.
 
@@ -449,7 +449,7 @@ ai-info --owner-clear
 
 They do not change authentication, ADB trust, GitHub authorization, or MCP device identity.
 
-## `wadb-toolkit-uninstall`
+### `wadb-toolkit-uninstall`
 
 **Use case:** Remove toolkit-owned components without treating Desktop Commander or Termux's ADB key as toolkit property.
 
@@ -478,7 +478,7 @@ When authenticated ADB is available, `--all` uninstalls `com.jaskran.wadbbridge`
 
 Downloads and extracted/source release bundles are user files and are not automatically deleted.
 
-## Recovery rollback behavior
+### Recovery rollback behavior
 
 ```bash
 wadb-mcp-recovery-disable
@@ -488,7 +488,7 @@ restores the `allow-external-apps` property that existed before recovery setup.
 
 Use `--keep-external-apps` only when the user deliberately wants to leave that Termux capability enabled.
 
-## Fallback ADB scan bounds
+### Fallback ADB scan bounds
 
 Typed mDNS is always preferred. The untyped fallback can be adjusted without editing the script:
 
@@ -497,56 +497,7 @@ WADB_SCAN_MIN=30000 WADB_SCAN_MAX=65535 wireless-adb-connect
 ```
 
 
-## Current MCP recovery state model
-
-The toolkit keeps **automatic recovery** separate from the desired Desktop Commander MCP state.
-
-- `recovery_enabled=yes|no` controls whether the watchdog/Android recovery path is allowed to run.
-- `mcp_desired=online|offline` records whether Desktop Commander itself should be running.
-- `mcp_actual=online|offline` reports the observed process state.
-- `mcp_process_count` reports matching Desktop Commander processes for the configured MCP HOME.
-
-`wadb-mcp-stop` changes only the MCP desired state to `offline` and stops Desktop Commander. It preserves saved authorization and does not disable recovery. When recovery is enabled, the watchdog remains available, continues its GitHub polling cycle, and can accept a later `START_MCP`.
-
-`wadb-mcp-recovery-disable` is the separate master recovery-off operation. It stops the watchdog and marks recovery disabled, but it does not stop or log out an already-running Desktop Commander process and does not delete its saved authorization.
-
-If the watcher dies while recovery is enabled and MCP is intentionally offline, `wadb-mcp-job` may restore the watcher while leaving MCP offline. This lets a later GitHub `START_MCP` work without incorrectly turning MCP on during watcher restoration.
-
-The normal watchdog interval is 15 seconds. The WADB Bridge Android recovery alarm is a slower fallback and remains separate from the 15-second Termux watchdog.
-
-### Notifications
-
-Recovery notifications are local Android notifications; no Firebase/FCM or external notification cloud service is required.
-
-When both the Termux `termux-api` command package and the compatible Termux:API Android companion app are available, Termux can notify on state transitions such as watchdog start, MCP start/stop/recovery, GitHub recovery, and recovery enable/disable. Successful 15-second heartbeat checks remain silent.
-
-WADB Bridge v1.5 (versionCode 6) also has a native **WADB Recovery** notification channel for Android-side boot, package-replaced, and explicit recovery-check transitions. Recurring fifteen-minute alarm checks are silent. On Android 13 and later, notification permission may be requested; denying notification permission suppresses notifications but does not disable recovery.
-
-### Termux:API is an optional capability
-
-The two Termux:API pieces are separate:
-
-1. Termux command package: `pkg install termux-api`
-2. Android companion app: Termux:API from a compatible signing/source family with the installed Termux app
-
-Installing the command package does not install the Android app, and installing the Android app does not automatically install the Termux command package. Core WADB/MCP functionality remains usable without this optional capability; automatic IP information and Termux-side notifications can be limited or use documented fallbacks.
-
-With `install.sh --yes`, the installer may refresh package metadata and install missing toolkit packages, including the optional `termux-api` command package when absent. It does not perform a blanket `pkg upgrade`. The installer never downloads an arbitrary Termux:API Android APK.
-
-### Foreground viewing versus another MCP
-
-Managed Desktop Commander runs detached. To watch its live output without starting another MCP instance, use:
-
-```bash
-wadb-mcp-log --follow
-```
-
-Pressing Ctrl+C in this log viewer stops only the viewer. Manually running the raw Desktop Commander `npx ... remote` command is a separate foreground launch attempt and can create a second matching process. `ai-info` and `wadb-mcp-status` report matching process count so duplicates are visible.
-
-Ordinary shell `exit` or removing Termux from Recents is not treated as `wadb-mcp-stop`; detached processes may continue running. Android force-stop or OEM process restrictions can still prevent scheduled recovery until Android permits the affected app/process to run again.
-
-
-## `ai-info --disconnect`
+### `ai-info --disconnect`
 
 **Use case:** Open the explicit Wireless ADB disconnect submenu.
 
@@ -565,11 +516,10 @@ Both forms require `--confirm`. The transport-only form refuses USB, loopback an
 
 **Important separation:** Wireless ADB disconnect, secure local-shell shutdown (`wadb-local-off --confirm`), and Desktop Commander stop (`wadb-mcp-stop`) are different actions. This submenu changes only the selected Wireless ADB layer.
 
-## `ai-info --commands`
+### `ai-info --commands`
 
-**Use case:** Show the complete command catalogue and this edition's detailed `COMMAND_REFERENCE.md`.
+**Use case:** Show the complete command catalogue and this Toolkit's detailed `COMMAND_REFERENCE.md`.
 
 The interactive Control Center also includes **All commands & usage**. It first shows the command index, then opens the full reference in `less`/`more` when available, or prints it directly. The document contains each command's purpose, examples, side effects, verification and important safety/recovery notes.
 
 **Changes system:** No. Read-only.
-

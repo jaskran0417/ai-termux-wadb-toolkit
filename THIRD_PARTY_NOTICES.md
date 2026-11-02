@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-AI Termux WADB Toolkit v1.7.5 HARDENED
+AI Termux WADB Toolkit v1.0
 
 This file identifies third-party components included in the distributed package.
 It distinguishes bundled components from tools installed separately by the user.
