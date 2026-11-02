@@ -1,4 +1,4 @@
-# AI Termux WADB Environment — v1.0.1
+# AI Termux WADB Environment — v1.0.2
 
 This file is the installed environment reference. The mandatory AI workflow is in:
 
@@ -267,7 +267,7 @@ Ordinary shell `exit` or removing Termux from Recents is not treated as `wadb-mc
 
 ## Release integrity check
 
-Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.0.1 release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/TECHNICAL_REFERENCE.md.
+Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.0.2 release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/TECHNICAL_REFERENCE.md.
 
 
 ## Control Center — disconnect and command catalogue (v1.0.1 R2)

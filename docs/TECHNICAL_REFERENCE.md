@@ -6,9 +6,13 @@ Architecture, Android permission boundaries, system behaviour, release verificat
 
 This document explains the working model at the component and Android-platform level. It is intentionally an architectural overview, not a copy of the implementation source.
 
+### v1.0.2 release-integrity correction
+
+The v1.0.1 release had a version-identity mismatch in its installed-file verifier: the signed inventory generator wrote version 1.0.1, while the installed verifier accepted only 1.0. The v1.0.1 installer therefore rejected its own signed inventory during post-install verification and rolled back. In v1.0.2, the verifier requires 1.0.2, the version recorded in the signed inventory. The CI workflow now asserts that VERSION, the generated inventory version and the verifier's expected version agree. This hotfix changes release identity validation only; it does not alter Wireless ADB, MCP, recovery, Secure Local Shell or Android Bridge behavior.
+
 ### Implementation map: which file performs each job
 
-The v1.0.1 source is organised around these primary entry points and components:
+The v1.0.2 source is organised around these primary entry points and components:
 
 | Source path / component | Function |
 |---|---|
@@ -448,7 +452,7 @@ WADB Bridge is deliberately narrow:
 
 ### Secure localhost shell bridge
 
-The maintained v1.0.1 local-control mode does not expose Android `adbd` on classic TCP port 5555. In the verified secure state:
+The maintained v1.0.2 local-control mode does not expose Android `adbd` on classic TCP port 5555. In the verified secure state:
 
 ```text
 adb_enabled=1
@@ -618,9 +622,9 @@ A user controlling the Termux UID can replace the verifier, alter the local pin,
 
 
 
-### v1.0.1 safeguards, known limitations and verification scope
+### v1.0.2 safeguards, known limitations and verification scope
 
-The v1.0.1 implementation includes the following safeguards:
+The v1.0.2 implementation includes the following safeguards:
 
 - The installer checks the Termux PREFIX/HOME directory chains and managed destinations before writing, rejecting symlinked or unsafe path components.
 - A private lock serialises concurrent installer runs so two upgrades cannot interleave their snapshots and writes.
@@ -638,7 +642,7 @@ The installer runs pkg update only when required package metadata or missing pac
 
 ## Release authenticity and installed integrity
 
-This document applies to AI Termux WADB Toolkit 1.0.1.
+This document applies to AI Termux WADB Toolkit 1.0.2.
 
 ### What is checked
 

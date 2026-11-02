@@ -299,7 +299,7 @@ The simplest first prompt is:
 
 ### Security and rollback
 
-For the exact security boundaries and v1.0.1 security and rollback protections, read:
+For the exact security boundaries and v1.0.2 security and rollback protections, read:
 
 ```text
 docs/TECHNICAL_REFERENCE.md
@@ -562,7 +562,7 @@ Normal MCP stop/restart/reboot should keep authorization. Do not use logout unle
 
 ### Another AI only repeats command names
 
-The v1.0.1 ai-info Control Center provides the human status dashboard and explained actions. The AI should use those descriptions before presenting choices. It should not guess command meaning from the name alone and should not open the full guide unless the user asks for it.
+The v1.0.2 ai-info Control Center provides the human status dashboard and explained actions. The AI should use those descriptions before presenting choices. It should not guess command meaning from the name alone and should not open the full guide unless the user asks for it.
 
 ### Existing helpers fail
 

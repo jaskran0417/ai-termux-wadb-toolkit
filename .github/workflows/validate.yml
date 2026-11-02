@@ -56,7 +56,11 @@ jobs:
           with open("toolkit-manifest.json", encoding="utf-8") as f:
               data = json.load(f)
           assert data["license"] == "Apache-2.0"
-          assert data["version"] == "1.0.1"
+          version = open("VERSION", encoding="utf-8").read().strip()
+          assert data["version"] == version
+          with open("security/verify-installed.js", encoding="utf-8") as verifier_file:
+              verifier = verifier_file.read()
+          assert f"data.version !== '{version}'" in verifier
           assert "edition" not in data
           assert data["name"] == "AI Termux WADB Toolkit"
           with open("SBOM.cdx.json", encoding="utf-8") as f:
@@ -68,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(cat VERSION)" = "1.0.1"
+          test "$(cat VERSION)" = "1.0.2"
           test ! -e EDITION
           test -s docs/USER_GUIDE.md
           test -s docs/AI_GUIDE.md

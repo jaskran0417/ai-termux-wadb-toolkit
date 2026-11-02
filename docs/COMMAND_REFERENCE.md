@@ -126,7 +126,7 @@ Users should not manually copy a replacement APK into the cache; updating the to
 
 ### Secure localhost shell bridge
 
-The maintained v1.0.1 local-control path no longer exposes Android adbd on classic TCP port 5555.
+The maintained v1.0.2 local-control path no longer exposes Android adbd on classic TCP port 5555.
 
 The local-control architecture is:
 
