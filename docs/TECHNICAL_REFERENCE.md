@@ -34,6 +34,59 @@ The Secure Local Shell is not an ADB protocol listener. The Termux-side command 
 
 External components remain distinct: Desktop Commander supplies the Remote MCP process/tool interface; Termux supplies the shell and package environment; Android supplies the protected APIs and permission model; the AI client supplies the model and user-facing interaction. The Toolkit orchestrates these components rather than replacing them.
 
+### Platform API calls and component hand-offs
+
+#### Wireless Debugging setting
+
+The Java component at `bridge-source/app/src/main/java/com/jaskran/wadbbridge/WirelessDebugReceiver.java` uses Android's `Settings.Global` API with the `adb_wifi_enabled` key:
+
+- `GET_WIRELESS_DEBUG` reads the current value with `Settings.Global.getInt(contentResolver, "adb_wifi_enabled", -1)`.
+- `SET_WIRELESS_DEBUG` reads the Boolean enabled extra, writes 1 or 0 with `Settings.Global.putInt`, then reads the value back.
+- The receiver reports the write result and observed setting value. A successful broadcast invocation alone is not treated as proof that the setting changed.
+- The explicit actions are `com.jaskran.wadbbridge.GET_WIRELESS_DEBUG` and `com.jaskran.wadbbridge.SET_WIRELESS_DEBUG`.
+- The Android manifest marks this receiver exported but protects it with `android.permission.WRITE_SECURE_SETTINGS`.
+
+The Termux helpers send explicit broadcasts to `com.jaskran.wadbbridge/.WirelessDebugReceiver` through `/system/bin/am broadcast`. The ON/OFF helpers send `SET_WIRELESS_DEBUG` with enabled=true or enabled=false; the status helper reads the current value and checks the protected write path. The one-time authenticated ADB bootstrap installs/updates the Bridge and grants/verifies the required permissions. Later setting changes use the local Termux-to-Bridge broadcast path and do not require an already-connected ADB transport. Enabling the setting still does not perform ADB pairing or establish the network transport.
+
+#### Wireless ADB discovery
+
+`scripts/adb-mdns-discover` queries the Android DNS-SD/mDNS service types:
+
+~~~text
+_adb-tls-pairing._tcp.local
+_adb-tls-connect._tcp.local
+~~~
+
+The first identifies the temporary pairing endpoint; the second identifies the normal TLS connection endpoint. The discovery code parses PTR, SRV and A records and keeps the pairing and connection roles separate. It does not infer the role from a port number. The advertised address and port can change, so the Toolkit rediscovers the endpoint before connecting.
+
+#### Android-to-Termux recovery hand-off
+
+`McpRecoveryReceiver` is declared exported=false. The manifest registers it for `android.intent.action.BOOT_COMPLETED` and `android.intent.action.MY_PACKAGE_REPLACED`; the implementation also handles its internal `CHECK_MCP` and `START_MCP_RECOVERY` actions.
+
+On each receiver invocation, it requests the fixed Termux recovery job and schedules an inexact elapsed-realtime wakeup check. The first trigger is based on `SystemClock.elapsedRealtime()` plus two minutes; `AlarmManager.setInexactRepeating()` then uses `AlarmManager.ELAPSED_REALTIME_WAKEUP` and `AlarmManager.INTERVAL_FIFTEEN_MINUTES`. The receiver starts `com.termux.app.RunCommandService` with the `com.termux.RUN_COMMAND` action and a fixed path to:
+
+~~~text
+/data/data/com.termux/files/usr/bin/wadb-mcp-job
+~~~
+
+It marks that job as a background command and sets the Termux home directory as its working directory. The receiver does not accept an arbitrary shell command from an external caller. Its non-exported manifest declaration is an important part of that boundary.
+
+`PermissionActivity` only requests the supported `com.termux.permission.RUN_COMMAND` permission and, on Android 13/API 33 or later, the optional `POST_NOTIFICATIONS` permission when either is missing. It is a permission-request activity, not a caller-controlled command executor.
+
+The Android Bridge alarm and the Termux watchdog are separate mechanisms. The Termux watchdog uses the configured `WATCHDOG_INTERVAL` (15 seconds by default in the current recovery configuration); the Android alarm is the slower fallback. Neither mechanism should be described as a guarantee that Android will keep every background process alive.
+
+#### Secure Local Shell binding and authentication
+
+`native/wadb-local-bridge.c` creates an IPv4 TCP socket and binds it to `INADDR_LOOPBACK`; its default port is 47173. It checks that accepted peers are loopback connections and authenticates each client using the 64-character hexadecimal token supplied to the helper at startup. The helper then executes the accepted command through `/system/bin/sh -c` under the Android shell-user identity (`uid=2000` in the supported setup).
+
+This is a local authenticated command bridge, not an ADB server or a listener exposed on the Wi-Fi interface. The Toolkit stores the token in its private Termux state area. In the normal steady state, classic adbd TCP exposure remains disabled. The initial deployment or repair can still require an authenticated Wireless ADB session.
+
+#### Desktop Commander and Termux:API are external interfaces
+
+Desktop Commander is the external Remote MCP service. Depending on the connected client and Desktop Commander version, its exposed tool interface includes terminal/process operations such as `start_process`, `read_process_output` and `interact_with_process`, plus filesystem/directory operations such as `read_file`, `write_file`, `read_multiple_files` and `list_directory`. These are Desktop Commander tool names, not AI Termux WADB Toolkit CLI commands. The Toolkit supplies its own Android-specific command suite and operating instructions; it does not implement Desktop Commander's general-purpose MCP tools.
+
+Termux:API is optional and has two separate pieces: the Termux `termux-api` command package and its compatible Android companion app. The current Toolkit uses commands such as `termux-wifi-connectioninfo` for Wi-Fi connection details and `termux-notification` for optional Termux-side notifications. WADB Bridge has a separate Android notification channel for its recovery events. Missing Termux:API notifications do not disable the core Toolkit workflow.
+
 ### 1. The whole system at a glance
 
 The toolkit connects an AI assistant to a real Termux environment on an Android device. The AI client, Remote MCP service, Termux environment, Android Debug Bridge and WADB Bridge are separate components. They work together, but none of them is a substitute for the others.
