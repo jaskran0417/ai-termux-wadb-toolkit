@@ -4,7 +4,7 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 ## Mandatory operating instructions
 
-Version: 1.0
+Version: 1.0.1
 
 If the user gives you this toolkit ZIP/MD or asks about its setup, commands, Wireless ADB, Desktop Commander, MCP recovery, GitHub recovery, or troubleshooting, use the toolkit's documented workflow before inventing another one.
 
