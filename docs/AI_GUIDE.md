@@ -25,37 +25,39 @@ Think harder/Thinking does not itself grant access to a Plugin, connector, file,
 ### Mandatory order before replying or acting
 
 1. Read this file.
-2. For any question or task about connecting, configuring, troubleshooting, or checking Desktop Commander MCP in an AI app, read `docs/REMOTE_MCP_AI_CONNECTION.md` before replying or making assumptions. Follow its provider-specific Android app instructions exactly; do not answer from memory or invent a connector path.
-3. Read `docs/COMMAND_REFERENCE.md` for the requested toolkit operation.
-4. Determine whether Desktop Commander MCP is already connected.
-5. If MCP is connected and `ai-info` exists, run `ai-info --json` before changing anything.
-6. Use the documented helper for the matching task.
-7. Verify the result with the documented verification command.
-8. Report the observed result, not the expected result.
+2. For any Desktop Commander MCP setup or connection task, read `docs/REMOTE_MCP_AI_CONNECTION.md` before replying or making assumptions.
+3. Inspect the tools/apps/connectors actually available to the current AI session before asking the owner to install or configure anything. Use an existing usable Remote Desktop Commander connection first.
+4. Do not treat a missing active tool as proof that the plugin is unavailable. Check the provider's actual plugin directory/account state; distinguish not active, not installed, and unavailable.
+5. For ChatGPT, prefer the dedicated **Remote Desktop Commander** plugin. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app.
+6. Read `docs/COMMAND_REFERENCE.md` for the requested Toolkit operation.
+7. If MCP is connected and `ai-info` exists, run `ai-info --json` before changing anything.
+8. Use the documented helper for the matching task, verify the result, and report the observed result rather than the expected result.
 
 Do not rediscover a different setup path when the documented path applies.
 
-### Stage 1 — Desktop Commander MCP comes first for AI-controlled setup
+### Stage 1 — AI checks the provider integration first
 
-Before MCP exists, the AI cannot operate Termux itself. Give the user the phone-side bootstrap steps in `docs/USER_GUIDE.md` and follow the exact provider-specific Android app connection steps in `docs/REMOTE_MCP_AI_CONNECTION.md`.
+Before asking the owner to set up Desktop Commander, the AI must inspect its current tools/apps/connectors and read `docs/REMOTE_MCP_AI_CONNECTION.md`.
 
-The phone-side command is:
+For ChatGPT, the first-choice path is the dedicated **Remote Desktop Commander** plugin. Check whether it is already usable. If it is not active, check the actual Plugins directory for **Remote Desktop Commander** by **Desktop Commander** and guide the owner through installing and authorizing that plugin. Do not create a second connector when the plugin is already connected. Absence from the current tool list alone does not prove the plugin is unavailable.
+
+Do not tell the owner to enable Developer Mode or create a custom MCP connector in ChatGPT Android. The dedicated plugin is the intended ChatGPT route. Follow the separate Claude and Grok instructions in `docs/REMOTE_MCP_AI_CONNECTION.md` without generalizing one provider's options to another.
+
+### Stage 2 — One-time phone agent bootstrap
+
+Before MCP is connected, the AI cannot operate Termux itself. After checking the provider integration, give the owner only the required phone-side bootstrap in `docs/REMOTE_MCP_AI_CONNECTION.md`:
 
 ```bash
 npx @wonderwhy-er/desktop-commander@0.3.1 remote
 ```
 
-The Remote MCP endpoint for clients that require a URL is:
+The owner completes the browser/device authorization and keeps the process running. The Remote MCP endpoint `https://mcp.desktopcommander.app/mcp` is only for clients that genuinely require a custom server URL; it is not needed for ChatGPT's dedicated plugin.
 
-```text
-https://mcp.desktopcommander.app/mcp
-```
+### Stage 3 — AI completes Toolkit setup
 
-For the ChatGPT and Claude Android apps, follow the exact menu paths in `docs/REMOTE_MCP_AI_CONNECTION.md`. For the tested Grok Android app, do not invent or suggest a custom connector path that the app does not expose. Do not generalize this Android-app finding to every Grok platform.
+Once Remote Desktop Commander can actually reach this phone, the AI must run the documented checks and perform the remaining supported Toolkit installation and configuration itself. Do not ask the owner to type Toolkit commands after MCP is working. Owner actions are limited to browser/device authentication, Android permission dialogs, and the current ADB pairing code when the toolkit explicitly requests it.
 
-Once MCP is actually connected, stop asking the user to type shell commands that the AI can execute through Desktop Commander. User action is still appropriate for Android permission dialogs, browser authentication, or a temporary ADB pairing code.
-
-### Stage 2 — Toolkit + Wireless ADB
+### Stage 4 — Toolkit + Wireless ADB
 
 After MCP is connected:
 
@@ -90,7 +92,7 @@ For a fresh WADB Bridge setup, `ai-info --connect` is not complete merely becaus
 
 If it returns `RESULT=MANUAL_WIRELESS_DEBUG_ON_REQUIRED_ONCE`, first-time Wireless ADB bootstrap is incomplete. On normal Android, ask the user to turn Wireless Debugging ON. On ColorOS/OPPO/OnePlus/realme, ask for both **Wireless Debugging ON** and **Disable permission monitoring ON (blue)** in the same user action. The command itself reports `DISABLE_PERMISSION_MONITORING=on|off|unknown`, so do not omit this step merely because an AI forgot it. Then rerun `ai-info --connect`. Reuse the existing trusted key first; do not ask for a new pairing code unless Android actually rejects it.
 
-### Stage 3 — Optional MCP recovery
+### Stage 5 — Optional MCP recovery
 
 Only configure recovery after Desktop Commander has authenticated at least once so saved credentials exist.
 
@@ -224,7 +226,7 @@ This is also a useful daily-use recommendation, especially for Free users who wa
 
 For a toolkit task, use this order:
 1. `AI_GUIDE.md`
-2. For every Desktop Commander MCP connection question or action, `docs/REMOTE_MCP_AI_CONNECTION.md` (read it before replying or assuming)
+2. For any Desktop Commander MCP question or action, `docs/REMOTE_MCP_AI_CONNECTION.md` and the current provider's actual plugin/connector state
 3. `docs/COMMAND_REFERENCE.md`
 4. `ai-info --json`
 5. matching bundled helper
@@ -283,3 +285,5 @@ Never use logout as routine recovery.
 ### Output
 
 Use concise results for users. Use `ai-info --json` for automation. Raw Android broadcast output belongs in diagnostics, not normal explanations.
+
+[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

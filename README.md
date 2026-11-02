@@ -4,7 +4,7 @@ AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termu
 
 It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
-For AI-assisted setup, give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. Before connecting the phone, the AI must follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the exact Android-app setup path. The ChatGPT and Claude Android paths are documented there. The tested Grok Android app does not expose the same custom MCP/connector path, so do not assume it can connect through this route. Once Desktop Commander is connected, the AI can perform the supported Toolkit setup through Termux and will ask you only for the Android/browser approvals or pairing codes that require your action.
+AI-assisted setup is the recommended way to use the Toolkit. Give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. The AI must first inspect its current tools/apps and check whether Remote Desktop Commander is already available and connected. For ChatGPT, use the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. Follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the provider-specific workflow.  The tested Grok Android app does not expose the MCP connector path for this setup; see the provider-specific scope in `docs/REMOTE_MCP_AI_CONNECTION.md`. Once Remote Desktop Commander reaches the phone, the AI must perform the Toolkit installation, validation and supported setup through Termux and will ask you only for the Android/browser approvals or pairing codes that require your action.
 
 ## What it does
 
@@ -117,3 +117,5 @@ The full syntax, behaviour, side effects, checks and examples are in `docs/COMMA
 ## Licence
 
 The Toolkit's own source is licensed under **Apache License 2.0 (Apache-2.0)**. Third-party components retain their own licences and notices in `THIRD_PARTY_NOTICES.md` and the included SBOM.
+
+[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]
