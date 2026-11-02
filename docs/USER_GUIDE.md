@@ -43,9 +43,11 @@ Shared user files are reached only after the owner grants Termux storage access.
 
 Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
 
-User just need to download the tool it and send it to ai client and ask ai to do setup of tool it you automatically by ai not by user and first it should check the MCP connector or plugins if available to ai then it should aks you to do setup for desktop commander in ai like chat gpt, Claude or Grock all the methods are mentioned in tool ai will tell you that and in same prompt and ai to refer to the instruction always then it should guild you from initial connection of desktop Commander one ai have it it can install the tool it validate it and drum to automatically you do not need to run singles cmd in termux and then you can do though initially WIRELESS ADB set one time and other things which setup as ai to ayanlese all the features and there uses and how to setup thoese.You can also run ai-info yourself to check everything once it installed.
+User just need to download the tool it and send it to ai client and ask ai to do setup of tool it you automatically by ai not by user and first it should check the MCP connector or plugins if available to ai then it should aks you to do setup for desktop commander in ai like chat gpt, Claude or Grock all the methods are mentioned in tool ai will tell you that and in same prompt and ai to refer to the instruction always then it should guild you from initial connection of desktop Commander once ai have it,Ai can install the tool it validate it and drum to automatically you do not need to run singles cmd in termux and then you can do though initially WIRELESS ADB set one time and other things which setup as ai to ayanlese all the features and there uses and how to setup thoese.You can also run ai-info yourself to check everything once it installed.
+
 If you you want a manual setup you have it to it way simply as you will anticipate because toolkit itself will do everything no dozens of cmd to run in termux.Recommended setup use ai becouse that is the purpose is tool kit.
-However following is manual setup
+However following is manual setup:
+
 1. Install Termux and grant it shared-storage access if required.
 2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
 3. Start the separate Desktop Commander service from Termux with npx @wonderwhy-er/desktop-commander@0.3.1 remote, complete the browser/device verification and connect the AI client through its supported MCP integration.
