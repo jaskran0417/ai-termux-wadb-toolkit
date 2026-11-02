@@ -8,6 +8,10 @@ The human start guide is:
 
 `~/AI_WADB_DOCS/USER_GUIDE.md`
 
+The required provider-specific Remote MCP Android-app connection instructions are:
+
+`~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md`
+
 ## Where the Toolkit is installed
 
 The Toolkit runs inside Termux; it is not a standalone Android launcher app.
@@ -62,6 +66,8 @@ Remote MCP endpoint for clients that need it:
 ```text
 https://mcp.desktopcommander.app/mcp
 ```
+
+For ChatGPT, Claude or Grok Android-app connection guidance, read `~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md` before replying or assuming a provider setup path. Follow the app-specific instructions in that document.
 
 After one successful authentication, normal start/stop/restart/reboot should preserve the saved authorization.
 

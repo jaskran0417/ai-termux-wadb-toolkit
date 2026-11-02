@@ -25,18 +25,19 @@ Think harder/Thinking does not itself grant access to a Plugin, connector, file,
 ### Mandatory order before replying or acting
 
 1. Read this file.
-2. Read `docs/COMMAND_REFERENCE.md` for the requested operation.
-3. Determine whether Desktop Commander MCP is already connected.
-4. If MCP is connected and `ai-info` exists, run `ai-info --json` before changing anything.
-5. Use the documented helper for the matching task.
-6. Verify the result with the documented verification command.
-7. Report the observed result, not the expected result.
+2. For any question or task about connecting, configuring, troubleshooting, or checking Desktop Commander MCP in an AI app, read `docs/REMOTE_MCP_AI_CONNECTION.md` before replying or making assumptions. Follow its provider-specific Android app instructions exactly; do not answer from memory or invent a connector path.
+3. Read `docs/COMMAND_REFERENCE.md` for the requested toolkit operation.
+4. Determine whether Desktop Commander MCP is already connected.
+5. If MCP is connected and `ai-info` exists, run `ai-info --json` before changing anything.
+6. Use the documented helper for the matching task.
+7. Verify the result with the documented verification command.
+8. Report the observed result, not the expected result.
 
 Do not rediscover a different setup path when the documented path applies.
 
 ### Stage 1 — Desktop Commander MCP comes first for AI-controlled setup
 
-Before MCP exists, the AI cannot operate Termux itself. Give the user only the minimum bootstrap steps in `docs/USER_GUIDE.md`.
+Before MCP exists, the AI cannot operate Termux itself. Give the user the phone-side bootstrap steps in `docs/USER_GUIDE.md` and follow the exact provider-specific Android app connection steps in `docs/REMOTE_MCP_AI_CONNECTION.md`.
 
 The phone-side command is:
 
@@ -50,7 +51,7 @@ The Remote MCP endpoint for clients that require a URL is:
 https://mcp.desktopcommander.app/mcp
 ```
 
-For ChatGPT, use the available Remote Desktop Commander plugin/connector when present; the user completes its normal Connect/auth flow. For clients with Custom MCP, use the Remote MCP URL according to the client instructions.
+For the ChatGPT and Claude Android apps, follow the exact menu paths in `docs/REMOTE_MCP_AI_CONNECTION.md`. For the tested Grok Android app, do not invent or suggest a custom connector path that the app does not expose. Do not generalize this Android-app finding to every Grok platform.
 
 Once MCP is actually connected, stop asking the user to type shell commands that the AI can execute through Desktop Commander. User action is still appropriate for Android permission dialogs, browser authentication, or a temporary ADB pairing code.
 
@@ -223,11 +224,12 @@ This is also a useful daily-use recommendation, especially for Free users who wa
 
 For a toolkit task, use this order:
 1. `AI_GUIDE.md`
-2. `docs/COMMAND_REFERENCE.md`
-3. `ai-info --json`
-4. matching bundled helper
-5. troubleshooting document
-6. lower-level diagnostics only when the helper actually fails.
+2. For every Desktop Commander MCP connection question or action, `docs/REMOTE_MCP_AI_CONNECTION.md` (read it before replying or assuming)
+3. `docs/COMMAND_REFERENCE.md`
+4. `ai-info --json`
+5. matching bundled helper
+6. troubleshooting document
+7. lower-level diagnostics only when the helper actually fails.
 
 The AI may use broader legitimate Termux/Android capabilities for unrelated tasks, but should not replace an established WADB mechanism without a reason.
 

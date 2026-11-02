@@ -26,8 +26,8 @@ The normal Termux installation paths are:
     Shared shell helpers, the native local bridge and integrity verifier
 
 /data/data/com.termux/files/home/AI_WADB_DOCS/
-    Installed USER_GUIDE.md, AI_GUIDE.md, COMMAND_REFERENCE.md,
-    TECHNICAL_REFERENCE.md and toolkit manifest
+    Installed USER_GUIDE.md, AI_GUIDE.md, REMOTE_MCP_AI_CONNECTION.md,
+    COMMAND_REFERENCE.md, TECHNICAL_REFERENCE.md and toolkit manifest
 
 /data/data/com.termux/files/home/AI_ENVIRONMENT.md
     Installed environment reference
@@ -320,7 +320,7 @@ This does **not** install MCP into the AI from Termux. The Termux command starts
 
 ### Start reference
 
-Read `AI_GUIDE.md` first. It defines the connection layers and the account-aware connector/plugin state model used by this bundle.
+Read `AI_GUIDE.md` first. For the Android app connection steps for ChatGPT, Claude and Grok, also read `REMOTE_MCP_AI_CONNECTION.md` and follow its provider-specific instructions.
 
 In short:
 
@@ -330,7 +330,7 @@ Remote AI client -> Remote Desktop Commander / Remote MCP -> Termux -> ADB -> An
 
 MCP and ADB are separate connections. A missing active MCP connection means the AI-to-Termux path is not currently established; it does not by itself diagnose the ADB state inside Termux.
 
-When the client can inspect its own Plugins/Apps/Connectors inventory, that account-aware inventory is the appropriate source for whether Remote Desktop Commander is available, installed, disconnected, or connected. A missing active tool is not the same state as an unavailable plugin.
+For provider-specific Android-app connection steps, use `REMOTE_MCP_AI_CONNECTION.md`. Do not infer the Android connector path from another provider or a different app surface.
 
 The supported Wireless ADB helpers and the hardware-verified Developer-Options-off / different-Wi-Fi observations are documented in `AI_GUIDE.md`.
 
@@ -382,77 +382,17 @@ The authorization/session can be persisted. On later runs, the same command may 
 
 Keep the Termux Remote Desktop Commander process running while an AI needs access to the phone.
 
-### 3. Remote client connection
+### 3. Connect the AI client
 
-#### Generic client with Custom MCP / Remote MCP support
+Follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the provider-specific Android app steps for ChatGPT, Claude and Grok. Read that document before choosing or describing a provider connection path; do not replace its tested app instructions with a generic or guessed connector workflow.
 
-The Remote MCP service endpoint is:
-
-```text
-https://mcp.desktopcommander.app/mcp
-```
-
-The client/connector may then present its normal authentication flow.
-
-**Do not paste this Termux command into the Server URL field:**
-
-```text
-npx @wonderwhy-er/desktop-commander@0.3.1 remote
-```
-
-That command belongs only in Termux. The HTTPS address above is the Remote MCP server URL used by compatible AI clients.
-
-#### Grok or another AI with a Custom MCP Connector
-
-Create a custom connector. The connector name can be anything, for example `Desktop Commander` or `Phone Termux`.
-
-Use this as the Server URL:
+The Remote MCP server URL is:
 
 ```text
 https://mcp.desktopcommander.app/mcp
 ```
 
-After connection and authentication, Desktop Commander exposes tools such as process, file, directory, and configuration operations to the authorized client.
-
-#### Claude
-
-If Claude offers **Remote Desktop Commander** in its connector directory, connect that connector and complete authentication. If the Claude client instead provides a generic Custom MCP option, use:
-
-```text
-https://mcp.desktopcommander.app/mcp
-```
-
-The Termux `remote` process must still be running on this phone.
-
-#### ChatGPT
-
-**Connection state and availability are separate. An inactive connection does not establish that Remote Desktop Commander is unavailable; the account-aware Plugin/Apps directory is the authoritative place to check availability.**
-
-Use this order:
-
-1. ChatGPT's **Plugins/Apps directory** can be searched for **Remote Desktop Commander**. Account-aware plugin/app search is more authoritative than public web pages for account-specific availability.
-2. **Found but not installed:** installation requires the user's explicit action/approval in ChatGPT.
-3. **Installed but not connected/authorized:** the remaining step is the normal Connect/sign-in/authorization flow.
-4. **Already installed and connected:** the existing Remote Desktop Commander tool connection is the active control path; a second MCP connection or another pasted MCP URL is unnecessary.
-5. **Unavailable in the actual account/plugin-directory:** a generic Custom MCP configuration is the fallback when the client provides one; otherwise the connector is unavailable on that account/workspace/client surface.
-
-**Important:** `not connected`, `not installed`, and `not available` are three different states. A missing active connection is not evidence that installation is impossible.
-
-When the ChatGPT plugin manages the Remote MCP connection, there is normally no need to paste the MCP URL manually.
-
-The preferred connection path is:
-
-```text
-ChatGPT -> Remote Desktop Commander plugin -> Remote MCP -> Desktop Commander process in Termux -> phone
-```
-
-If ChatGPT genuinely does not have the plugin available but does expose a generic Custom MCP configuration, use:
-
-```text
-https://mcp.desktopcommander.app/mcp
-```
-
-When account-aware Plugin/Apps search is available, its result is the relevant source for current account availability; public documentation or plan assumptions are secondary.
+The Termux command from section 2 belongs only in Termux. Do not paste that command into the AI app's Server URL field. Complete the sign-in/authorization flow shown by the supported AI app.
 
 ### 4. Verify that the AI really reaches Termux
 
@@ -492,7 +432,7 @@ The authorized client can then use Desktop Commander. Existing saved authorizati
 
 An already-authorized Desktop Commander Remote MCP connection is the existing control path to Termux; a second MCP implementation is unnecessary.
 
-For ChatGPT, the current account's Plugins/Apps directory can distinguish `available but not installed`, `installed but not connected`, `connected`, and `unavailable`. An inactive connection alone does not establish that the plugin is absent.
+For provider-specific Android app connection steps, use `docs/REMOTE_MCP_AI_CONNECTION.md`. Do not infer a provider's Android connector availability from another app surface or from memory.
 
 If the phone-side Desktop Commander device is offline, the phone-side start command is:
 
@@ -523,7 +463,7 @@ This recommendation applies to normal daily ChatGPT use as well as this toolkit.
 3. Tell the AI to read `AI_GUIDE.md`.
 4. Follow only the initial Desktop Commander bootstrap steps until MCP is connected.
 5. Complete browser/device verification.
-6. Connect Remote Desktop Commander to the AI using the client's plugin/connector/Custom MCP flow.
+6. Connect Remote Desktop Commander to the AI using the provider-specific Android app steps in `docs/REMOTE_MCP_AI_CONNECTION.md`.
 7. Tell the AI: **"MCP is connected. Continue according to the toolkit instructions."**
 8. From that point the AI should run supported Termux commands itself.
 9. On ColorOS/OPPO/OnePlus/realme first setup, turn **Wireless Debugging ON** and **Disable permission monitoring ON (blue)** together when the toolkit requests Wireless ADB setup.
