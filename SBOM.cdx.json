@@ -19,8 +19,8 @@
     "component": {
       "type": "application",
       "name": "AI Termux WADB Toolkit",
-      "version": "1.7.5",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.7.5",
+      "version": "1.0",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0",
       "licenses": [
         {
           "license": {
@@ -39,14 +39,14 @@
   "components": [
     {
       "type": "application",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.7.5",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0",
       "name": "AI Termux WADB Toolkit",
-      "version": "1.7.5",
+      "version": "1.0",
       "scope": "required",
       "properties": [
         {
           "name": "ai-termux-wadb:distribution",
-          "value": "HARDENED release; Apache-2.0 open-source project"
+          "value": "release; Apache-2.0 open-source project"
         },
         {
           "name": "ai-termux-wadb:copyright",
@@ -4857,9 +4857,9 @@
   ],
   "dependencies": [
     {
-      "ref": "urn:ai-termux-wadb:toolkit:1.7.5",
+      "ref": "urn:ai-termux-wadb:toolkit:1.0",
       "dependsOn": [
-        "urn:ai-termux-wadb:toolkit:1.7.5",
+        "urn:ai-termux-wadb:toolkit:1.0",
         "urn:ai-termux-wadb:wadb-bridge:1.5",
         "urn:ai-termux-wadb:native:wadb-local-bridge",
         "pkg:maven/androidx.databinding/databinding-common@9.3.1",
@@ -5008,11 +5008,7 @@
     },
     {
       "name": "ai-termux-wadb:toolkit-version",
-      "value": "1.7.5"
-    },
-    {
-      "name": "ai-termux-wadb:edition",
-      "value": "HARDENED"
+      "value": "1.0"
     },
     {
       "name": "ai-termux-wadb:build-environment",

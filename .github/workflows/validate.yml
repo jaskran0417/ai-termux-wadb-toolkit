@@ -56,8 +56,8 @@ jobs:
           with open("toolkit-manifest.json", encoding="utf-8") as f:
               data = json.load(f)
           assert data["license"] == "Apache-2.0"
-          assert data["version"] == "1.7.5"
-          assert data["edition"] == "HARDENED"
+          assert data["version"] == "1.0"
+          assert "edition" not in data
           assert data["name"] == "AI Termux WADB Toolkit"
           with open("SBOM.cdx.json", encoding="utf-8") as f:
               sbom = json.load(f)
@@ -68,10 +68,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(cat VERSION)" = "1.7.5"
-          test "$(cat EDITION)" = "HARDENED"
-          test -s docs/ANDROID_ARCHITECTURE.md
-          test -s docs/FEATURES_AND_BENEFITS.md
+          test "$(cat VERSION)" = "1.0"
+          test ! -e EDITION
+          test -s docs/USER_GUIDE.md
+          test -s docs/AI_GUIDE.md
+          test -s docs/COMMAND_REFERENCE.md
+          test -s docs/TECHNICAL_REFERENCE.md
       - name: Check for accidental private signing material
         shell: bash
         run: |
