@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "name": "AI Termux WADB Toolkit",
-  "version": "1.0",
+  "version": "1.0.1",
   "signature_algorithm": "Ed25519",
   "release_key_sha256": "87aaf967095808f2e384ed912a3d28c6e1d969774d4975a905468f26b4078ca5",
   "targets": [
@@ -14,7 +14,7 @@
     {
       "kind": "PREFIX_BIN",
       "path": "ai-info",
-      "sha256": "6879cff8e572f9f8feda4415bd368dad06e9b68fb07145ea88168df0a079469a",
+      "sha256": "7bedce0e2a58b6410dc724d0415de1d7a5a936d21816f1490861f38740937231",
       "mode": "755"
     },
     {
@@ -224,37 +224,37 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "AI_GUIDE.md",
-      "sha256": "415b2b4296902fb8014b8df960617eebcf69db5af3631b39ac7cbd781cdbeaa6",
+      "sha256": "d73ea69e0b7b166dcd8e946ce9e514269641232c016302b85945688e3cac8d7c",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "COMMAND_REFERENCE.md",
-      "sha256": "4ff5e3c2134742f3e981cdd079e757bf910ba5944a360566e9cd543ab7241a25",
+      "sha256": "8f02a9984cd15a4e08355ea02beaab3abbda3da9a71a7c247f924c992e3ee7c3",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "TECHNICAL_REFERENCE.md",
-      "sha256": "aee24ac412f05f01cf01654a2a8adbf2f067491aa08fb4dc4a8ed09ae3395a4b",
+      "sha256": "05c8926ff23f4593860fd2b5d1cb88745f2832a0634d2f8ac0d2f323592635f4",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "toolkit-manifest.json",
-      "sha256": "9b3c0f560d80e0c956a09ccacf88c259ba5a4f66d1020037f56af3286ef5186f",
+      "sha256": "01b4b619c2a1cf010af4bca5e35866c97d15997bb661e179a96e33ad158b6440",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "USER_GUIDE.md",
-      "sha256": "c45430a202b9111e59af0364f6edf6b879a91c79f1aa91df0b2e5e34769a9b4f",
+      "sha256": "c4d61ac4b1edbf66cc4e175f2cea1fcf0fe3b620011bde97021a3b6708faf76c",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME",
       "path": "AI_ENVIRONMENT.md",
-      "sha256": "c8c4513d7eb81b0cbaa8e88597ac473007efa35af5e4ce3756c0f91b6277b8f7",
+      "sha256": "84248ce19b1ff4c4f1667a610ffa615184ebab9c6ce8da8e604c006532646ba4",
       "mode": "644"
     }
   ]

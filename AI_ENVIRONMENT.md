@@ -1,4 +1,4 @@
-# AI Termux WADB Environment — v1.0
+# AI Termux WADB Environment — v1.0.1
 
 This file is the installed environment reference. The mandatory AI workflow is in:
 
@@ -7,6 +7,24 @@ This file is the installed environment reference. The mandatory AI workflow is i
 The human start guide is:
 
 `~/AI_WADB_DOCS/USER_GUIDE.md`
+
+## Where the Toolkit is installed
+
+The Toolkit runs inside Termux; it is not a standalone Android launcher app.
+
+- User commands: /data/data/com.termux/files/usr/bin/
+- Shared helpers/native bridge/verifier: /data/data/com.termux/files/usr/libexec/ai-wadb/
+- Installed guides: ~/AI_WADB_DOCS/
+- Environment reference: ~/AI_ENVIRONMENT.md
+- Private state, Bridge APK cache, recovery settings and local-shell token: ~/.ai-wadb/
+
+Desktop Commander is a separate Node.js-based dependency, not bundled in the Toolkit. WADB Bridge is the Android companion package. Termux:API is optional and consists of a Termux command package plus its compatible Android companion app.
+
+## Initial setup means
+
+Initial setup establishes the AI Remote MCP connection and performs the one-time Android trust/permission grants. The owner enables Wireless Debugging, pairs the Termux ADB client when Android requires it, then the Toolkit uses the authenticated ADB shell to install/update WADB Bridge and grant/verify WRITE_SECURE_SETTINGS for Termux and the Bridge. A complete setup requires RESULT=CONNECTED_AND_READY and bridge_write=ready.
+
+After that grant is verified, wireless-debug-on and wireless-debug-off call the protected WADB Bridge receiver directly. They do not need an already-connected ADB transport for each later toggle. Turning Wireless Debugging ON does not itself pair/connect ADB; ai-info --connect handles the separate ADB connection workflow.
 
 ## Primary interface
 
@@ -100,7 +118,7 @@ Do not infer endpoint role from the port number.
 
 ## Secure localhost shell / Wi-Fi-independent control
 
-v1.0 keeps Android `adbd` alive with `adb_enabled=1` but no longer exposes classic adbd TCP in the secure local mode.
+v1.0.1 keeps Android `adbd` alive with `adb_enabled=1` but no longer exposes classic adbd TCP in the secure local mode.
 
 ```text
 Termux / Remote MCP
@@ -184,13 +202,13 @@ For documented toolkit functions:
 
 Do not replace a known-working helper with a random alternative unless the documented path genuinely fails and has been diagnosed.
 
-## v1.0 first-setup and Bridge update rules
+## v1.0.1 first-setup and Bridge update rules
 
 On ColorOS/OPPO/OnePlus/realme first setup, enable **Wireless Debugging** and **Disable permission monitoring (ON/blue)** together before pairing. `ai-info --connect` exposes `DISABLE_PERMISSION_MONITORING=on|off|unknown`, and `ai-info --json` exposes the same state as `wireless_adb.disable_permission_monitoring`.
 
 The authoritative install source for WADB Bridge is `~/.ai-wadb/wadb-bridge.apk`, populated from the release's `apk/wadb-bridge.apk` by `install.sh`. A newer toolkit replaces that cache automatically. On the next authenticated ADB connection, `ai-info --connect` compares cached and installed Bridge versionCode values and installs the cached APK when the installed Bridge is missing or older.
 
-## v1.0 uninstall ownership rule
+## v1.0.1 uninstall ownership rule
 
 Desktop Commander itself is external to the WADB toolkit. Toolkit uninstall must never stop it, log it out, remove its saved device login, or delete Termux's ~/.android/adbkey.
 
@@ -249,10 +267,10 @@ Ordinary shell `exit` or removing Termux from Recents is not treated as `wadb-mc
 
 ## Release integrity check
 
-Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.0 release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/TECHNICAL_REFERENCE.md.
+Run wadb-integrity-check to verify the signed installed-file inventory. It is read-only. A clean result is INSTALLED_INTEGRITY=VERIFIED; a mismatch is INSTALLED_INTEGRITY=TAMPERED. For verification against a separately published official key pin, pass --expected-fingerprint. This is tamper detection, not tamper-proofing. The v1.0.1 release uses an independently supplied public-key fingerprint; see AI_WADB_DOCS/TECHNICAL_REFERENCE.md.
 
 
-## Control Center — disconnect and command catalogue (v1.0 R2)
+## Control Center — disconnect and command catalogue (v1.0.1 R2)
 
 Run `ai-info` in an interactive Termux terminal. Choose **Disconnect Wireless ADB** to select either:
 - disconnect only the exact verified network ADB transport (Wireless Debugging stays ON), or

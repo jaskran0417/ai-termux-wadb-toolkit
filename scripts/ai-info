@@ -6,7 +6,7 @@ PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
 [ -r "$PREFIX/libexec/ai-wadb/wadb-common" ] && . "$PREFIX/libexec/ai-wadb/wadb-common"
-VERSION="1.0"
+VERSION="1.0.1"
 DOC="$TERMUX_HOME/AI_ENVIRONMENT.md"
 AI_FIRST="$TERMUX_HOME/AI_WADB_DOCS/AI_GUIDE.md"
 USER_FIRST="$TERMUX_HOME/AI_WADB_DOCS/USER_GUIDE.md"

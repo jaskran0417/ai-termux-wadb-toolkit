@@ -8,7 +8,7 @@ YES=0
 
 usage() {
   cat <<'TXT'
-AI Termux WADB Toolkit v1.0 installer
+AI Termux WADB Toolkit v1.0.1 installer
 
 Usage:
   ./install.sh [--yes] [--help]
@@ -21,6 +21,11 @@ Security:
   - requires Node.js to verify the signed release before any changes,
   - requires independently published hashes for this installer and the verifier, plus the release signing-key fingerprint,
   - requires independent trust pins for the release key, installer, and verifier.
+
+Set these environment variables from the separately distributed RELEASE-TRUST-VALUES.txt asset:
+  WADB_TRUSTED_RELEASE_KEY_SHA256
+  WADB_TRUSTED_INSTALLER_SHA256
+  WADB_TRUSTED_VERIFIER_SHA256
 
 Update behavior:
   - backs up the current toolkit and cached Bridge APK,
@@ -52,7 +57,7 @@ fi
 
 title() {
   printf '%s╭────────────────────────────────────────────────────────────╮%s\n' "$M" "$X"
-  printf '%s│%s%s      AI TERMUX WADB v1.0           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
+  printf '%s│%s%s      AI TERMUX WADB v1.0.1           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
   printf '%s╰────────────────────────────────────────────────────────────╯%s\n' "$M" "$X"
 }
 
