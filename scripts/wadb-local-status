@@ -9,14 +9,16 @@ export PATH
 PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
 ENDPOINT="127.0.0.1:$PORT"
 TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+TERMUX_UID="$(id -u 2>/dev/null || echo unknown)"
 
 LOCAL_ADB_STATE="not_connected"
-LOCAL_ADB_MODE="secure_shell_bridge"
+LOCAL_ADB_MODE="termux_loopback_shell"
 LOCAL_ADB_ENDPOINT="$ENDPOINT"
 LOCAL_ADB_SERIAL=""
 LOCAL_ADB_PORT="$PORT"
 LOCAL_ADB_SHELL_UID=""
-PROTOCOL="authenticated_shell_bridge_v1"
+LOCAL_ADB_RUNTIME_UID=""
+PROTOCOL="authenticated_termux_loopback_v1"
 BRIDGE_AUTH="token"
 LISTENER_SCOPE="not_listening"
 
@@ -26,19 +28,24 @@ LISTEN_ADDRS="$(getprop service.adb.listen_addrs 2>/dev/null || true)"
 USB_CONFIG="$(getprop sys.usb.config 2>/dev/null || true)"
 USB_STATE="$(getprop sys.usb.state 2>/dev/null || true)"
 ADB_SECURE="$(getprop ro.adb.secure 2>/dev/null || true)"
-ADB_ENABLED="unknown"
+ADB_ENABLED="not_required"
 ADB_WIFI_ENABLED="unknown"
-WIFI_STATE="$(dumpsys wifi 2>/dev/null | grep -m1 -E 'Wi-Fi is (enabled|disabled)' || true)"
 ADBD_TCP_EXPOSURE="unknown"
+WIFI_STATE="$(dumpsys wifi 2>/dev/null | grep -m1 -E 'Wi-Fi is (enabled|disabled)' || true)"
 
 if command -v wadb-local-shell >/dev/null 2>&1 && [ -s "$TOKEN_FILE" ]; then
   ping="$(timeout 4 wadb-local-shell --ping 2>/dev/null || true)"
-  if printf '%s\n' "$ping" | grep -q 'WADB_SECURE_BRIDGE_OK uid=2000'; then
-    LOCAL_ADB_STATE="ready"
-    LOCAL_ADB_SHELL_UID="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK //p' | head -n1)"
-    LISTENER_SCOPE="loopback_only"
-    ADB_ENABLED="$(timeout 4 wadb-local-shell -c 'settings get global adb_enabled' 2>/dev/null | tr -d '\r' | tail -n1)"
-    ADB_WIFI_ENABLED="$(timeout 4 wadb-local-shell -c 'settings get global adb_wifi_enabled' 2>/dev/null | tr -d '\r' | tail -n1)"
+  runtime_uid="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+  if [ -n "$runtime_uid" ]; then
+    LOCAL_ADB_RUNTIME_UID="$runtime_uid"
+    LOCAL_ADB_SHELL_UID=""
+    if [ "$runtime_uid" = "$TERMUX_UID" ]; then
+      LOCAL_ADB_STATE="ready"
+      LISTENER_SCOPE="loopback_only"
+    else
+      LOCAL_ADB_STATE="legacy_runtime"
+      LISTENER_SCOPE="loopback_only"
+    fi
   fi
 fi
 
@@ -55,12 +62,25 @@ else
   esac
 fi
 
+if command -v wireless-debug-status >/dev/null 2>&1; then
+  wd="$(timeout 4 wireless-debug-status 2>&1 || true)"
+  val="$(printf '%s\n' "$wd" | sed -n 's/.*adb_wifi_enabled=\([0-9-]*\).*/\1/p' | tail -n1)"
+  [ -n "$val" ] && ADB_WIFI_ENABLED="$val"
+  adbd="$(printf '%s\n' "$wd" | sed -n 's/^adbd=//p' | tail -n1)"
+  [ -n "$adbd" ] && ADBD_STATE="$adbd"
+fi
+
 echo "LOCAL_ADB_STATE=$LOCAL_ADB_STATE"
 echo "LOCAL_ADB_MODE=$LOCAL_ADB_MODE"
 echo "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT"
 echo "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL"
 echo "LOCAL_ADB_PORT=$LOCAL_ADB_PORT"
 echo "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID"
+echo "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID"
+echo "USB_DEBUGGING_REQUIRED=no"
+echo "WIRELESS_DEBUGGING_REQUIRED=no"
+echo "WIFI_REQUIRED=no"
+echo "ADBD_REQUIRED=no"
 echo "PROTOCOL=$PROTOCOL"
 echo "BRIDGE_AUTH=$BRIDGE_AUTH"
 echo "LISTENER_SCOPE=$LISTENER_SCOPE"
@@ -75,11 +95,16 @@ echo "USB_STATE=$USB_STATE"
 echo "ADB_SECURE=$ADB_SECURE"
 echo "WIFI_STATE=$WIFI_STATE"
 
-if [ "$LOCAL_ADB_STATE" = "ready" ] && [ "$ADBD_TCP_EXPOSURE" = "none" ]; then
-  echo "SECURITY_STATE=loopback_bridge_no_adbd_tcp"
-elif [ "$ADBD_TCP_EXPOSURE" = "all_interfaces" ]; then
-  echo "SECURITY_STATE=adbd_tcp_exposed"
-  echo "SECURITY_WARNING=classic_adbd_tcp_listener_is_not_loopback_only"
+if [ "$LOCAL_ADB_STATE" = "ready" ]; then
+  if [ "$ADBD_TCP_EXPOSURE" = "none" ]; then
+    echo "SECURITY_STATE=termux_loopback_shell_no_adb_dependency"
+  else
+    echo "SECURITY_STATE=termux_loopback_shell_adbd_tcp_attention"
+    echo "SECURITY_WARNING=adbd_tcp_listener_is_separate_from_the_loopback_shell"
+  fi
+elif [ "$LOCAL_ADB_STATE" = "legacy_runtime" ]; then
+  echo "SECURITY_STATE=legacy_android_shell_uid_bridge"
+  echo "SECURITY_WARNING=run_wadb-local-on_to_replace_with_lower_privilege_termux_uid_bridge"
 else
-  echo "SECURITY_STATE=needs_attention"
+  echo "SECURITY_STATE=not_running"
 fi

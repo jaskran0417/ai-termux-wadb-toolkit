@@ -5,9 +5,9 @@
 - Desktop Commander MCP connects the AI client to Termux. It is managed with wadb-mcp-start/stop/restart/status/log.
 - Wireless ADB is Android's authenticated debugging transport. It is managed with ai-info --connect, wireless-adb-connect, adb-mdns-discover and the wireless-debug-* helpers.
 - WADB Bridge changes Android's Wireless Debugging setting through its protected receiver. After the one-time ADB permission setup, wireless-debug-on/off do not need an already-connected ADB transport for each later toggle.
-- Secure Local Shell is a separate authenticated loopback Android shell route. It is managed with wadb-local-on/status/shell/off.
+- Local Termux Shell is an authenticated loopback command route running under the Termux app UID. It is managed with wadb-local-on/status/shell/off and does not require ADB or Android adbd to stay enabled.
 
-A transport-only disconnect leaves Wireless Debugging ON. Switching Wireless Debugging OFF ends the ADB wireless route but does not stop MCP or Secure Local Shell. Always choose the exact layer the owner asked to change.
+A transport-only disconnect leaves Wireless Debugging ON. Switching Wireless Debugging OFF ends the ADB wireless route but does not stop MCP or Local Termux Shell. Always choose the exact layer the owner asked to change.
 
 
 ### wadb-integrity-check
@@ -124,106 +124,68 @@ On the next authenticated `ai-info --connect`, the toolkit compares cached and i
 
 Users should not manually copy a replacement APK into the cache; updating the toolkit updates the authoritative cached installer automatically.
 
-### Secure localhost shell bridge
+### Local Termux Shell bridge
 
-The maintained v1.0.2 local-control path no longer exposes Android adbd on classic TCP port 5555.
-
-The local-control architecture is:
+The v1.0.2 Local Termux Shell is a native, token-authenticated loopback service that runs directly under the Termux app UID. It is independent of Android `adbd`, USB debugging, Wireless Debugging and Wi-Fi.
 
 ```text
-Remote MCP / Termux
-        |
-        v
-127.0.0.1:47173
-authenticated loopback bridge
-        |
-        v
-Android shell user
+Termux client -> 127.0.0.1:47173 -> native bridge -> Termux app UID
 ```
 
-The bridge is restricted to loopback and is separate from the ADB wire protocol.
+The native helper binds only to `127.0.0.1`, validates the loopback peer and authenticates each request using a random 256-bit token. The Termux-side token is stored at `~/.ai-wadb/local-bridge.token` with mode 600. The helper executes commands through `/system/bin/sh -c` under the Termux app identity, not Android `uid=2000(shell)` and not root.
 
-This bridge is **not the ADB wire protocol**. It is a toolkit-owned, authenticated local shell transport launched from an already-authenticated ADB shell. Normal secure operation uses `wadb-local-shell`, not `adb -s 127.0.0.1:5555 shell`.
+#### `wadb-local-status`
 
-#### `wadb-local-status` / `ai-info --local`
-
-Read-only status:
-
-```bash
-wadb-local-status
-ai-info --local
-```
-
-Healthy secure state includes:
+Read-only status. A healthy result includes:
 
 ```text
 LOCAL_ADB_STATE=ready
-LOCAL_ADB_MODE=secure_shell_bridge
-LOCAL_ADB_ENDPOINT=127.0.0.1:47173
+LOCAL_ADB_MODE=termux_loopback_shell
+LOCAL_ADB_RUNTIME_UID=<Termux app UID>
+PROTOCOL=authenticated_termux_loopback_v1
+BRIDGE_AUTH=token
 LISTENER_SCOPE=loopback_only
-ADB_ENABLED=1
-ADBD_STATE=running
-TCP_PORT=0
+ADB_ENABLED=not_required
 ADBD_TCP_EXPOSURE=none
-SECURITY_STATE=loopback_bridge_no_adbd_tcp
+SECURITY_STATE=termux_loopback_shell_no_adb_dependency
 ```
+
+#### `wadb-local-on` / `ai-info --local-on`
+
+Start or repair the loopback bridge directly under the Termux app UID. It creates a fresh random token, launches the native helper locally, and verifies the authenticated ping and loopback-only status.
+
+The command must not:
+- enable `adb_enabled` or USB debugging;
+- enable Wireless Debugging;
+- turn Wi-Fi on for bootstrap;
+- connect, pair or scan for an ADB endpoint;
+- start or require Android `adbd`.
+
+Success reports `USB_DEBUGGING_REQUIRED=no`, `WIRELESS_DEBUGGING_REQUIRED=no`, `WIFI_REQUIRED=no` and `ADBD_REQUIRED=no`.
+
+If the port is occupied by an unrecognised process, the helper fails closed rather than killing it or turning debugging on.
 
 #### `wadb-local-shell`
 
-Run Android shell commands through the local authenticated bridge:
+Run commands as the Termux app UID:
 
 ```bash
 wadb-local-shell --ping
 wadb-local-shell -c 'id'
-wadb-local-shell -c 'getprop init.svc.adbd'
-wadb-local-shell -c 'svc wifi enable'
-wadb-local-shell -c 'svc wifi disable'
+wadb-local-shell -c 'pwd'
 ```
 
-The bridge runs as Android `uid=2000(shell)`. It binds only `127.0.0.1` and requires a random 256-bit token stored in Termux as `~/.ai-wadb/local-bridge.token` with mode 600. The staged token is consumed and unlinked by the Android-side bridge.
-
-#### `wadb-local-on` / `ai-info --local-on`
-
-Enables or repairs secure local control.
-
-If the secure bridge is already healthy and adbd has no network TCP listener, the command is idempotent.
-
-If recovery/bootstrap is required, the command can temporarily:
-1. turn Wi-Fi on,
-2. enable Wireless Debugging,
-3. connect an authenticated ADB transport to this same phone,
-4. verify `adb_enabled=1`,
-5. switch adbd to USB mode if classic TCP is active,
-6. stage and launch the loopback-only bridge,
-7. verify the bridge is `uid=2000(shell)`,
-8. disable Wireless Debugging again,
-9. restore Wi-Fi to OFF when it was initially OFF.
-
-Temporary Wi-Fi is therefore only a bootstrap/recovery path. The steady-state local bridge itself does not use Wi-Fi.
+**Permission boundary:** the app UID is deliberately less privileged than Android shell UID 2000. Protected global Settings operations and other shell-only commands can return `SecurityException`. Use WADB Bridge for its explicitly permissioned settings operations. Use Wireless ADB only when an Android shell-UID capability is specifically required and the owner explicitly authorises debugging.
 
 #### `wadb-local-off --confirm`
 
-Stops the secure local bridge:
+Stops only the authenticated local bridge and removes its Termux-side token. It does not change USB debugging, Wireless Debugging, Wi-Fi or Android adbd state.
 
 ```bash
 wadb-local-off --confirm
 ```
 
-It does not set `adb_enabled=0` and does not re-enable classic adbd TCP.
-
-#### Connection security model
-
-The secure local bridge is authenticated and restricted to the phone's loopback interface. It runs with Android shell-user permissions. It is separate from the ADB network transport and does not grant root access.
-
-The toolkit uses the supported Android permission and ADB authorization flows. On rooted devices, additional commands may be run from Termux through an owner-authorized su route when one is available; this does not change the permissions of Wireless ADB or Secure Local Shell.
-
-#### Integrity and device-target checks
-
-Before `wadb-bootstrap` installs the cached WADB Bridge APK, it now compares its SHA-256 with the expected hash recorded by the verified toolkit installer. A missing or mismatched cache fails closed; rerun the official toolkit installer to restore the bundled APK and expected hash.
-
-The ADB connection selector now checks multiple local/remote properties (manufacturer, model, device, product, brand, product name, build fingerprint, and SDK) before treating an ADB endpoint as this phone. This guards against accidental mis-targeting; it is not a cryptographic remote-device attestation, because ordinary ADB properties can be imitated by a malicious endpoint.
-
-The GitHub generation counter is limited to 18 decimal digits. If a previously stored counter is malformed or oversized, the toolkit resets to a safe baseline and deliberately does not execute the control action in that recovery cycle; the next valid matching control is baselined before later actions are accepted.
+The bridge is an app-owned process and Android may reclaim it during force-stop, reboot or background restrictions. Run `wadb-local-on` again when necessary. This is not a persistent system service.
 
 ### `wireless-debug-status`
 
@@ -513,7 +475,7 @@ WADB_SCAN_MIN=30000 WADB_SCAN_MAX=65535 wireless-adb-connect
 
 **Choices:**
 1. Disconnect only the current verified network ADB transport. This uses the exact discovered host-and-port serial; it does not run a broad `adb disconnect` and leaves Android Wireless Debugging ON.
-2. Turn Android Wireless Debugging OFF through the WADB Bridge. This ends Wireless ADB but does not stop Desktop Commander MCP or the independent secure local shell.
+2. Turn Android Wireless Debugging OFF through the WADB Bridge. This ends Wireless ADB but does not stop Desktop Commander MCP or the independent Local Termux Shell.
 3. Cancel without changing anything.
 
 **Non-interactive explicit forms:**

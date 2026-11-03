@@ -88,6 +88,7 @@ for (const name of fs.readdirSync(path.join(root, 'docs')).filter(x => x.endsWit
   addTarget(targets, 'TERMUX_HOME_DOCS', name, 'docs/' + name);
 }
 for (const [targetPath, sourcePath] of [
+  ['README.md', 'README.md'],
   ['toolkit-manifest.json', 'toolkit-manifest.json']
 ]) addTarget(targets, 'TERMUX_HOME_DOCS', targetPath, sourcePath);
 addTarget(targets, 'PRIVATE_HOME', 'wadb-bridge.apk', 'apk/wadb-bridge.apk');

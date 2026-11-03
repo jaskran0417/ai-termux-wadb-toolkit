@@ -150,11 +150,11 @@ If an owner label exists, verify it before changing a sensitive multi-session se
 
 ### Do not mix these concepts
 
-The AI must treat MCP, Wireless ADB and Secure Local Shell as separate connections. Desktop Commander MCP is the AI-to-Termux path. Wireless ADB is the authenticated Android debugging transport. Secure Local Shell is a separate authenticated loopback route. WADB Bridge is the Android companion used for protected Wireless Debugging setting changes and Android-side recovery.
+The AI must treat MCP, Wireless ADB and Local Termux Shell as separate connections. Desktop Commander MCP is the AI-to-Termux path. Wireless ADB is the authenticated Android debugging transport and is used only when an Android shell-UID operation is actually required. Local Termux Shell is a token-authenticated loopback service running under the Termux app UID; it does not require USB debugging, Wireless Debugging, Wi-Fi or adbd. WADB Bridge is the Android companion used for protected Wireless Debugging setting changes and Android-side recovery.
 
 After the initial ADB-authorised setup grants and verifies WRITE_SECURE_SETTINGS for both Termux and WADB Bridge, wireless-debug-on and wireless-debug-off use the Bridge receiver directly. They do not require an already-connected ADB transport for each later toggle. Enabling the setting does not pair/connect ADB; run ai-info --connect for that separate operation. The AI must check wireless-debug-status before and after a toggle and report the observed result.
 
-The disconnect menu has two different actions: disconnect only the exact current network ADB transport (Wireless Debugging remains ON), or switch Wireless Debugging OFF through WADB Bridge. Neither action stops Desktop Commander MCP or Secure Local Shell. wadb-mcp-stop, wadb-local-off --confirm and wadb-mcp-logout --confirm each affect different layers and must never be presented as synonyms.
+The disconnect menu has two different actions: disconnect only the exact current network ADB transport (Wireless Debugging remains ON), or switch Wireless Debugging OFF through WADB Bridge. Neither action stops Desktop Commander MCP or Local Termux Shell. wadb-mcp-stop, wadb-local-off --confirm and wadb-mcp-logout --confirm each affect different layers and must never be presented as synonyms.
 
 
 - Desktop Commander MCP and Wireless ADB are separate connections.
@@ -179,7 +179,7 @@ Do not:
 - expose authentication tokens or private keys,
 - mix another MCP session without verifying which session the user asked about.
 
-Root is optional. Use Termux's normal permissions by default. On a rooted device, use the available su mechanism only when the requested operation needs elevated privileges and the owner explicitly approves it through the installed root manager. Wireless ADB and Secure Local Shell still execute with their Android shell-user permissions; they do not silently become root.
+Root is optional. Use Termux's normal app permissions by default. Local Termux Shell runs as the Termux app UID and cannot perform Android shell-UID-only operations. Wireless ADB runs Android commands as uid=2000(shell) when explicitly authorised; it is still not root. On a rooted device, use the available su mechanism only when the requested operation needs elevated privileges and the owner explicitly approves it through the installed root manager.
 
 For a persistent change not already part of this toolkit, explain the change, affected files/settings, side effects, and rollback before doing it.
 

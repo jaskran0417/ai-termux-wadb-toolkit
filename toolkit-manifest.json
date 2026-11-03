@@ -70,12 +70,11 @@
     "bridge_recovery_notifications": true,
     "mcp_duplicate_detection": true,
     "mcp_log_viewer": true,
-    "localhost_adb_mode": true,
+    "localhost_adb_mode": "termux_app_uid_no_debug",
     "localhost_adb_default_port": 47173,
     "localhost_adb_wifi_independent_after_bootstrap": true,
-    "localhost_adb_preserves_adb_enabled_on_off": true,
     "localhost_adb_listener_scope_reporting": true,
-    "localhost_adb_wireless_bootstrap_fallback": true,
+    "localhost_adb_wireless_bootstrap_fallback": false,
     "localhost_secure_shell_bridge": true,
     "localhost_bridge_default_port": 47173,
     "localhost_bridge_auth_token": true,
@@ -106,7 +105,13 @@
     "ai_info_wireless_debug_off_confirmed": true,
     "ai_info_command_catalogue": true,
     "ai_info_reports_mcp_desired_actual_mismatch": true,
-    "wireless_debug_toggle_without_active_adb_transport_after_setup": true
+    "wireless_debug_toggle_without_active_adb_transport_after_setup": true,
+    "localhost_termux_uid_execution": true,
+    "localhost_usb_debugging_required": false,
+    "localhost_wireless_debugging_required": false,
+    "localhost_wifi_required": false,
+    "localhost_adbd_required": false,
+    "localhost_adb_enabled_required": false
   },
   "github_allowed_actions": [
     "START_MCP",
@@ -117,7 +122,7 @@
   "github_disallowed_actions": [
     "LOGOUT_MCP"
   ],
-  "privilege": "Termux user by default; optional owner-authorized su access on rooted devices. Wireless ADB and Secure Local Shell use Android shell permissions.",
+  "privilege": "Termux app UID for normal local execution and Local Termux Shell; Wireless ADB is separate and only uses Android shell UID when explicitly enabled and authorised; optional owner-authorised su on rooted devices.",
   "wadb_bridge_apk_sha256": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4",
   "wadb_bridge_certificate_sha256": "e99e14787a8e24e8b12b59f2b3d71f4a114ddcaa72d4d837e4839de87436579a",
   "release_security": {
