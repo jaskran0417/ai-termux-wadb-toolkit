@@ -6,15 +6,15 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 Version: 1.0.2
 
-## First-setup response rule — recommended method must be Point 1
+## First-setup response rule — execute the recommended method, do not hand off a manual checklist
 
-Whenever a user asks to set up or install this Toolkit, the AI’s first recommendation **must be Point 1: AI-assisted setup through the provider-supported Remote Desktop Commander integration**. Do not begin with a manual-only checklist, and do not jump straight to manually installing Toolkit dependencies or running `install.sh`.
+For every first-time setup request, the AI must make the original initial-setup recommendation **the single Point 1 in its first reply: Recommended method — AI-assisted setup through the provider-supported Remote Desktop Commander integration**. This is the recommended setup path, not merely an optional suggestion. Check the current AI session's actual connected tools/apps/plugins first and reuse an existing usable connection. If none is active, check the provider's real plugin/connector directory and account state. For ChatGPT, use or recommend the dedicated **Remote Desktop Commander** plugin by **Desktop Commander** first. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app. For other providers, follow only their matching instructions in `docs/REMOTE_MCP_AI_CONNECTION.md`.
 
-1. **Point 1 — Recommended: AI-assisted setup.** First inspect the current AI session’s actual connected tools/apps/plugins for a usable Remote Desktop Commander connection. Reuse an existing connection. If none is active, check the provider’s actual plugin/connector directory and account state. For ChatGPT, prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; do not direct the owner to Developer Mode or a custom MCP connector in the ChatGPT Android app. For other providers, use only the matching path in `docs/REMOTE_MCP_AI_CONNECTION.md`.
-2. Only after checking the provider integration, establish the minimum phone-side prerequisites. If Termux is absent, guide the owner to install it from one official source and do not mix signing sources. If Node.js/npm or the phone-side Desktop Commander agent is missing, provide only the required bootstrap from `docs/REMOTE_MCP_AI_CONNECTION.md` and guide browser/device authorization.
-3. Once Remote Desktop Commander actually reaches this phone, the AI performs the documented Toolkit dependency checks, independent release verification, installation, configuration and post-checks itself. Do not ask the owner to type Toolkit setup commands after MCP works. The owner still completes Android permission dialogs and the current ADB pairing code when the documented command requires them.
+**The AI must do the work itself whenever its connected tools can do it.** Once Remote Desktop Commander reaches this phone, use its terminal/filesystem/process tools to inspect the real Termux state, obtain the official release ZIP and separate trust-values file when not already supplied, verify installer/verifier hashes and the Ed25519-signed package, install dependencies only when a fresh check shows they are missing, run the installer, configure only the requested features, and verify the results. Do not ask the owner to download/extract the ZIP, run `pkg update`, install packages, type `sha256sum`/`export` commands, invoke `install.sh`, or execute Toolkit commands after MCP works. Do not respond with a lengthy copy/paste installation tutorial, a manual-only staged plan, a three-stage manual installation walkthrough, or an unnecessary questionnaire when the connected tools can inspect and perform the steps. Do not turn the manual fallback list in README.md or USER_GUIDE.md into the default user-facing plan. Do not claim an action succeeded until its actual output is checked.
 
-The complete manual installation/configuration procedure is a **secondary fallback**: use it only when the owner explicitly asks for manual setup or the provider genuinely has no supported Remote Desktop Commander path after the AI checks the actual provider state. If unavailable, state that limitation truthfully and label any manual instructions as the fallback. Never omit Point 1 from the first setup recommendation.
+The owner is needed only for genuine owner-controlled actions: install Termux from one official signing source if it is absent; start the phone-side Desktop Commander agent and complete browser/device authorization before MCP exists; approve Android permission dialogs; open the Android Wireless Debugging pairing-code screen and provide the current code when `ai-info --connect` returns `RESULT=PAIRING_REQUIRED`; or perform an Android UI action that no connected tool can perform. Ask for only the next required owner action, not every later command in advance. Never ask the owner to repeat an action the AI can verify from current state.
+
+The manual installation/configuration procedure is a **secondary fallback only** when the owner explicitly asks for manual setup or the AI has checked the actual provider state and no supported Remote Desktop Commander path is available. Label it as a fallback and explain the exact limitation. Do not let the README's preserved manual fallback override this mandatory AI-first operating rule.
 
 If the user gives you this toolkit ZIP/MD or asks about its setup, commands, Wireless ADB, Desktop Commander, MCP recovery, GitHub recovery, or troubleshooting, use the toolkit's documented workflow before inventing another one.
 
@@ -57,17 +57,17 @@ Do not tell the owner to enable Developer Mode or create a custom MCP connector 
 
 ### Stage 2 — One-time phone agent bootstrap
 
-Before MCP is connected, the AI cannot operate Termux itself. After checking the provider integration, give the owner only the required phone-side bootstrap in `docs/REMOTE_MCP_AI_CONNECTION.md`:
+Before MCP is connected, the AI cannot operate Termux itself. After checking the provider integration, determine the single missing prerequisite. If Termux is absent, ask the owner only to install/open it from one official source. If Termux exists but Node.js/npm or the phone agent is missing, give the minimum phone-side bootstrap from `docs/REMOTE_MCP_AI_CONNECTION.md`; do not ask the owner to preinstall the Toolkit, manually download its ZIP, verify hashes, or run its installer. The required phone-agent command is:
 
 ```bash
 npx @wonderwhy-er/desktop-commander@0.3.1 remote
 ```
 
-The owner completes the browser/device authorization and keeps the process running. The Remote MCP endpoint `https://mcp.desktopcommander.app/mcp` is only for clients that genuinely require a custom server URL; it is not needed for ChatGPT's dedicated plugin.
+The owner completes browser/device authorization and keeps the process running. Immediately after the connection becomes available, the AI takes over and performs the remaining setup through MCP. The Remote MCP endpoint `https://mcp.desktopcommander.app/mcp` is only for clients that genuinely require a custom server URL; it is not needed for ChatGPT's dedicated plugin.
 
 ### Stage 3 — AI completes Toolkit setup
 
-Once Remote Desktop Commander can actually reach this phone, the AI must run the documented checks and perform the remaining supported Toolkit installation and configuration itself. Do not ask the owner to type Toolkit commands after MCP is working. Owner actions are limited to browser/device authentication, Android permission dialogs, and the current ADB pairing code when the toolkit explicitly requests it.
+Once Remote Desktop Commander can actually reach this phone, the AI must run the documented checks and perform the remaining supported Toolkit installation and configuration itself, including obtaining/locating release assets, checking the separate trust values, verifying the signed package, installing, configuring and testing. Do not ask the owner to type Toolkit commands after MCP is working. Owner actions are limited to browser/device authentication, Android permission dialogs, and the current ADB pairing code when the toolkit explicitly requests it.
 
 ### Stage 4 — Toolkit + Wireless ADB
 
@@ -265,9 +265,9 @@ Desktop Commander itself and Termux's `~/.android/adbkey` are not toolkit-owned.
 
 ### User interaction
 
-Before MCP: give the user the minimum manual bootstrap steps.
+Before MCP: ask the owner only for the next unavoidable action (Termux installation if absent, phone-agent start/browser authorization, or Android pairing/permission approval). Check whether a prerequisite is actually missing before asking.
 
-After MCP: execute supported shell commands yourself. Do not tell the user to copy/paste commands into Termux when the connected AI can run them.
+After MCP: execute all supported shell, file, download, verification, installation and configuration steps yourself through the connected tools. Never hand the owner a manual Toolkit command sequence that the AI can execute. Ask only for an Android/UI approval or other action that truly requires the owner.
 
 Ask the user only when a genuine human action is needed, such as:
 - browser/device authentication,

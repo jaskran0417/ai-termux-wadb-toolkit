@@ -12,11 +12,9 @@ The required provider-specific Remote MCP Android-app connection instructions ar
 
 `~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md`
 
-## Recommended setup method
+## Initial setup — Point 1: recommended AI-assisted method
 
-AI-assisted setup is the recommended method. Give the official Toolkit release ZIP or its AI instructions to a compatible AI assistant and ask it to follow the installed AI_GUIDE.md. The assistant checks the provider integration first, uses an existing Remote Desktop Commander connection when available, and performs the supported Toolkit installation, validation, and configuration after it can reach Termux. The owner completes only the browser/device authorisation, Android permission prompts, and Wireless ADB pairing actions that require owner input. The manual alternative remains available in the installed USER_GUIDE.md.
-
-**AI response priority:** For every first-time setup conversation, present this AI-assisted route as **Point 1** before any manual setup list. Check the current provider integration and prefer an existing Remote Desktop Commander connection; for ChatGPT, check/use the dedicated Remote Desktop Commander plugin first. Do not ask the owner to perform Toolkit installation/configuration manually once MCP reaches Termux. Manual setup is a fallback only when explicitly requested or when the supported provider connection is genuinely unavailable.
+For every first-time setup conversation, present **1. Recommended method — AI-assisted setup through Remote Desktop Commander** as the first point in the Initial setup sequence, before any manual fallback. Give the official Toolkit release ZIP or AI instructions to a compatible assistant and ask it to follow the installed AI_GUIDE.md. The AI checks the actual provider integration first, reuses an existing connection when available, and for ChatGPT prefers the dedicated Remote Desktop Commander plugin by Desktop Commander. If no connection is active, it checks the provider plugin/connector directory and asks the owner only for the minimum unavoidable phone-agent/browser authorization action. **After MCP reaches Termux, the AI performs dependency checks, obtains and verifies the release, installs and configures the Toolkit, and runs post-checks itself. It must not ask the owner to download/extract release files, type package commands, copy hashes, set trust variables, run the installer, or paste Toolkit commands that the AI can execute.** The owner completes only device approvals and pairing actions that require owner input. The manual alternative remains available in the installed USER_GUIDE.md only as a secondary fallback.
 
 ## Where the Toolkit is installed
 
