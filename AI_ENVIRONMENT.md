@@ -16,6 +16,8 @@ The required provider-specific Remote MCP Android-app connection instructions ar
 
 AI-assisted setup is the recommended method. Give the official Toolkit release ZIP or its AI instructions to a compatible AI assistant and ask it to follow the installed AI_GUIDE.md. The assistant checks the provider integration first, uses an existing Remote Desktop Commander connection when available, and performs the supported Toolkit installation, validation, and configuration after it can reach Termux. The owner completes only the browser/device authorisation, Android permission prompts, and Wireless ADB pairing actions that require owner input. The manual alternative remains available in the installed USER_GUIDE.md.
 
+**AI response priority:** For every first-time setup conversation, present this AI-assisted route as **Point 1** before any manual setup list. Check the current provider integration and prefer an existing Remote Desktop Commander connection; for ChatGPT, check/use the dedicated Remote Desktop Commander plugin first. Do not ask the owner to perform Toolkit installation/configuration manually once MCP reaches Termux. Manual setup is a fallback only when explicitly requested or when the supported provider connection is genuinely unavailable.
+
 ## Where the Toolkit is installed
 
 The Toolkit runs inside Termux; it is not a standalone Android launcher app.
