@@ -8,7 +8,7 @@ fc8ce12f9ac03f43a1d1299fbaed93a0308a5bcc9f0ea5e24b63b568e4a9b67c  ./.github/work
 e558e857459a28769a46f9984860164c25da90e1a75429e62267b4b8016ea861  ./CONTRIBUTING.md
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./LICENSE
 616f15ec7644b4f4e3d9563f2c0e1247b9d40521f3133c46867ec75a3db3df7b  ./NOTICE
-a7b3c877aefef6040b1da87dd7395a6ba4eba5852fb20fcd3556b7e48da8b48e  ./README.md
+3299f808529eba6bdde244a753fbc0e966e58bb9e63611a51f3a950df4c9b328  ./README.md
 857d1e488aba9c0eb74712824e97facfd1153e3bdf00e90d46763f7e6966d79f  ./SBOM.cdx.json
 edd2385b7cb449b85b8d1107187d61408b646f97de7b05cc58fabe77420ab5ff  ./SECURITY.md
 dfcf8b094f98705ec36bfbb0575a5455c66635f14277c44edcd91830bbca5752  ./THIRD_PARTY_NOTICES.md
@@ -24,7 +24,7 @@ c3d01e684210a2bcec3bfe87d0cf948d43c49a3d0ecad5b24f4f66fc2f4528fb  ./bridge-sourc
 6e94fd7d3deb45d681a1a2c33d78e47bfcabcfcfbbebc9edc156791d292006d9  ./bridge-source/build.gradle
 e1e5bf4c82f49765635622f8cfcb0539e5e5edc6d40272b7e8d1fe8d3fc726dd  ./bridge-source/gradle.properties
 bc9bd5d0a2427998dada33ae72bd7de95db29d1b8cfe2ede1173a8ab4ae16d23  ./bridge-source/settings.gradle
-33b28fabcd650c07d23df8ae04cd363663ca47fe577c23f310384847ff9302d1  ./docs/AI_GUIDE.md
+2fa2595147e497c3758dd6bdbd8f8d60691b1460a6e4a0a6aa8d2c4439f25657  ./docs/AI_GUIDE.md
 d54bc0a626ccd8463b795c660bc1adb57ef2adaeadc53e6fe7b0b38f5ae94566  ./docs/COMMAND_REFERENCE.md
 f95b53de1a172cd9268de2367d583068c5a52f25c4575625644acc779df441cc  ./docs/DESKTOP_COMMANDER_SETUP.md
 9aebd396a5a4703c77a3564423825b9c170469855f5347784616608778974851  ./docs/FAQ.md
@@ -68,8 +68,8 @@ f5d8c5e81c2790c567446eab535ea77192b45e647e8aa200ba7bd31d78db9dd7  ./scripts/wadb
 7b0e36d5dac0a74feb50f5705a01ac81b5a31300b575f574cbb9d21d48db1aa4  ./scripts/wireless-debug-on
 eace1bd3b04cecced8df6b10f2f3edf4f73f3a8d6d988eb7b530f518753724f2  ./scripts/wireless-debug-status
 c585b3dd2bf5d35a5371371488be81783ada0539fde61a119fc282ac242315d5  ./security/install-path-preflight.js
-a12ca8529b40408762fc37864cf7beaf77bc0a69543d794ca6ca4b489166c13a  ./security/installed-files.json
-25d58c1e36e9ff1ff9508ca70679e7f2cc7965b883c3427452141fd63562368d  ./security/installed-files.json.sig
+e3fd3f2d6390b3c02587685f9b43641e26f18b7116dc5467b8e80f6ae945098c  ./security/installed-files.json
+c5eb773beab68b4c13a37683843d1513debeb353085e0617d188d561f500ce3c  ./security/installed-files.json.sig
 8839dd3b79dea80d00c488d2a5f8097bf377bf8ad440d4f5b7f7418814a44200  ./security/verify-installed.js
 1b675c9dd8ab97a765cab6344b4edc877788ea873f64772181a03fb5c9b86d56  ./security/verify-release.js
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./third_party/licenses/Apache-2.0.txt

@@ -6,6 +6,8 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 Version: 1.0.2
 
+**README starter prompt:** The root README contains a copy-ready **“Start here — copy this instruction to your AI”** block. When a user asks for a reusable setup prompt, direct them to that block. If you already have repository access and the user asks you to set up the Toolkit, use the block directly instead of asking them to paste it again. It is a short task brief; this AI Guide remains the mandatory operating instructions.
+
 ## First-setup response rule — execute the recommended method, do not hand off a manual checklist
 
 For every first-time setup request, the AI must make the original initial-setup recommendation **the single Point 1 in its first reply: Recommended method — AI-assisted setup through the provider-supported Remote Desktop Commander integration**. This is the recommended setup path, not merely an optional suggestion. Check the current AI session's actual connected tools/apps/plugins first and reuse an existing usable connection. If none is active, check the provider's real plugin/connector directory and account state. For ChatGPT, use or recommend the dedicated **Remote Desktop Commander** plugin by **Desktop Commander** first. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app. For other providers, follow only their matching instructions in the [Desktop Commander Setup Instructions](DESKTOP_COMMANDER_SETUP.md).
