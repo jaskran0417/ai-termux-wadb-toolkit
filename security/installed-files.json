@@ -224,7 +224,7 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "AI_GUIDE.md",
-      "sha256": "73de2c8321b57ff55312d1a0351f79bec4b249706a015c958c81d06e086a1940",
+      "sha256": "d25bce857acc8b17ed810b74610f4dc3f1a45cd4a8730f27fd479ef0bcf9dedd",
       "mode": "644"
     },
     {
@@ -242,13 +242,13 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "README.md",
-      "sha256": "28ae7f1bdd4e52e55f01513a81d27b35175c2ab3f85ae078b03bbd6d3e45634c",
+      "sha256": "6f3d19813261f9f81adb63b071bc560b9fac09b38859429d3dd8982c07524db0",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "REMOTE_MCP_AI_CONNECTION.md",
-      "sha256": "406c04167d17fbbf3b9837b57f34a2bccfa4b174ce278e65f80416b9747158d4",
+      "sha256": "0300701665d382d2f1f48c79aa00a321159b9968419ae2a031e0dba504366ebb",
       "mode": "644"
     },
     {
@@ -272,7 +272,7 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "USER_GUIDE.md",
-      "sha256": "4e9d3738e3a996c459008527707c1634e7ad1118fda28113e3359975f8eac32a",
+      "sha256": "77958e0bdfe710fee7b175a118e35366cbb836716fe673358a702086a3267b40",
       "mode": "644"
     },
     {

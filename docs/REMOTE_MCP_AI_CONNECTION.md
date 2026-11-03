@@ -48,6 +48,12 @@ The AI must then verify that Remote Desktop Commander tools are actually availab
 
 Installing the plugin does not by itself mean the phone is paired or online. Complete the phone-side agent setup in section 5, then verify that the plugin can reach this phone.
 
+### After connecting — stop repeated ChatGPT action prompts
+
+In ChatGPT Settings, open **Apps / Plugins → Remote Desktop Commander → Permissions** and select **Allow all actions** for this connected plugin, as shown in the tested Android app. This lets supported Remote Desktop Commander actions run without a separate approval prompt each time. It is an elevated-risk choice: use it only for the trusted Desktop Commander connection. Provider permissions, workspace policies, and platform safety checks still apply.
+
+**Free-plan compatibility:** the Toolkit owner has tested the dedicated Remote Desktop Commander plugin/app working on ChatGPT Free. This is the prebuilt plugin route described above; it does **not** require enabling Developer Mode or creating a custom MCP connector. Do not copy the plan condition attached to the separate Developer Mode/custom-MCP path into these plugin instructions. OpenAI's general documentation says the plugin directory spans ChatGPT plans, while the availability of an individual app/plugin and its controls can still vary by account, workspace, role, region and product surface. Check the actual Plugins / Apps directory in the user's account; do not claim that every Free account must see the same app, and do not claim that a paid Developer Mode plan is required for the tested prebuilt plugin route.
+
 ## 3. Claude
 
 Use the Remote Desktop Commander connector when it is already available in the Claude client's connector list. If the Claude Android app presents the custom connector flow used for this setup, the owner can use:
@@ -60,13 +66,36 @@ Use the Remote Desktop Commander connector when it is already available in the C
 
 Do not claim that a connector is installed or connected until the actual Claude interface confirms it.
 
-## 4. Grok Android app
+**Free-plan compatibility:** Anthropic currently lists remote MCP custom connectors on Claude Free, Pro, Max, Ultra, Team and Enterprise. Free accounts are limited to **one custom connector**. The Remote Desktop Commander connection in this guide works within that connector allowance.
 
-The tested Grok Android app does not expose the custom MCP/connector setup surface used by this Toolkit.
+### After connecting — allow the trusted Desktop Commander tools
 
-Do not invent a Grok Android menu path, tell the owner to create a connector that is not present in that app, or claim that the phone is controllable through this Remote MCP route from the tested Grok Android app.
+1. Open the connected connector in Claude. It may be named **Desktop Commander** or the custom name you entered when adding it.
+2. Open its tool-permission control and choose **Set all tools**.
+3. Select **Always allow**.
 
-This finding applies to the tested Grok Android app interface only. Do not generalize it to every Grok product, web/desktop surface, account, or future app version.
+This is the option shown in the tested Claude interface; it avoids a repeated approval request for each tool in that connector. Use it only for a server you trust. It applies to that connector's tools, not every connector in Claude.
+
+## 4. Grok Android — add a custom Remote Desktop Commander connector
+
+The Grok Android app supports custom MCP connectors. The following path matches the owner's tested Android screenshots:
+
+1. Open **Grok Settings**.
+2. Select **Connectors**.
+3. Scroll to the bottom of the connector list and select **Add your own custom connector**.
+4. Enter a name, for example **Desktop Commander**.
+5. In **Server URL**, enter:
+
+   `https://mcp.desktopcommander.app/mcp`
+
+6. Select **Add Connector** and complete any sign-in/authorization step shown.
+7. Return to the connected Grok connector page and confirm it shows **Disconnect** and the available Desktop Commander tools.
+
+**Free-plan compatibility:** xAI's current connector documentation says connectors are available to all Grok users and documents custom MCP connectors. The owner has also tested the Android Settings → Connectors flow shown above. Grok Business/Enterprise workspaces may additionally require an administrator to provision connectors.
+
+**Tool approvals:** the tested Grok Android connector page exposes the connected tools without a separate per-tool approval selector. Do not invent a Grok **Always allow** or **Allow all actions** setting; that is not part of the flow shown in the supplied screenshots. Grok can use connected tools when relevant to the conversation, subject to Grok's own service and safety controls.
+
+The xAI documentation also describes the connector catalog at `https://grok.com/connectors`; its web menu wording may differ from the Android app labels above.
 
 ## 5. One-time phone-side Desktop Commander setup (only before MCP exists)
 
@@ -122,4 +151,19 @@ Once Remote Desktop Commander can reach Termux, the AI must read `docs/AI_GUIDE.
 - The phone-side Termux agent and the AI-side plugin/connector are separate parts of one connection; both must be online.
 - MCP connects the AI to Termux. Wireless ADB is a separate Android debugging connection.
 - A working MCP connection does not itself grant Android root access.
-- Follow `docs/AI_GUIDE.md` for all subsequent Toolkit setup, commands, safety rules, and verification.
+- Follow the linked [AI Guide](AI_GUIDE.md), [User Guide](USER_GUIDE.md), [Command Reference](COMMAND_REFERENCE.md), and [Technical Reference](TECHNICAL_REFERENCE.md) for Toolkit setup, commands, safety rules, and verification.
+
+## Official provider references
+
+- [Remote Desktop Commander — ChatGPT plugin listing](https://chatgpt.com/plugins/remote-desktop-commander)
+- [Remote Desktop Commander — OpenAI plugin information](https://openai.com/business/plugins/remote-desktop-commander/)
+- [OpenAI — Plugins in ChatGPT and plan availability](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt)
+- [OpenAI — Managing app permissions](https://help.openai.com/en/articles/20001495-managing-app-permissions-in-chatgpt)
+- [OpenAI — Custom MCP server / Developer Mode requirements (separate route)](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt)
+- [Anthropic — Remote MCP custom connectors and plan availability](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp)
+- [Anthropic — Connector access and permissions](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities)
+- [xAI — Grok overview and free-to-start service](https://docs.x.ai/grok/overview)
+- [xAI — Grok connectors and custom MCP](https://docs.x.ai/grok/connectors)
+- [Desktop Commander — upstream Remote Desktop Commander README](https://github.com/desktop-commander/remote-desktop-commander)
+
+**Source priority:** this file contains the tested provider-specific Android path for this Toolkit. Generic upstream setup instructions may describe a different ChatGPT custom-MCP / Developer Mode route. Do not substitute that route for the dedicated ChatGPT plugin steps above. For current provider features and account eligibility, use the official links in this section.

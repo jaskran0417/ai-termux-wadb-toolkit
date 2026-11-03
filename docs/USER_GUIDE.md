@@ -75,7 +75,7 @@ The normal order is intentionally simple.
 
 ### Provider integration check — AI performs first
 
-Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read `docs/REMOTE_MCP_AI_CONNECTION.md`. If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
+Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read the [Remote MCP Connection Guide](REMOTE_MCP_AI_CONNECTION.md). If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
 
 ### Phone-side bootstrap — only before MCP is connected
 
