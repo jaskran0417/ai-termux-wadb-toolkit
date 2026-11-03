@@ -83,6 +83,13 @@ jobs:
           test -s docs/FAQ.md
           test -s docs/USE_CASES.md
           grep -q 'AI-assisted setup is the recommended method' README.md
+          grep -Fq '1. **Recommended method — AI-assisted setup (default).**' README.md
+          grep -Fq '2. **Manual setup — fallback only.**' README.md
+          grep -Fq 'Do not ask the owner to download/extract the ZIP' README.md
+          grep -Fq 'the single Point 1 in its first reply' docs/AI_GUIDE.md
+          grep -Fq 'Never hand the owner a manual Toolkit command sequence' docs/AI_GUIDE.md
+          grep -Fq '1. **Recommended method — AI-assisted setup (default).**' docs/USER_GUIDE.md
+          grep -Fq '2. **Manual setup — secondary fallback only.**' docs/USER_GUIDE.md
       - name: Check for accidental private signing material
         shell: bash
         run: |

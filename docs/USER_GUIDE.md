@@ -41,23 +41,19 @@ Shared user files are reached only after the owner grants Termux storage access.
 
 ### What “initial setup” means
 
-### 1. Recommended method — AI-assisted setup (default)
-
-Start here before following any manual command list. Give the official Toolkit ZIP or AI guide to a compatible assistant and ask it to follow `docs/AI_GUIDE.md`. The assistant must check its current Remote Desktop Commander integration first. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the assistant should check the real Plugins directory/account state and use an existing connection when available. For other providers, use the matching instructions in `docs/REMOTE_MCP_AI_CONNECTION.md`.
-
-The owner performs only the minimum phone-side bootstrap and the browser/device/Android approvals that require owner interaction. Once the AI can reach Termux through MCP, the AI handles Toolkit dependency checks, independent release verification, installation, supported configuration and verification. The manual procedure is the alternative only when requested or when the provider has no supported connection path after checking.
-
 Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
 
-Download the Toolkit ZIP and share it with your AI assistant. Ask the AI to read `docs/AI_GUIDE.md` and follow the documented setup procedure. Before asking you to install or configure anything, the AI must check whether Remote Desktop Commander is already available in its connected tools or plugins. If it is connected, the AI should use that existing connection. Otherwise, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the AI can access Termux through MCP, it should install, validate and configure the Toolkit itself. You should not need to enter Toolkit commands manually. You will still need to complete Android actions that require your approval, including the one-time Wireless Debugging setup and ADB pairing. When pairing is required, provide the AI with the current pairing code. You can also run `ai-info` yourself at any time to check the Toolkit's status.
+1. **Recommended method — AI-assisted setup (default).** Download the Toolkit ZIP and share it with your AI assistant. Ask the AI to read `docs/AI_GUIDE.md` and follow the documented setup procedure. Before asking you to install or configure anything, the AI must check whether Remote Desktop Commander is already available in its connected tools or plugins. If it is connected, the AI should use that existing connection. Otherwise, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the AI can access Termux through MCP, it should install, validate and configure the Toolkit itself. You should not need to enter Toolkit commands manually. You will still need to complete Android actions that require your approval, including the one-time Wireless Debugging setup and ADB pairing. When pairing is required, provide the AI with the current pairing code. You can also run `ai-info` yourself at any time to check the Toolkit's status.
 
-The recommended method is AI-assisted setup because this Toolkit is designed to let the AI perform the supported installation and configuration tasks after it connects to your phone. If you prefer to install and configure the Toolkit yourself, follow the manual steps below:
+   **AI execution rule:** Once MCP is working, the AI must use its connected tools to inspect Termux, obtain/locate the official release ZIP and separate trust-values file, verify the installer and signed package, install missing dependencies only when checks show they are missing, install/configure the Toolkit and verify each result. You should not be asked to download/extract the package, type package commands, copy hashes, set trust variables, run the installer or enter Toolkit commands after MCP is connected. You remain responsible only for genuine device actions such as installing Termux if absent, starting the phone agent/browser authorization before MCP exists, Android permission approvals and the current pairing code when requested.
 
-1. Install Termux and grant it shared-storage access if required.
-2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
-3. Start the separate Desktop Commander service from Termux with npx @wonderwhy-er/desktop-commander@0.3.1 remote, complete the browser/device verification and connect the AI client through its supported MCP integration.
-4. Run ai-info --connect. For a fresh phone, enable Developer Options > Wireless debugging manually, open Android's pairing-code screen when requested, and use ai-info --pair CODE with the current six-digit code.
-5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and grants/verifies the required WRITE_SECURE_SETTINGS permission for both Termux and the Bridge. Setup is complete only when the output includes RESULT=CONNECTED_AND_READY and bridge_write=ready.
+2. **Manual setup — secondary fallback only.** Use these instructions only when you explicitly request a manual setup or no supported provider connection is available after the AI checks. They are not the default AI-assisted procedure.
+
+   1. Install Termux and grant it shared-storage access if required.
+   2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
+   3. Start the separate Desktop Commander service from Termux with npx @wonderwhy-er/desktop-commander@0.3.1 remote, complete the browser/device verification and connect the AI client through its supported MCP integration.
+   4. Run ai-info --connect. For a fresh phone, enable Developer Options > Wireless debugging manually, open Android's pairing-code screen when requested, and use ai-info --pair CODE with the current six-digit code.
+   5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and grants/verifies the required WRITE_SECURE_SETTINGS permission for both Termux and the Bridge. Setup is complete only when the output includes RESULT=CONNECTED_AND_READY and bridge_write=ready.
 
 On OPPO/ColorOS, OnePlus and realme builds affected by the OEM restriction, Developer options > **Disable permission monitoring** may also need to be ON (blue) before the secure-settings grants. Android/browser prompts and pairing still require the owner's approval.
 
@@ -77,31 +73,31 @@ This toolkit combines:
 
 The normal order is intentionally simple.
 
-### 1. AI checks the Remote Desktop Commander integration first
+### Provider integration check — AI performs first
 
 Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read `docs/REMOTE_MCP_AI_CONNECTION.md`. If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
 
-### 2. Complete the one-time phone-side bootstrap
+### Phone-side bootstrap — only before MCP is connected
 
-Only before MCP can reach the phone, you need to start the phone-side Desktop Commander agent. The AI should give you this short bootstrap and guide the browser/device authorization:
+**Skip this section entirely if the AI already has a working Remote Desktop Commander connection to this phone.** Do not ask the owner to rerun the phone-agent command when the device is already online.
+
+Only before MCP can reach the phone, the owner must start the phone-side Desktop Commander agent because the AI cannot run Termux commands yet. If Termux is absent, install it from one official signing source first. If Termux is already installed, do not reinstall or upgrade it. Start the agent with this one command when `npx` is already available:
 
 ```bash
-pkg update
-pkg install nodejs npm
 npx @wonderwhy-er/desktop-commander@0.3.1 remote
 ```
 
-Complete the browser/device verification when asked.
+Only if `npx` is missing, install the missing Node.js prerequisite with `pkg install nodejs`; do not run `pkg update`, `pkg upgrade`, or install unrelated packages as a routine setup step. Complete the browser/device authorization when asked.
 
-After the AI confirms it can run Termux commands through Desktop Commander, the AI should perform the remaining supported shell steps itself instead of asking you to type them.
+As soon as the AI can run Termux commands through Desktop Commander, the AI takes over all remaining Toolkit work itself. The owner must not manually download/extract the Toolkit, install Toolkit dependencies, verify hashes, set trust variables, run `install.sh`, or type Toolkit commands.
 
 **Ownership boundary:** Desktop Commander is an external dependency/control path, not a WADB-toolkit component. Toolkit uninstall must not stop it, log it out, remove its saved device login, or delete Termux's `~/.android/adbkey`.
 
-### 3. AI installs this toolkit
+### Toolkit installation — AI performs after MCP connects
 
-After Remote Desktop Commander can reach Termux, the AI should locate the supplied bundle, obtain the separate RELEASE-TRUST-VALUES.txt asset from the official release, verify the installer and release signature, then run the installer itself. Follow the security and verification requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
+After Remote Desktop Commander can reach Termux, the AI must locate the supplied bundle or fetch the official v1.0.2 ZIP and separate RELEASE-TRUST-VALUES.txt asset itself using its available tools. It independently verifies the installer hash, release verifier hash, public-key fingerprint and signed package before installing. It must check current dependencies and install only missing ones, then run the installer, configure requested settings, and verify the result. Follow the security requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
 
-From the extracted bundle, the AI runs:
+**The following are AI-executed commands through the connected Remote Desktop Commander terminal, not commands for the owner to copy/paste:**
 
 ```bash
 bash install.sh
@@ -131,7 +127,7 @@ For AI/machine use:
 ai-info --json
 ```
 
-### 4. Recommended: set up Wireless ADB
+### Wireless ADB first-time pairing
 
 Run:
 
@@ -205,7 +201,7 @@ The interactive ai-info Control Center > Disconnect Wireless ADB menu keeps two 
 
 The headless forms are ai-info --disconnect-transport --confirm and ai-info --wireless-off --confirm. Neither action stops Desktop Commander MCP or Local Termux Shell. Turning Wireless Debugging back ON does not pair ADB by itself; ai-info --connect performs the connection/pairing workflow when Android requires it.
 
-### 4. Optional: no-debug Local Termux Shell
+### Optional: no-debug Local Termux Shell
 
 The Local Termux Shell is a token-authenticated command bridge bound only to `127.0.0.1:47173`. It starts directly under the Termux app UID. It does not require an initial or continuing ADB session, USB debugging, Wireless Debugging, Wi-Fi or an Android `adbd` process.
 
@@ -340,28 +336,13 @@ For provider-specific Android-app connection steps, use `REMOTE_MCP_AI_CONNECTIO
 
 The supported Wireless ADB helpers and the hardware-verified Developer-Options-off / different-Wi-Fi observations are documented in `AI_GUIDE.md`.
 
-### 1. Prepare Termux
+### Before MCP — minimum phone prerequisite (owner action only when needed)
 
-Install Node.js and npm:
+This section applies only when the AI cannot yet reach Termux. If the phone is already online in Remote Desktop Commander, skip it; the AI must continue using its connected tools and must not ask you to run these commands again.
 
-```bash
-pkg update
-pkg install nodejs npm
-```
+Termux must be installed from one official signing source. Do not reinstall an existing working Termux installation or mix F-Droid and GitHub-signed companion apps. Node.js/npm are needed only to start the phone agent. If `npx` already works, do not install or update packages. If it is missing, install the missing Node.js package with `pkg install nodejs` before starting the agent. A full `pkg update`/`pkg upgrade` is not a required setup step.
 
-Verify that Node.js, npm, and npx are available:
-
-```bash
-node -v
-npm -v
-npx -v
-```
-
-Optional, but useful while keeping the remote session running:
-
-```bash
-termux-wake-lock
-```
+The owner starts the phone-side agent only because MCP is not connected yet:
 
 ### 2. Start Remote Desktop Commander on the phone
 
@@ -400,9 +381,9 @@ https://mcp.desktopcommander.app/mcp
 
 The Termux command from section 2 belongs only in Termux. Do not paste that command into the AI app's Server URL field. Complete the sign-in/authorization flow shown by the supported AI app.
 
-### 4. Verify that the AI really reaches Termux
+### Verify that the AI really reaches Termux — AI executes these checks
 
-After the connector is enabled, harmless checks through the Desktop Commander/MCP terminal include:
+After the connector is enabled, the AI itself runs harmless checks through its Desktop Commander/MCP terminal. Do not ask the owner to copy/paste these commands:
 
 ```bash
 id
@@ -464,31 +445,16 @@ This recommendation applies to normal daily ChatGPT use as well as this toolkit.
 
 ### Path A — AI-assisted (recommended)
 
-1. Install/open Termux.
-2. Give the toolkit ZIP or standalone AI instruction MD to your AI.
-3. Tell the AI to read `AI_GUIDE.md`.
-4. Follow only the initial Desktop Commander bootstrap steps until MCP is connected.
-5. Complete browser/device verification.
-6. Connect Remote Desktop Commander to the AI using the provider-specific Android app steps in `docs/REMOTE_MCP_AI_CONNECTION.md`.
-7. Tell the AI: **"MCP is connected. Continue according to the toolkit instructions."**
-8. From that point the AI should run supported Termux commands itself.
-9. On ColorOS/OPPO/OnePlus/realme first setup, turn **Wireless Debugging ON** and **Disable permission monitoring ON (blue)** together when the toolkit requests Wireless ADB setup.
-10. If first ADB trust is required, keep the pairing popup visible and send the current 6-digit code. After the toolkit says `PAIRING_REQUIRED`, the AI must use `ai-info --pair CODE` next and must not run `ai-info --connect` again first.
+This is the default path. The AI, not the owner, performs the Toolkit installation and configuration after MCP reaches Termux. Do not turn the fallback in the earlier Initial setup section into a user-facing command checklist.
 
-Recommended order after MCP:
-```text
-toolkit install/check
-→ ai-info --json
-→ Wireless ADB
-→ on ColorOS/OPPO/OnePlus/realme first setup: Wireless Debugging ON + Disable permission monitoring ON/blue
-→ pairing only if RESULT=PAIRING_REQUIRED
-→ automatic WADB Bridge install/finalization
-→ verify bridge_write=ready
-→ optional local MCP recovery
-→ optional GitHub recovery
-```
+1. Give the assistant the official GitHub repository/release link or the standalone AI instructions and ask it to follow `AI_GUIDE.md`. The AI should fetch the official ZIP and separate trust-values asset itself when its tools can access them; ask you to provide a file only when it cannot retrieve that specific asset.
+2. The AI checks its actual tools/apps/plugins, reuses an existing Remote Desktop Commander connection, and for ChatGPT checks the dedicated **Remote Desktop Commander** plugin by **Desktop Commander** first. It must not suggest Developer Mode or a custom connector in the ChatGPT Android app.
+3. Before MCP exists, the owner performs only the missing phone-side bootstrap and browser/device authorization. If Termux is already installed and working, do not reinstall it. Do not install/update Node.js/npm unless the prerequisite check shows they are missing.
+4. Once MCP reaches Termux, the AI itself locates/downloads the official assets, verifies the independent trust values and signed package, installs the Toolkit, checks the environment and performs all supported setup steps. It must not ask the owner to manually extract files, run `pkg` commands, calculate hashes, set trust variables, run `install.sh`, or copy/paste Toolkit commands.
+5. The owner completes only Android actions that require owner interaction: permission dialogs, enabling Wireless Debugging when requested, the ColorOS permission-monitoring switch if the helper reports it is off, and the current pairing code after `RESULT=PAIRING_REQUIRED`.
+6. The AI continues after each approval, verifies `RESULT=CONNECTED_AND_READY` and `bridge_write=ready`, and reports observed results. It does not hand the owner the rest of the command sequence.
 
-### Path B — manual
+### Path B — manual fallback (only when explicitly requested or AI connection is unavailable)
 
 1. Prepare Termux and connect Desktop Commander using `docs/USER_GUIDE.md` if you want remote AI access.
 2. Extract the bundle.
