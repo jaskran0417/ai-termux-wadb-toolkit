@@ -109,7 +109,7 @@ The setup command must bind recovery to the authenticated Desktop Commander HOME
 
 Never use logout as normal restart/recovery.
 
-### Stage 4 — Optional GitHub recovery
+### Stage 6 — Optional GitHub recovery
 
 GitHub provides an independent cloud control path when MCP itself is offline. It is optional and is not part of the first MCP connection.
 

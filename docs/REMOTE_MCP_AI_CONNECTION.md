@@ -34,15 +34,15 @@ The AI must check for this exact plugin first:
 - Official ChatGPT plugin listing: https://chatgpt.com/plugins/plugin_asdk_app_6a057d268ebc81919918d37eec718425
 - Official plugin information: https://openai.com/business/plugins/remote-desktop-commander/
 
-In the ChatGPT Android app, the owner can install it from the plugin directory:
+In the ChatGPT Android app, use the plugin directory rather than creating a custom MCP server:
 
-1. Open **Settings**.
-2. Open **Plugins**. Older Android app versions may display **Apps** instead.
-3. Find **Remote Desktop Commander** by **Desktop Commander**.
-4. Select **Install plugin**.
-5. Complete the plugin's **Connect / sign-in / authorization** flow when prompted, using the same Remote Desktop Commander account that will authorize the phone.
+1. Open the ChatGPT side menu and open **Plugins**. If the app shows **Apps** instead, open **Apps**.
+2. Search for **Remote Desktop Commander** and confirm the developer is **Desktop Commander**.
+3. Open its listing and select **Install plugin**.
+4. Complete the plugin's **Connect / sign-in / authorization** flow if ChatGPT prompts for it, using the same Remote Desktop Commander account that will authorize the phone.
+5. In the conversation, select the installed plugin from the **+** menu / **Plugins** picker, or invoke it with **@Remote Desktop Commander** when that option is available.
 
-After installation, the owner can select Remote Desktop Commander from the app menu or invoke it by name in a chat where plugins are supported. The AI must use the plugin when it is available to the current conversation.
+The AI must then verify that Remote Desktop Commander tools are actually available in the current conversation and use them. If the plugin is installed but not selected for the conversation, ask the owner to select it there; do not ask them to reinstall it. If the listing is absent, check the account, workspace and app-surface availability before concluding it cannot be used.
 
 **Do not tell the owner to enable Developer Mode, open Advanced settings, choose Create a new connector, or paste the MCP URL into ChatGPT Android.** Those are not the dedicated-plugin installation steps. Custom MCP server setup is a separate web-only route; it is not the Android app path for this Toolkit.
 

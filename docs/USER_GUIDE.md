@@ -91,11 +91,11 @@ After the AI confirms it can run Termux commands through Desktop Commander, the 
 
 **Ownership boundary:** Desktop Commander is an external dependency/control path, not a WADB-toolkit component. Toolkit uninstall must not stop it, log it out, remove its saved device login, or delete Termux's `~/.android/adbkey`.
 
-### 2. Install this toolkit
+### 3. AI installs this toolkit
 
-Before running the installer, download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier values in that file, then set the three independent WADB trust environment variables required by install.sh. The README and Technical Reference explain why those values must be obtained separately. The installer repeats the checks before changing Toolkit files.
+After Remote Desktop Commander can reach Termux, the AI should locate the supplied bundle, obtain the separate RELEASE-TRUST-VALUES.txt asset from the official release, verify the installer and release signature, then run the installer itself. Follow the security and verification requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
 
-From the extracted bundle:
+From the extracted bundle, the AI runs:
 
 ```bash
 bash install.sh
@@ -125,7 +125,7 @@ For AI/machine use:
 ai-info --json
 ```
 
-### 3. Recommended: set up Wireless ADB
+### 4. Recommended: set up Wireless ADB
 
 Run:
 
