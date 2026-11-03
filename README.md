@@ -6,6 +6,24 @@ It is an independent open-source project. It is not an AI model, a replacement f
 
 To set up the Toolkit, send the ZIP file or AI instructions to your AI assistant (such as ChatGPT, Claude, Grok, or another supported client) and ask it to follow `docs/AI_GUIDE.md`. The AI must first check whether Remote Desktop Commander is already available and connected. If it is not, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the connection is working, the AI can install and validate the Toolkit in Termux and perform the supported setup tasks itself. You only need to complete the one-time Android steps that require your involvement, such as enabling Wireless Debugging and providing the current ADB pairing code when requested. If you run into a problem, ask the AI to consult the included Markdown and reference files, or ask for help here.
 
+## What problem does it solve?
+
+An Android phone can hold an entire project, but a chat-only workflow often makes the owner move files and commands between apps: attach source files, copy a suggested command into a terminal, paste the output back into the chat, and repeat.
+
+AI Termux WADB Toolkit is for people who want a compatible cloud AI assistant to work with the files and command-line environment available on their Android phone. After the required one-time connection and Android permission setup, the assistant can use the authorised Termux environment to inspect files, run installed tools, make requested project changes, and save results on the phone instead of requiring every project file to be attached to the chat.
+
+The AI model stays with its provider. Termux provides the local working environment. Desktop Commander is a separate dependency that provides the Remote MCP connection. The Toolkit manages the Android-side setup and controls; it is not an AI model or the MCP server.
+
+A PC or locally installed AI model is not required for the documented phone-only workflow. Android permissions, app sandboxing, connection availability, and the AI provider's normal context and usage limits still apply.
+
+## Common use cases
+
+- **Work on an existing Android project:** ask a compatible AI assistant to inspect a project folder, understand its structure, search source files, make requested edits, run available tests or build tools, and save the results on the phone.
+- **Use AI with local files:** work with accessible source files, documents, logs, archives, images, and other formats supported by the tools installed in Termux.
+- **Run phone-side development tools:** use installed Termux packages, scripts, compilers, Python, Node.js, Git, and other command-line utilities through the authorised environment.
+- **Manage Android connectivity:** inspect and manage Wireless ADB, WADB Bridge, the separate Local Termux Shell, and the phone-side Desktop Commander lifecycle using the documented Toolkit controls.
+- **Keep a phone-only workflow:** use the Android device as the working environment without requiring a PC or a locally installed AI model.
+
 ## What it does
 
 - **AI-to-phone connection:** works with Desktop Commander Remote MCP so a compatible AI client can use authorised terminal, filesystem, directory and process tools exposed from the phone.
@@ -103,7 +121,7 @@ wadb-mcp-github-sync
 wadb-toolkit-uninstall --all --dry-run
 ```
 
-The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, read `docs/REMOTE_MCP_AI_CONNECTION.md` for the tested ChatGPT, Claude and Grok Android-app connection instructions, and use `docs/TECHNICAL_REFERENCE.md` for architecture and security details. The installed copies are under `~/AI_WADB_DOCS/`.
+The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, read `docs/REMOTE_MCP_AI_CONNECTION.md` for the tested ChatGPT, Claude and Grok Android-app connection instructions, use `docs/TECHNICAL_REFERENCE.md` for architecture and security details, `docs/USE_CASES.md` for practical workflows, and `docs/FAQ.md` for common questions. The installed copies are under `~/AI_WADB_DOCS/`.
 
 ## Important distinctions
 

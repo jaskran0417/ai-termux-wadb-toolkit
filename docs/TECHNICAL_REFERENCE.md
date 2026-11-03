@@ -2,6 +2,8 @@
 
 Architecture, Android permission boundaries, system behaviour, release verification, security limits and optional GitHub recovery. This reference describes the system; it does not grant permissions or bypass Android security.
 
+**Recommended setup:** For first-time installation and configuration, use the AI-assisted workflow: provide the official release bundle or AI instructions to a compatible AI assistant and ask it to follow docs/AI_GUIDE.md. The assistant checks the existing Remote Desktop Commander integration first and performs the supported Toolkit setup after the connection reaches Termux. The owner still completes Android/browser prompts and pairing actions that require approval. The manual procedures remain available in docs/USER_GUIDE.md.
+
 ## Android and Toolkit architecture
 
 This document explains the working model at the component and Android-platform level. It is intentionally an architectural overview, not a copy of the implementation source.

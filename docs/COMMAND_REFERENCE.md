@@ -1,5 +1,7 @@
 # Command Reference
 
+**Recommended first-time setup:** Use the AI-assisted method in docs/AI_GUIDE.md and the provider-specific steps in docs/REMOTE_MCP_AI_CONNECTION.md. After the connection is active, the AI can use these documented commands and verify their results. This reference explains individual commands; it is not the preferred first-time setup sequence. Manual operation remains available.
+
 ## Connection layers at a glance
 
 - Desktop Commander MCP connects the AI client to Termux. It is managed with wadb-mcp-start/stop/restart/status/log.

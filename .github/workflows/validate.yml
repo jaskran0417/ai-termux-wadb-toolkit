@@ -80,6 +80,9 @@ jobs:
           grep -q 'Remote Desktop Commander' docs/REMOTE_MCP_AI_CONNECTION.md
           test -s docs/COMMAND_REFERENCE.md
           test -s docs/TECHNICAL_REFERENCE.md
+          test -s docs/FAQ.md
+          test -s docs/USE_CASES.md
+          grep -q 'AI-assisted setup is the recommended method' README.md
       - name: Check for accidental private signing material
         shell: bash
         run: |

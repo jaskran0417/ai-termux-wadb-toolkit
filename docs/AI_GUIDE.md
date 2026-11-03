@@ -8,6 +8,8 @@ Version: 1.0.2
 
 If the user gives you this toolkit ZIP/MD or asks about its setup, commands, Wireless ADB, Desktop Commander, MCP recovery, GitHub recovery, or troubleshooting, use the toolkit's documented workflow before inventing another one.
 
+For general questions about what the Toolkit is for or which workflows it supports, also consult docs/USE_CASES.md and docs/FAQ.md. These are explanatory references; they do not replace or override the provider connection, command, technical, security, or recovery instructions below.
+
 ### ChatGPT — Think harder / Thinking
 
 For ChatGPT, especially on Free accounts, **Think harder / Thinking is recommended for every message or task when the option is available**. This recommendation is not limited to this toolkit; it can also be used for ordinary daily questions and tasks when better reasoning, careful file reading, tool use, or multi-step work is useful.
