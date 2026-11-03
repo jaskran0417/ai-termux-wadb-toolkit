@@ -43,10 +43,9 @@ Shared user files are reached only after the owner grants Termux storage access.
 
 Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
 
-User just need to download the tool it and send it to ai client and ask ai to do setup of tool it you automatically by ai not by user and first it should check the MCP connector or plugins if available to ai then it should aks you to do setup for desktop commander in ai like chat gpt, Claude or Grock all the methods are mentioned in tool ai will tell you that and in same prompt and ai to refer to the instruction always then it should guild you from initial connection of desktop Commander once ai have it,Ai can install the tool it validate it and drum to automatically you do not need to run singles cmd in termux and then you can do though initially WIRELESS ADB set one time and other things which setup as ai to ayanlese all the features and there uses and how to setup thoese.You can also run ai-info yourself to check everything once it installed.
+**Recommended: AI-assisted setup.** Give the Toolkit ZIP or instruction file to your AI and ask it to follow `docs/AI_GUIDE.md`. Before asking you to set up Desktop Commander, the AI must first check whether Remote Desktop Commander is already available and connected in its current plugins/tools. For ChatGPT, it must look for the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; it must not send you to Developer Mode or ask you to create a custom connector in the Android app. The AI should guide only the one-time plugin authorization and phone-side Desktop Commander bootstrap. After the AI can reach Termux, it performs the Toolkit installation, validation, Wireless ADB setup and remaining supported configuration itself. You should not have to run Toolkit commands manually; Android approvals and the current ADB pairing code are the owner actions when requested.
 
-If you you want a manual setup you have it to it way simply as you will anticipate because toolkit itself will do everything no dozens of cmd to run in termux.Recommended setup use ai becouse that is the purpose is tool kit.
-However following is manual setup:
+The AI-assisted path is the recommended way to use this Toolkit. The manual path below is an alternative for owners who choose to perform setup themselves:
 
 1. Install Termux and grant it shared-storage access if required.
 2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
@@ -72,13 +71,13 @@ This toolkit combines:
 
 The normal order is intentionally simple.
 
-### 1. First connect Desktop Commander MCP
+### 1. AI checks the Remote Desktop Commander integration first
 
-If an AI does not yet have MCP access to this phone, start there. Read:
+Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read `docs/REMOTE_MCP_AI_CONNECTION.md`. If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
 
-`docs/USER_GUIDE.md`
+### 2. Complete the one-time phone-side bootstrap
 
-Typical phone-side bootstrap:
+Only before MCP can reach the phone, you need to start the phone-side Desktop Commander agent. The AI should give you this short bootstrap and guide the browser/device authorization:
 
 ```bash
 pkg update
@@ -92,11 +91,11 @@ After the AI confirms it can run Termux commands through Desktop Commander, the 
 
 **Ownership boundary:** Desktop Commander is an external dependency/control path, not a WADB-toolkit component. Toolkit uninstall must not stop it, log it out, remove its saved device login, or delete Termux's `~/.android/adbkey`.
 
-### 2. Install this toolkit
+### 3. AI installs this toolkit
 
-Before running the installer, download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier values in that file, then set the three independent WADB trust environment variables required by install.sh. The README and Technical Reference explain why those values must be obtained separately. The installer repeats the checks before changing Toolkit files.
+After Remote Desktop Commander can reach Termux, the AI should locate the supplied bundle, obtain the separate RELEASE-TRUST-VALUES.txt asset from the official release, verify the installer and release signature, then run the installer itself. Follow the security and verification requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
 
-From the extracted bundle:
+From the extracted bundle, the AI runs:
 
 ```bash
 bash install.sh
@@ -126,7 +125,7 @@ For AI/machine use:
 ai-info --json
 ```
 
-### 3. Recommended: set up Wireless ADB
+### 4. Recommended: set up Wireless ADB
 
 Run:
 

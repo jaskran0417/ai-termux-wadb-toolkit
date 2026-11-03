@@ -4,7 +4,7 @@ AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termu
 
 It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
-For AI-assisted setup, give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. Before connecting the phone, the AI must follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the exact Android-app setup path. The ChatGPT and Claude Android paths are documented there. The tested Grok Android app does not expose the same custom MCP/connector path, so do not assume it can connect through this route. Once Desktop Commander is connected, the AI can perform the supported Toolkit setup through Termux and will ask you only for the Android/browser approvals or pairing codes that require your action.
+AI-assisted setup is the recommended way to use the Toolkit. Give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. The AI must first inspect its current tools/apps and check whether Remote Desktop Commander is already available and connected. For ChatGPT, use the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. Follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the provider-specific workflow.  The tested Grok Android app does not expose the MCP connector path for this setup; see the provider-specific scope in `docs/REMOTE_MCP_AI_CONNECTION.md`. Once Remote Desktop Commander reaches the phone, the AI must perform the Toolkit installation, validation and supported setup through Termux and will ask you only for the Android/browser approvals or pairing codes that require your action.
 
 ## What it does
 
@@ -57,7 +57,7 @@ npx @wonderwhy-er/desktop-commander@0.3.1 remote
 
 ## Initial setup
 
-“Initial setup” means establishing the AI connection and the Android trust/permission grants once. The provider-specific Android-app connection steps are in `docs/REMOTE_MCP_AI_CONNECTION.md` and must be followed as written.
+“Initial setup” means establishing the AI connection and the Android trust/permission grants once. The provider-specific Android-app connection steps are in `docs/REMOTE_MCP_AI_CONNECTION.md` and must be followed as written. **Recommended: give the Toolkit to the AI.** It must check for the dedicated Remote Desktop Commander plugin first, guide the one-time phone-side bootstrap, then perform installation and configuration through MCP. The following numbered steps are the manual alternative for an owner who chooses to do setup without AI control.
 
 1. Install and open Termux. Run `termux-setup-storage` and approve the storage permission if the AI should work with shared folders such as Downloads.
 2. Extract the official release ZIP in a Termux-accessible folder. Download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier hashes in that file, set the three independent WADB trust environment variables required by install.sh, and then run `bash install.sh`. The installer repeats the checks and verifies the signed package inventory before it writes any Toolkit files. Do not copy trust values only from inside the ZIP.

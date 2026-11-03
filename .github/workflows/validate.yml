@@ -77,6 +77,7 @@ jobs:
           test -s docs/USER_GUIDE.md
           test -s docs/AI_GUIDE.md
           test -s docs/REMOTE_MCP_AI_CONNECTION.md
+          grep -q 'Remote Desktop Commander' docs/REMOTE_MCP_AI_CONNECTION.md
           test -s docs/COMMAND_REFERENCE.md
           test -s docs/TECHNICAL_REFERENCE.md
       - name: Check for accidental private signing material

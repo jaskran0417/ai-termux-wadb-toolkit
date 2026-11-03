@@ -67,7 +67,7 @@ Remote MCP endpoint for clients that need it:
 https://mcp.desktopcommander.app/mcp
 ```
 
-For ChatGPT, Claude or Grok Android-app connection guidance, read `~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md` before replying or assuming a provider setup path. Follow the app-specific instructions in that document.
+Before asking the owner to set up MCP, the AI must inspect its current tools/apps/connectors and read `~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md`. For ChatGPT, check for and prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. Do not direct the owner to Developer Mode or custom MCP setup in ChatGPT Android. Once MCP reaches the phone, the AI performs the remaining Toolkit setup.
 
 After one successful authentication, normal start/stop/restart/reboot should preserve the saved authorization.
 
@@ -287,4 +287,3 @@ The action asks for confirmation. It does not stop the MCP host or the secure lo
 - Secure local shell: `wadb-local-off --confirm` / `wadb-local-on`
 
 Choose **All commands & usage** or run `ai-info --commands` to open the current full command reference. For headless use, the explicit safe forms are `ai-info --disconnect-transport --confirm` and `ai-info --wireless-off --confirm`.
-
