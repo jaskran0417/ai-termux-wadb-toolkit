@@ -298,6 +298,7 @@ ln -s "$TERMUX_HOME/AI_ENVIRONMENT.md" "$TERMUX_HOME/AI_READ_ME_FIRST.md"
 for f in "$ROOT"/docs/*.md; do
   install -m 644 "$f" "$TERMUX_HOME/AI_WADB_DOCS/$(basename "$f")"
 done
+install -m 644 "$ROOT/README.md" "$TERMUX_HOME/AI_WADB_DOCS/README.md"
 install -m 644 "$ROOT/toolkit-manifest.json" "$TERMUX_HOME/AI_WADB_DOCS/toolkit-manifest.json"
 cp "$ROOT/apk/wadb-bridge.apk" "$TERMUX_HOME/.ai-wadb/wadb-bridge.apk"
 chmod 600 "$TERMUX_HOME/.ai-wadb/wadb-bridge.apk"

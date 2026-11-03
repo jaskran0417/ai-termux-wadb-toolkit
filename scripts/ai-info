@@ -223,9 +223,9 @@ get_state() {
     ADB_STATE="ADB command missing"
   fi
 
-  LOCAL_ADB_STATE="unknown"; LOCAL_ADB_MODE="secure_shell_bridge"
+  LOCAL_ADB_STATE="not_connected"; LOCAL_ADB_MODE="termux_loopback_shell"
   LOCAL_ADB_ENDPOINT="127.0.0.1:47173"; LOCAL_ADB_SERIAL=""
-  LOCAL_ADB_PORT="47173"; LOCAL_ADB_SHELL_UID=""; LOCAL_ADB_ENABLED="unknown"
+  LOCAL_ADB_PORT="47173"; LOCAL_ADB_SHELL_UID=""; LOCAL_ADB_RUNTIME_UID=""; LOCAL_ADB_ENABLED="not_required"
   LOCAL_ADB_WIFI_ENABLED="unknown"; LOCAL_ADB_TCP_PORT=""; LOCAL_ADB_SECURE=""
   LOCAL_ADB_USB_CONFIG=""; LOCAL_ADB_USB_STATE=""; LOCAL_ADB_WIFI_STATE="unknown"
   LOCAL_ADB_LISTENER_SCOPE="unknown"; LOCAL_ADB_PROTOCOL=""
@@ -238,6 +238,7 @@ get_state() {
     LOCAL_ADB_SERIAL="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_SERIAL=//p' | tail -n1)"
     LOCAL_ADB_PORT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_PORT=//p' | tail -n1)"
     LOCAL_ADB_SHELL_UID="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_SHELL_UID=//p' | tail -n1)"
+    LOCAL_ADB_RUNTIME_UID="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_RUNTIME_UID=//p' | tail -n1)"
     LOCAL_ADB_ENABLED="$(printf '%s\n' "$lsout" | sed -n 's/^ADB_ENABLED=//p' | tail -n1)"
     LOCAL_ADB_WIFI_ENABLED="$(printf '%s\n' "$lsout" | sed -n 's/^ADB_WIFI_ENABLED=//p' | tail -n1)"
     LOCAL_ADB_TCP_PORT="$(printf '%s\n' "$lsout" | sed -n 's/^TCP_PORT=//p' | tail -n1)"
@@ -405,10 +406,10 @@ show_dashboard() {
   if [ "$AI_INFO_HAS_LOCAL_SHELL" = 1 ]; then
     section "LOCAL ACCESS"
     case "$LOCAL_ADB_STATE" in ready) c="$GREEN";; *) c="$YELLOW";; esac
-    kv "Secure local shell" "$LOCAL_ADB_STATE" "$c"
+    kv "Local Termux shell" "$LOCAL_ADB_STATE" "$c"
     [ -n "$LOCAL_ADB_ENDPOINT" ] && kv "Loopback endpoint" "$LOCAL_ADB_ENDPOINT" "$DIM"
     if [ "$LOCAL_ADB_STATE" = ready ]; then
-      kv "Shell identity" "uid=2000 (shell)" "$GREEN"
+      kv "Runtime identity" "Termux app UID ${LOCAL_ADB_RUNTIME_UID:-unknown}" "$GREEN"
       kv "Authentication" "$LOCAL_ADB_AUTH" "$GREEN"
       kv "Listener scope" "$LOCAL_ADB_LISTENER_SCOPE" "$([ "$LOCAL_ADB_LISTENER_SCOPE" = loopback_only ] && echo "$GREEN" || echo "$YELLOW")"
       kv "adbd TCP exposure" "$LOCAL_ADB_TCP_EXPOSURE" "$([ "$LOCAL_ADB_TCP_EXPOSURE" = none ] && echo "$GREEN" || echo "$YELLOW")"
@@ -479,7 +480,7 @@ print(json.dumps({
   "toolkit_version":"$VERSION",
   "device":{"manufacturer":"""$DEVICE_MFR""","model":"""$DEVICE_MODEL""","android":"""$ANDROID"""},
   "mcp":{"state":"""$MCP_STATE""","credentials":"""$MCP_CREDS""","owner":"""$MCP_OWNER""","pid":"""$MCP_PID""","home":"""$MCP_HOME_DETECTED""","desired":"""$MCP_DESIRED""","actual":"""$MCP_ACTUAL""","process_count":"""$MCP_PROCESS_COUNT""","recovery_enabled":"""$RECOVERY_ENABLED""","watchdog":"""$WATCHDOG""","watchdog_interval_seconds":"""$WATCHDOG_INTERVAL_DISPLAY""","notifications_enabled":"""$NOTIFICATIONS_ENABLED_DISPLAY"""},
-  "local_adb":{"state":"""$LOCAL_ADB_STATE""","mode":"""$LOCAL_ADB_MODE""","endpoint":"""$LOCAL_ADB_ENDPOINT""","serial":"""$LOCAL_ADB_SERIAL""","port":"""$LOCAL_ADB_PORT""","shell_uid":"""$LOCAL_ADB_SHELL_UID""","protocol":"""$LOCAL_ADB_PROTOCOL""","auth":"""$LOCAL_ADB_AUTH""","adb_enabled":"""$LOCAL_ADB_ENABLED""","adb_wifi_enabled":"""$LOCAL_ADB_WIFI_ENABLED""","adbd":"""$ADBD_STATE""","tcp_port":"""$LOCAL_ADB_TCP_PORT""","adbd_tcp_exposure":"""$LOCAL_ADB_TCP_EXPOSURE""","usb_config":"""$LOCAL_ADB_USB_CONFIG""","usb_state":"""$LOCAL_ADB_USB_STATE""","adb_secure":"""$LOCAL_ADB_SECURE""","wifi_state":"""$LOCAL_ADB_WIFI_STATE""","listener_scope":"""$LOCAL_ADB_LISTENER_SCOPE"""},
+  "local_adb":{"state":"""$LOCAL_ADB_STATE""","mode":"""$LOCAL_ADB_MODE""","endpoint":"""$LOCAL_ADB_ENDPOINT""","serial":"""$LOCAL_ADB_SERIAL""","port":"""$LOCAL_ADB_PORT""","shell_uid":"""$LOCAL_ADB_SHELL_UID""","runtime_uid":"""$LOCAL_ADB_RUNTIME_UID""","protocol":"""$LOCAL_ADB_PROTOCOL""","auth":"""$LOCAL_ADB_AUTH""","adb_enabled":"""$LOCAL_ADB_ENABLED""","adb_wifi_enabled":"""$LOCAL_ADB_WIFI_ENABLED""","adbd":"""$ADBD_STATE""","tcp_port":"""$LOCAL_ADB_TCP_PORT""","adbd_tcp_exposure":"""$LOCAL_ADB_TCP_EXPOSURE""","usb_config":"""$LOCAL_ADB_USB_CONFIG""","usb_state":"""$LOCAL_ADB_USB_STATE""","adb_secure":"""$LOCAL_ADB_SECURE""","wifi_state":"""$LOCAL_ADB_WIFI_STATE""","listener_scope":"""$LOCAL_ADB_LISTENER_SCOPE"""},
   "wireless_adb":{"state":"""$WIRELESS_STATE""","adbd":"""$ADBD_STATE""","adb":"""$ADB_STATE""","trusted_key":"""$ADB_KEY""","bridge":"""$BRIDGE_STATE""","bridge_write":"""$BRIDGE_WRITE""","disable_permission_monitoring":"""$DPM_STATE""","pairing_state":"""$PAIRING_STATE""","pairing_age_seconds":"""$PAIRING_AGE_SECONDS""","bridge_cached_version_code":"""$BRIDGE_CACHED_VERSION_CODE""","bridge_installed_version_code":"""$BRIDGE_INSTALLED_VERSION_CODE""","bridge_sync":"""$BRIDGE_SYNC"""},
   "github_recovery":{"state":"""$GITHUB""","repo":"""$GITHUB_REPO_DISPLAY""","target":"""$MCP_TARGET""","read_mode":"""$GITHUB_READ_MODE""","last_read_mode":"""$GITHUB_READ_MODE_LAST""","read_error":"""$GITHUB_READ_ERROR"""},
   "termux_api":{"package":"""$TERMUX_API_PACKAGE""","android_app":"""$TERMUX_API_APP""","ready":"""$TERMUX_API_READY"""},
@@ -556,14 +557,14 @@ doctor() {
   command -v npx >/dev/null 2>&1 && ok "npx available" || warn "npx missing (needed for Desktop Commander bootstrap)"
   [ "$BRIDGE_STATE" = Ready ] && ok "WADB Bridge responds" || warn "WADB Bridge not ready"
   command -v wadb-local-status >/dev/null 2>&1 && command -v wadb-local-shell >/dev/null 2>&1 &&
-    ok "secure local shell helpers installed" || warn "secure local shell helpers missing"
+    ok "Local Termux Shell helpers installed" || warn "Local Termux Shell helpers missing"
   if [ "$LOCAL_ADB_STATE" = ready ]; then
-    ok "authenticated loopback shell is ready as uid=2000(shell)"
+    ok "authenticated loopback shell is ready under Termux app UID ${LOCAL_ADB_RUNTIME_UID:-unknown}"
     [ "$LOCAL_ADB_LISTENER_SCOPE" = loopback_only ] && ok "local bridge is bound to loopback only" || warn "local bridge is not verified loopback-only"
     [ "$LOCAL_ADB_TCP_EXPOSURE" = none ] && ok "adbd has no classic network TCP listener" || warn "adbd TCP exposure remains: $LOCAL_ADB_TCP_EXPOSURE"
-    [ "$LOCAL_ADB_ENABLED" = 1 ] && ok "adb_enabled keeps adbd alive in USB mode" || warn "adb_enabled is not 1"
+    [ "$LOCAL_ADB_ENABLED" = not_required ] && ok "USB/Wireless debugging are not required by Local Termux Shell" || warn "Local Termux Shell reports an unexpected ADB dependency"
   else
-    info "secure local shell is not currently ready"
+    info "Local Termux Shell is not currently ready"
   fi
   [ "$ADB_KEY" = Present ] && ok "ADB key present" || warn "ADB key not present"
   [ "$MCP_CREDS" = yes ] && ok "Desktop Commander saved login present" || warn "saved MCP login not detected"
@@ -965,6 +966,7 @@ case "$MODE" in
     echo "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT"
     echo "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL"
     echo "LOCAL_ADB_LISTENER_SCOPE=$LOCAL_ADB_LISTENER_SCOPE"
+    echo "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID"
     echo "ADBD_TCP_EXPOSURE=$LOCAL_ADB_TCP_EXPOSURE"
     echo "ADB_ENABLED=$LOCAL_ADB_ENABLED"
     echo "WIRELESS_DEBUG=$WIRELESS_STATE"

@@ -1,144 +1,17 @@
 #!/data/data/com.termux/files/usr/bin/bash
-set -u
+set -euo pipefail
 
 TERMUX_HOME=/data/data/com.termux/files/home
 PREFIX=/data/data/com.termux/files/usr
-PATH="$PREFIX/bin:/system/bin:$PATH"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PATH="$SCRIPT_DIR:$PREFIX/bin:/system/bin:$PATH"
 export PATH
 
 PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
 BRIDGE_BIN="$PREFIX/libexec/ai-wadb/wadb-local-bridge"
 TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
-REMOTE_BIN="/data/local/tmp/wadb-local-bridge"
-REMOTE_TOKEN="/data/local/tmp/.wadb-local-token.$$"
-WIFI_WAS_OFF=0
-MIGRATED=0
-NET_SERIAL=""
-
-status_cmd() {
-  wadb-local-status 2>/dev/null || true
-}
-
-status_value() {
-  local key="$1"
-  printf '%s\n' "$2" | sed -n "s/^${key}=//p" | tail -n1
-}
-
-bridge_ready() {
-  timeout 4 wadb-local-shell --ping 2>/dev/null | grep -q 'WADB_SECURE_BRIDGE_OK uid=2000'
-}
-
-ensure_token() {
-  mkdir -p "$TERMUX_HOME/.ai-wadb"
-  if [ ! -s "$TOKEN_FILE" ] || ! grep -Eq '^[0-9a-fA-F]{64}$' "$TOKEN_FILE" 2>/dev/null; then
-    python3 - <<'PY2' > "$TOKEN_FILE"
-import secrets
-print(secrets.token_hex(32))
-PY2
-  fi
-  chmod 600 "$TOKEN_FILE"
-}
-
-wifi_is_off() {
-  dumpsys wifi 2>/dev/null | grep -qm1 'Wi-Fi is disabled'
-}
-
-ensure_wifi() {
-  if wifi_is_off; then
-    WIFI_WAS_OFF=1
-    if ! command -v termux-wifi-enable >/dev/null 2>&1; then
-      echo "RESULT=TEMP_WIFI_REQUIRED"
-      echo "ACTION=turn_wifi_on_then_run_wadb-local-on"
-      return 20
-    fi
-    termux-wifi-enable true >/dev/null 2>&1 || true
-  fi
-
-  local i ip
-  for i in 1 2 3 4 5 6 7 8; do
-    ip="$(termux-wifi-connectioninfo 2>/dev/null | python3 -c 'import json,sys
-try:
- d=json.load(sys.stdin); print(d.get("ip",""))
-except Exception: pass' 2>/dev/null || true)"
-    if [ -n "$ip" ] && [ "$ip" != "0.0.0.0" ]; then
-      return 0
-    fi
-    sleep 1
-  done
-
-  echo "RESULT=TEMP_WIFI_NOT_CONNECTED"
-  echo "ACTION=connect_to_a_saved_or_trusted_wifi_network"
-  return 20
-}
-
-connect_network_adb() {
-  local out rc serial
-  wireless-debug-on >/dev/null 2>&1 || true
-  sleep 2
-
-  out="$(WADB_REQUIRE_NETWORK=1 wireless-adb-connect 2>&1)"; rc=$?
-  printf '%s\n' "$out"
-
-  if [ "$rc" -ne 0 ]; then
-    echo "RESULT=NETWORK_ADB_CONNECT_FAILED"
-    echo "EXIT_CODE=$rc"
-    return "$rc"
-  fi
-
-  serial="$(printf '%s\n' "$out" | sed -n 's/^ADB_CONNECTED=//p' | tail -n1)"
-  [ -n "$serial" ] || {
-    echo "RESULT=NETWORK_ADB_SERIAL_MISSING"
-    return 42
-  }
-
-  NET_SERIAL="$serial"
-  return 0
-}
-
-stage_bridge() {
-  adb -s "$NET_SERIAL" push "$BRIDGE_BIN" "$REMOTE_BIN" >/dev/null || return 1
-  adb -s "$NET_SERIAL" push "$TOKEN_FILE" "$REMOTE_TOKEN" >/dev/null || return 1
-  adb -s "$NET_SERIAL" shell "chmod 700 '$REMOTE_BIN'; chmod 600 '$REMOTE_TOKEN'" >/dev/null 2>&1 || return 1
-  return 0
-}
-
-launch_bridge() {
-  adb -s "$NET_SERIAL" shell 'for p in $(pidof wadb_loop_probe 2>/dev/null); do kill "$p" 2>/dev/null; done; for p in $(pidof wadb_local_br 2>/dev/null); do kill "$p" 2>/dev/null; done' >/dev/null 2>&1 || true
-  sleep 1
-  adb -s "$NET_SERIAL" shell "'$REMOTE_BIN' '$REMOTE_TOKEN' '$PORT'" >/dev/null 2>&1 || true
-
-  local i
-  for i in 1 2 3 4 5; do
-    if bridge_ready; then
-      return 0
-    fi
-    sleep 1
-  done
-  return 1
-}
-
-cleanup_success() {
-  wireless-debug-off >/dev/null 2>&1 || true
-  if [ "$WIFI_WAS_OFF" -eq 1 ]; then
-    termux-wifi-enable false >/dev/null 2>&1 || true
-    sleep 2
-  fi
-  adb disconnect 127.0.0.1:5555 >/dev/null 2>&1 || true
-}
-
-fail_recovery() {
-  local code="$1" result="$2"
-  [ -n "$NET_SERIAL" ] && adb -s "$NET_SERIAL" shell "rm -f '$REMOTE_TOKEN'" >/dev/null 2>&1 || true
-  if [ "$MIGRATED" -eq 1 ]; then
-    echo "RECOVERY_TRANSPORT_LEFT_ON=yes"
-    echo "NOTE=Wi-Fi_and_Wireless_Debugging_left_on_for_recovery"
-  elif [ "$WIFI_WAS_OFF" -eq 1 ]; then
-    wireless-debug-off >/dev/null 2>&1 || true
-    termux-wifi-enable false >/dev/null 2>&1 || true
-  fi
-  echo "RESULT=$result"
-  exit "$code"
-}
+LAUNCH_TOKEN="$TERMUX_HOME/.ai-wadb/.local-bridge-launch.$$"
+TERMUX_UID="$(id -u 2>/dev/null || true)"
 
 case "$PORT" in
   ''|*[!0-9]*) echo "RESULT=INVALID_PORT"; exit 2 ;;
@@ -147,99 +20,119 @@ if [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then
   echo "RESULT=INVALID_PORT"
   exit 2
 fi
-
+case "$TERMUX_UID" in
+  ''|*[!0-9]*) echo "RESULT=TERMUX_UID_UNAVAILABLE"; exit 2 ;;
+esac
 [ -x "$BRIDGE_BIN" ] || {
   echo "RESULT=LOCAL_BRIDGE_BINARY_MISSING"
   exit 2
 }
 
-abi="$(getprop ro.product.cpu.abi 2>/dev/null || true)"
-case "$abi" in
-  arm64-v8a|arm64*) ;;
-  *)
-    echo "RESULT=UNSUPPORTED_ABI"
-    echo "ABI=$abi"
-    exit 2
-    ;;
-esac
+mkdir -p "$TERMUX_HOME/.ai-wadb"
+chmod 700 "$TERMUX_HOME/.ai-wadb"
 
-ensure_token
-
-current="$(status_cmd)"
-if bridge_ready; then
-  tcp="$(status_value TCP_PORT "$current")"
-  exposure="$(status_value ADBD_TCP_EXPOSURE "$current")"
-  if { [ "$tcp" = "0" ] || [ -z "$tcp" ]; } && [ "$exposure" = "none" ]; then
-    status_cmd
-    echo "RESULT=SECURE_LOCAL_BRIDGE_ALREADY_READY"
-    exit 0
-  fi
-fi
-
-ensure_wifi || exit $?
-connect_network_adb || {
-  rc=$?
-  if [ "$WIFI_WAS_OFF" -eq 1 ]; then
-    wireless-debug-off >/dev/null 2>&1 || true
-    termux-wifi-enable false >/dev/null 2>&1 || true
-  fi
-  exit "$rc"
+ping_current() {
+  timeout 4 wadb-local-shell --ping 2>/dev/null || true
+}
+port_open() {
+  python3 - "$PORT" <<'PY'
+import socket, sys
+s = socket.socket()
+s.settimeout(0.5)
+try:
+    raise SystemExit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)
+finally:
+    s.close()
+PY
 }
 
-adb -s "$NET_SERIAL" shell 'settings put global adb_enabled 1' >/dev/null 2>&1 ||
-  fail_recovery 21 ADB_ENABLED_WRITE_FAILED
+current_ping="$(ping_current)"
+current_uid="$(printf '%s\n' "$current_ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
 
-enabled="$(adb -s "$NET_SERIAL" shell 'settings get global adb_enabled' 2>/dev/null | tr -d '\r' | tail -n1)"
-[ "$enabled" = "1" ] || fail_recovery 22 ADB_ENABLED_VERIFY_FAILED
-
-stage_bridge || fail_recovery 23 LOCAL_BRIDGE_STAGE_FAILED
-
-tcp="$(adb -s "$NET_SERIAL" shell getprop service.adb.tcp.port 2>/dev/null | tr -d '\r')"
-case "$tcp" in
-  ''|0|-1) ;;
-  *)
-    echo "MIGRATION=removing_classic_adbd_tcp"
-    MIGRATED=1
-    adb -s "$NET_SERIAL" usb >/dev/null 2>&1 || true
-    sleep 4
-
-    if [ "$(getprop init.svc.adbd 2>/dev/null)" != "running" ]; then
-      echo "RESULT=ADBD_NOT_RUNNING_AFTER_USB_MIGRATION"
-      echo "RECOVERY_TRANSPORT_LEFT_ON=yes"
-      exit 24
-    fi
-
-    connect_network_adb || {
-      echo "RESULT=NETWORK_ADB_RECONNECT_AFTER_USB_FAILED"
-      echo "RECOVERY_TRANSPORT_LEFT_ON=yes"
-      exit 25
-    }
-
-    stage_bridge || fail_recovery 26 LOCAL_BRIDGE_RESTAGE_FAILED
-    ;;
-esac
-
-launch_bridge || fail_recovery 27 LOCAL_BRIDGE_LAUNCH_FAILED
-
-cleanup_success
-
-if ! bridge_ready; then
-  echo "RESULT=LOCAL_BRIDGE_DIED_AFTER_WIRELESS_OFF"
-  exit 28
+if [ "$current_uid" = "$TERMUX_UID" ]; then
+  status="$(wadb-local-status 2>/dev/null || true)"
+  printf '%s\n' "$status"
+  echo "RESULT=SECURE_LOCAL_BRIDGE_ALREADY_READY"
+  echo "RUNTIME_UID=$TERMUX_UID"
+  echo "USB_DEBUGGING_REQUIRED=no"
+  echo "WIRELESS_DEBUGGING_REQUIRED=no"
+  exit 0
 fi
 
-final="$(status_cmd)"
-printf '%s\n' "$final"
+# A bridge from the previous release can be stopped only while its saved token works.
+if [ -n "$current_uid" ]; then
+  echo "LEGACY_BRIDGE_UID=$current_uid"
+  wadb-local-shell --stop >/dev/null 2>&1 || {
+    echo "RESULT=LEGACY_BRIDGE_STOP_FAILED"
+    exit 20
+  }
+  stopped=0
+  for _ in 1 2 3 4 5 6; do
+    if ! port_open; then stopped=1; break; fi
+    sleep 1
+  done
+  if [ "$stopped" -ne 1 ]; then
+    echo "RESULT=LEGACY_BRIDGE_PORT_STILL_OCCUPIED"
+    exit 21
+  fi
+elif port_open; then
+  # Do not kill an unknown process or switch debugging on to reclaim the port.
+  echo "RESULT=LOCAL_BRIDGE_PORT_OCCUPIED"
+  echo "ACTION=inspect_the_existing_127.0.0.1_listener_without_enabling_debugging"
+  exit 22
+fi
 
-exposure="$(status_value ADBD_TCP_EXPOSURE "$final")"
-adbd="$(status_value ADBD_STATE "$final")"
-state="$(status_value LOCAL_ADB_STATE "$final")"
+rm -f "$TOKEN_FILE" "$LAUNCH_TOKEN"
+python3 - "$TOKEN_FILE" <<'PY'
+import os, secrets, sys
+path = sys.argv[1]
+with open(path, "w", encoding="ascii") as f:
+    f.write(secrets.token_hex(32) + "\n")
+os.chmod(path, 0o600)
+PY
+cp "$TOKEN_FILE" "$LAUNCH_TOKEN"
+chmod 600 "$TOKEN_FILE" "$LAUNCH_TOKEN"
 
-if [ "$state" != "ready" ] || [ "$adbd" != "running" ] || [ "$exposure" != "none" ]; then
+# The native bridge daemonizes itself as the Termux app UID.
+"$BRIDGE_BIN" "$LAUNCH_TOKEN" "$PORT" >/dev/null 2>&1 || true
+
+ready=0
+runtime_uid=""
+for _ in 1 2 3 4 5 6 7 8; do
+  ping="$(ping_current)"
+  runtime_uid="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+  if [ "$runtime_uid" = "$TERMUX_UID" ]; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+rm -f "$LAUNCH_TOKEN"
+
+if [ "$ready" -ne 1 ]; then
+  rm -f "$TOKEN_FILE"
+  echo "RESULT=LOCAL_BRIDGE_START_FAILED"
+  echo "EXPECTED_RUNTIME_UID=$TERMUX_UID"
+  echo "OBSERVED_RUNTIME_UID=${runtime_uid:-none}"
+  exit 23
+fi
+
+status="$(wadb-local-status)"
+printf '%s\n' "$status"
+state="$(printf '%s\n' "$status" | sed -n 's/^LOCAL_ADB_STATE=//p' | tail -n1)"
+scope="$(printf '%s\n' "$status" | sed -n 's/^LISTENER_SCOPE=//p' | tail -n1)"
+exposure="$(printf '%s\n' "$status" | sed -n 's/^ADBD_TCP_EXPOSURE=//p' | tail -n1)"
+if [ "$state" != "ready" ] || [ "$scope" != "loopback_only" ] || [ "$exposure" != "none" ]; then
+  wadb-local-shell --stop >/dev/null 2>&1 || true
+  rm -f "$TOKEN_FILE"
   echo "RESULT=LOCAL_BRIDGE_FINAL_VERIFY_FAILED"
-  exit 29
+  exit 24
 fi
 
 echo "RESULT=SECURE_LOCAL_BRIDGE_READY"
-echo "NOTE=adbd_has_no_classic_TCP_listener"
-echo "NOTE2=use_wadb-local-shell_instead_of_adb_-s_127.0.0.1:5555_shell"
+echo "RUNTIME_UID=$TERMUX_UID"
+echo "LISTENER=127.0.0.1:$PORT"
+echo "USB_DEBUGGING_REQUIRED=no"
+echo "WIRELESS_DEBUGGING_REQUIRED=no"
+echo "WIFI_REQUIRED=no"
+echo "ADBD_REQUIRED=no"
