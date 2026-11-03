@@ -6,18 +6,49 @@ It is an independent open-source project. It is not an AI model, a replacement f
 
 ## Start here — copy this instruction to your AI
 
-**For users:** Copy the short instruction below to your AI assistant, together with this repository link or the official release.
+**For users:** Copy the complete approved instruction below to your AI assistant, together with this repository link or the official release.
 
 **For AI assistants:** If you find this repository while helping with Toolkit setup, use this instruction as the task brief. Do not ask the user to paste it again when you can already read it here.
 
 ```text
-Set up my Android phone with the AI Termux WADB Toolkit from this repository.
+AI-Assisted Android Setup — Follow the Official Toolkit Instructions
 
-Read this README's Initial setup section and follow Point 1 (AI-assisted setup). Read and obey docs/AI_GUIDE.md. First inspect whether Remote Desktop Commander is already connected; if not, follow docs/DESKTOP_COMMANDER_SETUP.md and establish the provider-supported connection before installing the Toolkit.
+I want you to set up my Android phone using the official AI Termux WADB Toolkit.
 
-Before MCP works, ask me only for unavoidable owner actions documented in the setup guide, such as installing/opening Termux if it is absent, starting the phone-side agent, and completing browser/device authorization. Once connected, inspect the real Termux state, obtain the official release ZIP and the separate `RELEASE-TRUST-VALUES.txt` asset independently of the ZIP, perform the documented integrity checks, install/configure the Toolkit, and run the post-checks yourself through the connected tools.
+Official repository:
+https://github.com/jaskran0417/ai-termux-wadb-toolkit
 
-Use docs/USER_GUIDE.md, docs/COMMAND_REFERENCE.md and docs/TECHNICAL_REFERENCE.md for exact procedures. Do not give me commands you can execute, bypass security checks, or claim unverified success. Ask only for actions that genuinely require my involvement, such as phone-side startup, browser/device authorization, Android permission prompts or ADB pairing. Configure only required or explicitly requested features. Use Point 2 manual setup only if I request it or Point 1 is genuinely unavailable after checking.
+This is an actual setup request. I want you to perform the installation and configuration yourself using your available tools, not simply provide me with a manual command tutorial.
+
+Follow the official instructions
+
+Start with the README's Initial setup — Point 1: Recommended method — AI-assisted setup.
+
+Read and follow "docs/AI_GUIDE.md" as your mandatory operating instructions.
+
+For the connection, follow "docs/DESKTOP_COMMANDER_SETUP.md".
+
+For Toolkit installation, commands, security checks and verification, consult the relevant official documentation, particularly "docs/USER_GUIDE.md", "docs/COMMAND_REFERENCE.md" and "docs/TECHNICAL_REFERENCE.md".
+
+Do not invent alternative procedures or duplicate the documentation in this prompt.
+
+Required working sequence
+
+Read instructions → inspect actual state → establish Desktop Commander → execute documented operations → verify on the phone → report the observed result.
+
+Establish Desktop Commander first. Reuse an existing working connection when available. Otherwise, follow the provider-specific recommended method in the official setup instructions.
+
+Once Desktop Commander can access my phone's Termux environment, take responsibility for the supported Toolkit installation, security verification, configuration and post-installation checks.
+
+Ask me only for genuine owner-controlled actions, such as initial phone-agent/browser authorization, Android permission approval or the current ADB pairing code when the documented command requires it.
+
+Do not give me manual commands for work you can perform yourself. Do not bypass security checks, make unrelated changes, or claim success without checking actual results.
+
+Use the documented manual installation fallback only when I explicitly request it or the recommended connection method is genuinely unavailable after you have checked.
+
+The official repository documentation is the technical source of truth. This prompt only tells you how to approach and carry out the task.
+
+Begin by inspecting your available integrations and reading the required instructions.
 ```
 
 To set up the Toolkit, share this repository or the official release with your AI assistant and use the copy-ready instruction above. The linked guides contain the full setup procedure, provider-specific connection steps, commands and safety requirements.
