@@ -8,7 +8,7 @@ a970dee1d4ae0920c06607070875158567ab8a89984184e69b383db6b95bec6d  ./AI_ENVIRONME
 e558e857459a28769a46f9984860164c25da90e1a75429e62267b4b8016ea861  ./CONTRIBUTING.md
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./LICENSE
 616f15ec7644b4f4e3d9563f2c0e1247b9d40521f3133c46867ec75a3db3df7b  ./NOTICE
-610499b014805c17cc48a926b7aa92d01bd123cbcf264412f99f0a54ccffdf8e  ./README.md
+caabfa26c052808d05638cc7cc0068277b4a63c2d8fa356cedee39e1fd0a95b8  ./README.md
 857d1e488aba9c0eb74712824e97facfd1153e3bdf00e90d46763f7e6966d79f  ./SBOM.cdx.json
 edd2385b7cb449b85b8d1107187d61408b646f97de7b05cc58fabe77420ab5ff  ./SECURITY.md
 dfcf8b094f98705ec36bfbb0575a5455c66635f14277c44edcd91830bbca5752  ./THIRD_PARTY_NOTICES.md
@@ -28,7 +28,7 @@ bc9bd5d0a2427998dada33ae72bd7de95db29d1b8cfe2ede1173a8ab4ae16d23  ./bridge-sourc
 15d534bfa768b7f5d89f458f2c9bb69ea3ffdc0eadba7b669e7060b3d13fd23e  ./docs/COMMAND_REFERENCE.md
 36e5cd32f1d3e90a6de263770d987b2791dcbe2674dcf94b8fff93b20f4a411f  ./docs/REMOTE_MCP_AI_CONNECTION.md
 936811feaba8b2bbf3c1ae0c3219536d8f2f46838c5806f7d864b4939b283653  ./docs/TECHNICAL_REFERENCE.md
-cd9439701a61d078bacdf9c843dad53544938b03f33974e17fa54bea31be7c60  ./docs/USER_GUIDE.md
+7cf7b82e5775ee41e2905c80af67f58acddcc34eebec6f6cc758be9b618cc569  ./docs/USER_GUIDE.md
 316b3e2945a14043c8b72dc70a6ae205fa932ebf15b301699ac1fdda5555e016  ./install.sh
 af6d437e479ca5015685916b89db156f00f359cc30519e8cbeb6a8da9b414e56  ./native/wadb-local-bridge
 00d7822adf18c56ac8d126f058c2417a75c62d917419f3a60f4399133076d576  ./native/wadb-local-bridge.c
@@ -66,8 +66,8 @@ f5d8c5e81c2790c567446eab535ea77192b45e647e8aa200ba7bd31d78db9dd7  ./scripts/wadb
 7b0e36d5dac0a74feb50f5705a01ac81b5a31300b575f574cbb9d21d48db1aa4  ./scripts/wireless-debug-on
 eace1bd3b04cecced8df6b10f2f3edf4f73f3a8d6d988eb7b530f518753724f2  ./scripts/wireless-debug-status
 c585b3dd2bf5d35a5371371488be81783ada0539fde61a119fc282ac242315d5  ./security/install-path-preflight.js
-204c9f43a2895729f265d1a581c3daedef2c3765317c37b415e35a6fc0365371  ./security/installed-files.json
-be46cc81842821f2bb7213c25dc45fc2f883f96dfc1d901f0adc416605c49b82  ./security/installed-files.json.sig
+1b23122c039d9647adef394ab81c048d656147e2dd025cd887087e818f7889db  ./security/installed-files.json
+6572c04251d08c0bb0f6a369612695465400079ec99f4bb9bb5c71faf548e116  ./security/installed-files.json.sig
 8839dd3b79dea80d00c488d2a5f8097bf377bf8ad440d4f5b7f7418814a44200  ./security/verify-installed.js
 1b675c9dd8ab97a765cab6344b4edc877788ea873f64772181a03fb5c9b86d56  ./security/verify-release.js
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./third_party/licenses/Apache-2.0.txt
