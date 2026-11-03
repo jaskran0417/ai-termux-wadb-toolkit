@@ -4,7 +4,23 @@ AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termu
 
 It is an independent open-source project. It is not an AI model, a replacement for Termux, or an official Termux/Android/Desktop Commander product.
 
-To set up the Toolkit, give your AI assistant (such as ChatGPT, Claude, Grok, or another supported client) the official GitHub repository/release link or the Toolkit AI instructions and ask it to follow `docs/AI_GUIDE.md`. The AI must first check whether Remote Desktop Commander is already available and connected, and use that existing connection. If it is not active, it must check the provider-supported plugin/connector route in `docs/DESKTOP_COMMANDER_SETUP.md`; for ChatGPT, the first choice is the dedicated Remote Desktop Commander plugin. Before MCP exists, you only complete the minimum phone-side agent/browser authorization that cannot be done remotely. Once the AI can access Termux through MCP, it must obtain and verify the official release assets, install and validate the Toolkit, and perform supported setup tasks itself. Do not follow a manual command checklist when the connected AI can do the work. You only complete Android permission prompts and pairing actions that genuinely require your approval.
+## Start here — copy this instruction to your AI
+
+**For users:** Copy the short instruction below to your AI assistant, together with this repository link or the official release.
+
+**For AI assistants:** If you find this repository while helping with Toolkit setup, use this instruction as the task brief. Do not ask the user to paste it again when you can already read it here.
+
+```text
+Set up my Android phone with the AI Termux WADB Toolkit from this repository.
+
+Read this README's Initial setup section and follow Point 1 (AI-assisted setup). Read and obey docs/AI_GUIDE.md. First inspect whether Remote Desktop Commander is already connected; if not, follow docs/DESKTOP_COMMANDER_SETUP.md and establish the provider-supported connection before installing the Toolkit.
+
+Before MCP works, ask me only for unavoidable owner actions documented in the setup guide, such as installing/opening Termux if it is absent, starting the phone-side agent, and completing browser/device authorization. Once connected, inspect the real Termux state, obtain the official release ZIP and the separate `RELEASE-TRUST-VALUES.txt` asset independently of the ZIP, perform the documented integrity checks, install/configure the Toolkit, and run the post-checks yourself through the connected tools.
+
+Use docs/USER_GUIDE.md, docs/COMMAND_REFERENCE.md and docs/TECHNICAL_REFERENCE.md for exact procedures. Do not give me commands you can execute, bypass security checks, or claim unverified success. Ask only for actions that genuinely require my involvement, such as phone-side startup, browser/device authorization, Android permission prompts or ADB pairing. Configure only required or explicitly requested features. Use Point 2 manual setup only if I request it or Point 1 is genuinely unavailable after checking.
+```
+
+To set up the Toolkit, share this repository or the official release with your AI assistant and use the copy-ready instruction above. The linked guides contain the full setup procedure, provider-specific connection steps, commands and safety requirements.
 
 ## What problem does it solve?
 

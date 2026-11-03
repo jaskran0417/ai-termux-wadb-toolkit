@@ -224,7 +224,7 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "AI_GUIDE.md",
-      "sha256": "33b28fabcd650c07d23df8ae04cd363663ca47fe577c23f310384847ff9302d1",
+      "sha256": "2fa2595147e497c3758dd6bdbd8f8d60691b1460a6e4a0a6aa8d2c4439f25657",
       "mode": "644"
     },
     {
@@ -248,7 +248,7 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "README.md",
-      "sha256": "a7b3c877aefef6040b1da87dd7395a6ba4eba5852fb20fcd3556b7e48da8b48e",
+      "sha256": "3299f808529eba6bdde244a753fbc0e966e58bb9e63611a51f3a950df4c9b328",
       "mode": "644"
     },
     {
