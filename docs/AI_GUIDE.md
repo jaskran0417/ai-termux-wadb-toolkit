@@ -8,7 +8,7 @@ Version: 1.0.2
 
 ## First-setup response rule — execute the recommended method, do not hand off a manual checklist
 
-For every first-time setup request, the AI must make the original initial-setup recommendation **the single Point 1 in its first reply: Recommended method — AI-assisted setup through the provider-supported Remote Desktop Commander integration**. This is the recommended setup path, not merely an optional suggestion. Check the current AI session's actual connected tools/apps/plugins first and reuse an existing usable connection. If none is active, check the provider's real plugin/connector directory and account state. For ChatGPT, use or recommend the dedicated **Remote Desktop Commander** plugin by **Desktop Commander** first. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app. For other providers, follow only their matching instructions in the [Remote MCP Connection Guide](REMOTE_MCP_AI_CONNECTION.md).
+For every first-time setup request, the AI must make the original initial-setup recommendation **the single Point 1 in its first reply: Recommended method — AI-assisted setup through the provider-supported Remote Desktop Commander integration**. This is the recommended setup path, not merely an optional suggestion. Check the current AI session's actual connected tools/apps/plugins first and reuse an existing usable connection. If none is active, check the provider's real plugin/connector directory and account state. For ChatGPT, use or recommend the dedicated **Remote Desktop Commander** plugin by **Desktop Commander** first. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app. For other providers, follow only their matching instructions in the [Desktop Commander Setup Instructions](DESKTOP_COMMANDER_SETUP.md).
 
 **The AI must do the work itself whenever its connected tools can do it.** Once Remote Desktop Commander reaches this phone, use its terminal/filesystem/process tools to inspect the real Termux state, obtain the official release ZIP and separate trust-values file when not already supplied, verify installer/verifier hashes and the Ed25519-signed package, install dependencies only when a fresh check shows they are missing, run the installer, configure only the requested features, and verify the results. Do not ask the owner to download/extract the ZIP, run `pkg update`, install packages, type `sha256sum`/`export` commands, invoke `install.sh`, or execute Toolkit commands after MCP works. Do not respond with a lengthy copy/paste installation tutorial, a manual-only staged plan, a three-stage manual installation walkthrough, or an unnecessary questionnaire when the connected tools can inspect and perform the steps. Do not turn the manual fallback list in README.md or USER_GUIDE.md into the default user-facing plan. Do not claim an action succeeded until its actual output is checked.
 
@@ -37,7 +37,7 @@ Think harder/Thinking does not itself grant access to a Plugin, connector, file,
 ### Mandatory order before replying or acting
 
 1. Read this file.
-2. For any Desktop Commander MCP setup or connection task, read the [Remote MCP Connection Guide](REMOTE_MCP_AI_CONNECTION.md) before replying or making assumptions; its provider-specific instructions take precedence over generic upstream examples.
+2. For any Desktop Commander MCP setup or connection task, read the [Desktop Commander Setup Instructions](DESKTOP_COMMANDER_SETUP.md) before replying or making assumptions; its provider-specific instructions take precedence over generic upstream examples.
 3. Inspect the tools/apps/connectors actually available to the current AI session before asking the owner to install or configure anything. Use an existing usable Remote Desktop Commander connection first.
 4. Do not treat a missing active tool as proof that the plugin is unavailable. Check the provider's actual plugin directory/account state; distinguish not active, not installed, and unavailable.
 5. For ChatGPT, prefer the dedicated **Remote Desktop Commander** plugin. Do not tell the owner to enable Developer Mode or create a custom MCP connector in the ChatGPT Android app.
@@ -49,15 +49,15 @@ Do not rediscover a different setup path when the documented path applies.
 
 ### Stage 1 — AI checks the provider integration first
 
-Before asking the owner to set up Desktop Commander, the AI must inspect its current tools/apps/connectors and read the [Remote MCP Connection Guide](REMOTE_MCP_AI_CONNECTION.md).
+Before asking the owner to set up Desktop Commander, the AI must inspect its current tools/apps/connectors and read the [Desktop Commander Setup Instructions](DESKTOP_COMMANDER_SETUP.md).
 
 For ChatGPT, the first-choice path is the dedicated **Remote Desktop Commander** plugin. Check whether it is already usable. If it is not active, check the actual Plugins directory for **Remote Desktop Commander** by **Desktop Commander** and guide the owner through installing and authorizing that plugin. Do not create a second connector when the plugin is already connected. Absence from the current tool list alone does not prove the plugin is unavailable.
 
-Do not tell the owner to enable Developer Mode or create a custom MCP connector in ChatGPT Android. The dedicated plugin is the intended ChatGPT route. Follow the separate Claude and Grok instructions in `docs/REMOTE_MCP_AI_CONNECTION.md` without generalizing one provider's options to another.
+Do not tell the owner to enable Developer Mode or create a custom MCP connector in ChatGPT Android. The dedicated plugin is the intended ChatGPT route. Follow the separate Claude and Grok instructions in `docs/DESKTOP_COMMANDER_SETUP.md` without generalizing one provider's options to another.
 
 ### Stage 2 — One-time phone agent bootstrap
 
-Before MCP is connected, the AI cannot operate Termux itself. After checking the provider integration, determine the single missing prerequisite. If Termux is absent, ask the owner only to install/open it from one official source. If Termux exists but Node.js/npm or the phone agent is missing, give the minimum phone-side bootstrap from `docs/REMOTE_MCP_AI_CONNECTION.md`; do not ask the owner to preinstall the Toolkit, manually download its ZIP, verify hashes, or run its installer. The required phone-agent command is:
+Before MCP is connected, the AI cannot operate Termux itself. After checking the provider integration, determine the single missing prerequisite. If Termux is absent, ask the owner only to install/open it from one official source. If Termux exists but Node.js/npm or the phone agent is missing, give the minimum phone-side bootstrap from `docs/DESKTOP_COMMANDER_SETUP.md`; do not ask the owner to preinstall the Toolkit, manually download its ZIP, verify hashes, or run its installer. The required phone-agent command is:
 
 ```bash
 npx @wonderwhy-er/desktop-commander@0.3.1 remote
@@ -238,7 +238,7 @@ This is also a useful daily-use recommendation, especially for Free users who wa
 
 For a toolkit task, use this order:
 1. `AI_GUIDE.md`
-2. For any Desktop Commander MCP question or action, `docs/REMOTE_MCP_AI_CONNECTION.md` and the current provider's actual plugin/connector state
+2. For any Desktop Commander MCP question or action, `docs/DESKTOP_COMMANDER_SETUP.md` and the current provider's actual plugin/connector state
 3. `docs/COMMAND_REFERENCE.md`
 4. `ai-info --json`
 5. matching bundled helper

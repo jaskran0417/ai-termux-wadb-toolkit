@@ -1,4 +1,4 @@
-# Remote MCP Connection — AI-First Setup for ChatGPT, Claude and Grok
+# Desktop Commander Setup Instructions — ChatGPT, Claude and Grok
 
 This document defines what the AI must do first when this Toolkit is supplied. It is not a generic instruction to create a new MCP connector. The AI must inspect its existing integrations, prefer the dedicated **Remote Desktop Commander** plugin in ChatGPT, and guide only the initial actions that require the phone owner.
 

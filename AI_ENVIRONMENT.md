@@ -10,7 +10,7 @@ The human start guide is:
 
 The required provider-specific Remote MCP Android-app connection instructions are:
 
-`~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md`
+`~/AI_WADB_DOCS/DESKTOP_COMMANDER_SETUP.md`
 
 ## Initial setup — Point 1: recommended AI-assisted method
 
@@ -71,7 +71,7 @@ Remote MCP endpoint for clients that need it:
 https://mcp.desktopcommander.app/mcp
 ```
 
-Before asking the owner to set up MCP, the AI must inspect its current tools/apps/connectors and read `~/AI_WADB_DOCS/REMOTE_MCP_AI_CONNECTION.md`. For ChatGPT, check for and prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. Do not direct the owner to Developer Mode or custom MCP setup in ChatGPT Android. Once MCP reaches the phone, the AI performs the remaining Toolkit setup.
+Before asking the owner to set up MCP, the AI must inspect its current tools/apps/connectors and read `~/AI_WADB_DOCS/DESKTOP_COMMANDER_SETUP.md`. For ChatGPT, check for and prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. Do not direct the owner to Developer Mode or custom MCP setup in ChatGPT Android. Once MCP reaches the phone, the AI performs the remaining Toolkit setup.
 
 After one successful authentication, normal start/stop/restart/reboot should preserve the saved authorization.
 
