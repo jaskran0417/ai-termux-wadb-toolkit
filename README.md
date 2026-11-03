@@ -125,7 +125,7 @@ wadb-mcp-github-sync
 wadb-toolkit-uninstall --all --dry-run
 ```
 
-The full syntax, behaviour, side effects, checks and examples are in `docs/COMMAND_REFERENCE.md`. Start with `docs/USER_GUIDE.md`, follow `docs/AI_GUIDE.md` for AI operating rules, read `docs/REMOTE_MCP_AI_CONNECTION.md` for the tested ChatGPT, Claude and Grok Android-app connection instructions, use `docs/TECHNICAL_REFERENCE.md` for architecture and security details, `docs/USE_CASES.md` for practical workflows, and `docs/FAQ.md` for common questions. The installed copies are under `~/AI_WADB_DOCS/`.
+The full syntax, behaviour, side effects, checks and examples are in the [Command Reference](docs/COMMAND_REFERENCE.md). Start with the [User Guide](docs/USER_GUIDE.md), follow the [AI Guide](docs/AI_GUIDE.md) for AI operating rules, and read the [Remote MCP Connection Guide](docs/REMOTE_MCP_AI_CONNECTION.md) for the tested ChatGPT, Claude and Grok Android-app instructions and permission settings. Use the [Technical Reference](docs/TECHNICAL_REFERENCE.md) for architecture/security, [Use Cases](docs/USE_CASES.md) for practical workflows, and the [FAQ](docs/FAQ.md) for common questions. The installed copies are under `~/AI_WADB_DOCS/`.
 
 ## Important distinctions
 
