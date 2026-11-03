@@ -130,5 +130,3 @@ Do not ask the owner to manually run Toolkit commands after the AI has a working
 - MCP connects the AI to Termux. Wireless ADB is a separate Android debugging connection.
 - A working MCP connection does not itself grant Android root access.
 - Follow `docs/AI_GUIDE.md` for all subsequent Toolkit setup, commands, safety rules, and verification.
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

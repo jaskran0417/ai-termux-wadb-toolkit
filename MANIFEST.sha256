@@ -76,5 +76,3 @@ f204a9703bdb39f70a228a8f5cf5a9ceb076f136e427f32cbf9c41eb96049d07  ./trust/BOOTST
 1a35d69d8d2e40b99461520dc4ccff0021ce550452ba02cea97e59b0ef6391b7  ./trust/RELEASE_KEY_FINGERPRINT.txt
 b4f1edf9fc9a55fe3ae756a1c48ebda2621402cc644b085e0868b49b3ade9a36  ./trust/release-ed25519-public.pem
 f5d8c5e81c2790c567446eab535ea77192b45e647e8aa200ba7bd31d78db9dd7  ./uninstall.sh
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

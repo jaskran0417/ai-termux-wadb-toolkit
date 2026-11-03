@@ -287,6 +287,3 @@ The action asks for confirmation. It does not stop the MCP host or the secure lo
 - Secure local shell: `wadb-local-off --confirm` / `wadb-local-on`
 
 Choose **All commands & usage** or run `ai-info --commands` to open the current full command reference. For headless use, the explicit safe forms are `ai-info --disconnect-transport --confirm` and `ai-info --wireless-off --confirm`.
-
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

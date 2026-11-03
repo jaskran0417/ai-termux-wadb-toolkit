@@ -117,5 +117,3 @@ The full syntax, behaviour, side effects, checks and examples are in `docs/COMMA
 ## Licence
 
 The Toolkit's own source is licensed under **Apache License 2.0 (Apache-2.0)**. Third-party components retain their own licences and notices in `THIRD_PARTY_NOTICES.md` and the included SBOM.
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

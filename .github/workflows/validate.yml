@@ -87,5 +87,3 @@ jobs:
             echo "Private signing material found in repository tree."
             exit 1
           fi
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

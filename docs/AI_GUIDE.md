@@ -285,5 +285,3 @@ Never use logout as routine recovery.
 ### Output
 
 Use concise results for users. Use `ai-info --json` for automation. Raw Android broadcast output belongs in diagnostics, not normal explanations.
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]

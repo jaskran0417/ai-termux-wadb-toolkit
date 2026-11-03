@@ -867,5 +867,3 @@ Why it is optional here:
 This portable bundle intentionally does **not** include or install Shizuku, `rish`, or Shizuku APK files.
 
 Do not install or activate this alternative unless the user explicitly asks for it.
-
-[executed on device: localhost (9b7cb346-13dd-45be-92da-9fef4f14d985)]
