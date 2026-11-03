@@ -6,6 +6,10 @@ It is an independent open-source project. It is not an AI model, a replacement f
 
 To set up the Toolkit, send the ZIP file or AI instructions to your AI assistant (such as ChatGPT, Claude, Grok, or another supported client) and ask it to follow `docs/AI_GUIDE.md`. The AI must first check whether Remote Desktop Commander is already available and connected. If it is not, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the connection is working, the AI can install and validate the Toolkit in Termux and perform the supported setup tasks itself. You only need to complete the one-time Android steps that require your involvement, such as enabling Wireless Debugging and providing the current ADB pairing code when requested. If you run into a problem, ask the AI to consult the included Markdown and reference files, or ask for help here.
 
+## Start here — AI setup recommendation (always Point 1)
+
+For a first-time setup request, the AI assistant must present **1. Recommended method: AI-assisted setup through Remote Desktop Commander** before any manual checklist. It must inspect the current session’s actual integration/plugin state first, reuse a working connection, and follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the provider-specific path. For ChatGPT, check and prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**. After MCP reaches Termux, the AI performs the Toolkit installation and verification; the owner completes only the required phone bootstrap, browser/device authorization, Android approvals and pairing-code action. Manual setup is secondary and must be labelled as a fallback. See `docs/AI_GUIDE.md` for the mandatory AI response rule.
+
 ## What problem does it solve?
 
 An Android phone can hold an entire project, but a chat-only workflow often makes the owner move files and commands between apps: attach source files, copy a suggested command into a terminal, paste the output back into the chat, and repeat.
@@ -76,6 +80,14 @@ npx @wonderwhy-er/desktop-commander@0.3.1 remote
 ## Initial setup
 
 “Initial setup” means establishing the AI connection and the Android trust/permission grants once:
+
+### 1. Recommended method — AI-assisted setup (default)
+
+**This must be presented as Point 1 in an AI assistant’s first setup reply.** Before giving a manual installation checklist or asking the owner to install Toolkit dependencies, the AI must inspect its actual connected tools/apps/plugins and check for an existing Remote Desktop Commander connection. Reuse it when available. For ChatGPT, the first-choice route is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**: check the actual Plugins directory/account state, then guide the owner to install/authorize it only if it is not already usable. Do not suggest Developer Mode or a custom MCP connector in the ChatGPT Android app. For other AI clients, follow the matching provider instructions in `docs/REMOTE_MCP_AI_CONNECTION.md`.
+
+After the provider connection is selected, guide the owner through only the phone-side bootstrap that cannot be done remotely (install/open Termux if it is absent, install Node.js/npm only if needed, start the Desktop Commander phone agent, and complete browser/device authorization). Once MCP reaches this phone, the AI must perform the supported Toolkit dependency installation, release verification, Toolkit installation, configuration and checks itself. The owner handles only Android permission prompts and the current ADB pairing code when requested.
+
+The manual numbered procedure below is a **fallback**, not the default recommendation. Use it only when the owner explicitly requests manual setup or the provider genuinely lacks a supported Remote Desktop Commander path after the AI has checked. Do not skip the recommended-method check or silently replace it with a manual-only plan.
 
 AI-assisted setup is the recommended method. Give the Toolkit to your AI and ask it to follow `docs/AI_GUIDE.md`. The AI must check its existing integrations first and use an existing Remote Desktop Commander connection if one is available. If a connection still needs to be set up, it should follow `docs/REMOTE_MCP_AI_CONNECTION.md`; for ChatGPT, this means using the dedicated Remote Desktop Commander plugin. Once MCP connects to the phone, the AI performs the Toolkit installation, validation and supported configuration. You only need to complete the Android/browser prompts and one-time Wireless ADB pairing steps that require your approval, including providing the current pairing code when requested. The numbered instructions below are the manual setup alternative.
 

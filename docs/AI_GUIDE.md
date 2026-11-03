@@ -6,6 +6,16 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 Version: 1.0.2
 
+## First-setup response rule — recommended method must be Point 1
+
+Whenever a user asks to set up or install this Toolkit, the AI’s first recommendation **must be Point 1: AI-assisted setup through the provider-supported Remote Desktop Commander integration**. Do not begin with a manual-only checklist, and do not jump straight to manually installing Toolkit dependencies or running `install.sh`.
+
+1. **Point 1 — Recommended: AI-assisted setup.** First inspect the current AI session’s actual connected tools/apps/plugins for a usable Remote Desktop Commander connection. Reuse an existing connection. If none is active, check the provider’s actual plugin/connector directory and account state. For ChatGPT, prefer the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; do not direct the owner to Developer Mode or a custom MCP connector in the ChatGPT Android app. For other providers, use only the matching path in `docs/REMOTE_MCP_AI_CONNECTION.md`.
+2. Only after checking the provider integration, establish the minimum phone-side prerequisites. If Termux is absent, guide the owner to install it from one official source and do not mix signing sources. If Node.js/npm or the phone-side Desktop Commander agent is missing, provide only the required bootstrap from `docs/REMOTE_MCP_AI_CONNECTION.md` and guide browser/device authorization.
+3. Once Remote Desktop Commander actually reaches this phone, the AI performs the documented Toolkit dependency checks, independent release verification, installation, configuration and post-checks itself. Do not ask the owner to type Toolkit setup commands after MCP works. The owner still completes Android permission dialogs and the current ADB pairing code when the documented command requires them.
+
+The complete manual installation/configuration procedure is a **secondary fallback**: use it only when the owner explicitly asks for manual setup or the provider genuinely has no supported Remote Desktop Commander path after the AI checks the actual provider state. If unavailable, state that limitation truthfully and label any manual instructions as the fallback. Never omit Point 1 from the first setup recommendation.
+
 If the user gives you this toolkit ZIP/MD or asks about its setup, commands, Wireless ADB, Desktop Commander, MCP recovery, GitHub recovery, or troubleshooting, use the toolkit's documented workflow before inventing another one.
 
 For general questions about what the Toolkit is for or which workflows it supports, also consult docs/USE_CASES.md and docs/FAQ.md. These are explanatory references; they do not replace or override the provider connection, command, technical, security, or recovery instructions below.

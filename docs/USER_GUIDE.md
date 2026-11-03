@@ -41,6 +41,12 @@ Shared user files are reached only after the owner grants Termux storage access.
 
 ### What “initial setup” means
 
+### 1. Recommended method — AI-assisted setup (default)
+
+Start here before following any manual command list. Give the official Toolkit ZIP or AI guide to a compatible assistant and ask it to follow `docs/AI_GUIDE.md`. The assistant must check its current Remote Desktop Commander integration first. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the assistant should check the real Plugins directory/account state and use an existing connection when available. For other providers, use the matching instructions in `docs/REMOTE_MCP_AI_CONNECTION.md`.
+
+The owner performs only the minimum phone-side bootstrap and the browser/device/Android approvals that require owner interaction. Once the AI can reach Termux through MCP, the AI handles Toolkit dependency checks, independent release verification, installation, supported configuration and verification. The manual procedure is the alternative only when requested or when the provider has no supported connection path after checking.
+
 Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
 
 Download the Toolkit ZIP and share it with your AI assistant. Ask the AI to read `docs/AI_GUIDE.md` and follow the documented setup procedure. Before asking you to install or configure anything, the AI must check whether Remote Desktop Commander is already available in its connected tools or plugins. If it is connected, the AI should use that existing connection. Otherwise, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the AI can access Termux through MCP, it should install, validate and configure the Toolkit itself. You should not need to enter Toolkit commands manually. You will still need to complete Android actions that require your approval, including the one-time Wireless Debugging setup and ADB pairing. When pairing is required, provide the AI with the current pairing code. You can also run `ai-info` yourself at any time to check the Toolkit's status.
