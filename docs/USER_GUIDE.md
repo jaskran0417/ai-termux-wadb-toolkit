@@ -26,7 +26,7 @@ The normal Termux installation paths are:
     Shared shell helpers, the native local bridge and integrity verifier
 
 /data/data/com.termux/files/home/AI_WADB_DOCS/
-    Installed USER_GUIDE.md, AI_GUIDE.md, REMOTE_MCP_AI_CONNECTION.md,
+    Installed USER_GUIDE.md, AI_GUIDE.md, DESKTOP_COMMANDER_SETUP.md,
     COMMAND_REFERENCE.md, TECHNICAL_REFERENCE.md and toolkit manifest
 
 /data/data/com.termux/files/home/AI_ENVIRONMENT.md
@@ -43,7 +43,7 @@ Shared user files are reached only after the owner grants Termux storage access.
 
 Initial setup means connecting the AI client to the phone and creating the Android trust/permission state the Toolkit needs. It is a one-time bootstrap, not a step to repeat for every command:
 
-1. **Recommended method — AI-assisted setup (default).** Download the Toolkit ZIP and share it with your AI assistant. Ask the AI to read `docs/AI_GUIDE.md` and follow the documented setup procedure. Before asking you to install or configure anything, the AI must check whether Remote Desktop Commander is already available in its connected tools or plugins. If it is connected, the AI should use that existing connection. Otherwise, it should guide you through the connection method supported by your AI app, following `docs/REMOTE_MCP_AI_CONNECTION.md`. Once the AI can access Termux through MCP, it should install, validate and configure the Toolkit itself. You should not need to enter Toolkit commands manually. You will still need to complete Android actions that require your approval, including the one-time Wireless Debugging setup and ADB pairing. When pairing is required, provide the AI with the current pairing code. You can also run `ai-info` yourself at any time to check the Toolkit's status.
+1. **Recommended method — AI-assisted setup (default).** Download the Toolkit ZIP and share it with your AI assistant. Ask the AI to read `docs/AI_GUIDE.md` and follow the documented setup procedure. Before asking you to install or configure anything, the AI must check whether Remote Desktop Commander is already available in its connected tools or plugins. If it is connected, the AI should use that existing connection. Otherwise, it should guide you through the connection method supported by your AI app, following `docs/DESKTOP_COMMANDER_SETUP.md`. Once the AI can access Termux through MCP, it should install, validate and configure the Toolkit itself. You should not need to enter Toolkit commands manually. You will still need to complete Android actions that require your approval, including the one-time Wireless Debugging setup and ADB pairing. When pairing is required, provide the AI with the current pairing code. You can also run `ai-info` yourself at any time to check the Toolkit's status.
 
    **AI execution rule:** Once MCP is working, the AI must use its connected tools to inspect Termux, obtain/locate the official release ZIP and separate trust-values file, verify the installer and signed package, install missing dependencies only when checks show they are missing, install/configure the Toolkit and verify each result. You should not be asked to download/extract the package, type package commands, copy hashes, set trust variables, run the installer or enter Toolkit commands after MCP is connected. You remain responsible only for genuine device actions such as installing Termux if absent, starting the phone agent/browser authorization before MCP exists, Android permission approvals and the current pairing code when requested.
 
@@ -75,7 +75,7 @@ The normal order is intentionally simple.
 
 ### Provider integration check — AI performs first
 
-Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read the [Remote MCP Connection Guide](REMOTE_MCP_AI_CONNECTION.md). If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
+Before asking you to install or configure anything, the AI must inspect its current connected tools/apps and read the [Desktop Commander Setup Instructions](DESKTOP_COMMANDER_SETUP.md). If Remote Desktop Commander is already connected, it should use that connection. If it is not active, it must check the provider's actual plugin directory/account state. For ChatGPT, the first choice is the dedicated **Remote Desktop Commander** plugin by **Desktop Commander**; the AI must not tell you to enable Developer Mode or create a custom connector in the Android app.
 
 ### Phone-side bootstrap — only before MCP is connected
 
@@ -322,7 +322,7 @@ This does **not** install MCP into the AI from Termux. The Termux command starts
 
 ### Start reference
 
-Read `AI_GUIDE.md` first. For the Android app connection steps for ChatGPT, Claude and Grok, also read `REMOTE_MCP_AI_CONNECTION.md` and follow its provider-specific instructions.
+Read `AI_GUIDE.md` first. For the Android app connection steps for ChatGPT, Claude and Grok, also read `DESKTOP_COMMANDER_SETUP.md` and follow its provider-specific instructions.
 
 In short:
 
@@ -332,7 +332,7 @@ Remote AI client -> Remote Desktop Commander / Remote MCP -> Termux -> ADB -> An
 
 MCP and ADB are separate connections. A missing active MCP connection means the AI-to-Termux path is not currently established; it does not by itself diagnose the ADB state inside Termux.
 
-For provider-specific Android-app connection steps, use `REMOTE_MCP_AI_CONNECTION.md`. Do not infer the Android connector path from another provider or a different app surface.
+For provider-specific Android-app connection steps, use `DESKTOP_COMMANDER_SETUP.md`. Do not infer the Android connector path from another provider or a different app surface.
 
 The supported Wireless ADB helpers and the hardware-verified Developer-Options-off / different-Wi-Fi observations are documented in `AI_GUIDE.md`.
 
@@ -371,7 +371,7 @@ Keep the Termux Remote Desktop Commander process running while an AI needs acces
 
 ### 3. Connect the AI client
 
-Follow `docs/REMOTE_MCP_AI_CONNECTION.md` for the provider-specific Android app steps for ChatGPT, Claude and Grok. Read that document before choosing or describing a provider connection path; do not replace its tested app instructions with a generic or guessed connector workflow.
+Follow `docs/DESKTOP_COMMANDER_SETUP.md` for the provider-specific Android app steps for ChatGPT, Claude and Grok. Read that document before choosing or describing a provider connection path; do not replace its tested app instructions with a generic or guessed connector workflow.
 
 The Remote MCP server URL is:
 
@@ -419,7 +419,7 @@ The authorized client can then use Desktop Commander. Existing saved authorizati
 
 An already-authorized Desktop Commander Remote MCP connection is the existing control path to Termux; a second MCP implementation is unnecessary.
 
-For provider-specific Android app connection steps, use `docs/REMOTE_MCP_AI_CONNECTION.md`. Do not infer a provider's Android connector availability from another app surface or from memory.
+For provider-specific Android app connection steps, use `docs/DESKTOP_COMMANDER_SETUP.md`. Do not infer a provider's Android connector availability from another app surface or from memory.
 
 If the phone-side Desktop Commander device is offline, the phone-side start command is:
 

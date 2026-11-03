@@ -57,7 +57,7 @@ The documented workflow runs on Android. A PC and a locally installed AI model a
 - README.md — project overview and feature summary.
 - USER_GUIDE.md — recommended AI-assisted setup and manual alternative.
 - AI_GUIDE.md — instructions for an AI assistant operating the Toolkit.
-- REMOTE_MCP_AI_CONNECTION.md — provider-specific connection instructions.
+- DESKTOP_COMMANDER_SETUP.md — provider-specific connection instructions.
 - FAQ.md — common questions.
 - TECHNICAL_REFERENCE.md — architecture, Android APIs, security, and recovery.
 - COMMAND_REFERENCE.md — command syntax, side effects, and verification.

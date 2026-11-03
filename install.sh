@@ -255,9 +255,9 @@ mkdir -p "$TERMUX_HOME/AI_WADB_DOCS" "$PREFIX/libexec/ai-wadb"
 # unrelated files the owner may have placed in this directory.
 obsolete_docs=(
   README_FIRST.md
+  REMOTE_MCP_AI_CONNECTION.md
   START_HERE.md
   USER_SETUP.md
-  REMOTE_MCP_AI_CONNECTION.md
   TROUBLESHOOTING.md
   RECOVERY_TROUBLESHOOTING.md
   PROMPTS_FOR_AI.md

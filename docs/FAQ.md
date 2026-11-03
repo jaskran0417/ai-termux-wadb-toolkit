@@ -46,7 +46,7 @@ It is an authenticated, loopback-only command bridge that runs under the Termux 
 
 ## Can every AI app connect in the same way?
 
-No. The connection path depends on the AI provider's actual app surface, account, and supported integration. Follow REMOTE_MCP_AI_CONNECTION.md for the documented ChatGPT, Claude, and Grok connection instructions. Do not assume that a provider's web, desktop, and Android interfaces have identical connector support.
+No. The connection path depends on the AI provider's actual app surface, account, and supported integration. Follow DESKTOP_COMMANDER_SETUP.md for the documented ChatGPT, Claude, and Grok connection instructions. Do not assume that a provider's web, desktop, and Android interfaces have identical connector support.
 
 ## What is the recommended setup method?
 
@@ -54,4 +54,4 @@ AI-assisted setup is recommended. Share the official Toolkit release ZIP or AI i
 
 ## Where should I start?
 
-Read README.md for the overview, USER_GUIDE.md for setup, and REMOTE_MCP_AI_CONNECTION.md for provider-specific connection steps. For AI-assisted setup, provide the Toolkit release bundle or AI instructions to a compatible assistant and ask it to follow AI_GUIDE.md.
+Read README.md for the overview, USER_GUIDE.md for setup, and DESKTOP_COMMANDER_SETUP.md for provider-specific connection steps. For AI-assisted setup, provide the Toolkit release bundle or AI instructions to a compatible assistant and ask it to follow AI_GUIDE.md.
