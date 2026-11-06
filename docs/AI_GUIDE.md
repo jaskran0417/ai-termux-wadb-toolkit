@@ -4,7 +4,7 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 ## Mandatory operating instructions
 
-Version: 1.0.2
+Version: 1.0.3
 
 **README starter prompt:** The root README contains a copy-ready **“Start here — copy this instruction to your AI”** block. When a user asks for a reusable setup prompt, direct them to that block. If you already have repository access and the user asks you to set up the Toolkit, use the block directly instead of asking them to paste it again. It is a short task brief; this AI Guide remains the mandatory operating instructions.
 
@@ -225,6 +225,8 @@ Key changes in v1.0.1:
 - explicit uninstall command.
 
 Do not describe `PermissionActivity` as an arbitrary command surface. It only requests the fixed Termux RUN_COMMAND runtime permission and does not execute caller-supplied commands.
+
+Automatic Bridge boot/alarm recovery is supported on Android 11/API 30 or later. The explicit-only control receiver is protected by Android's `WRITE_SECURE_SETTINGS` sender permission, already granted to the Toolkit's Termux app. The Bridge's `com.termux.permission.RUN_COMMAND` grant is also required and must be verified before recovery is enabled. The Bridge alarm is one-shot and is re-armed only after a Termux recovery job confirms recovery is enabled; recovery disable explicitly cancels it. Bridge notification permission is optional and separate from the required RUN_COMMAND permission.
 
 ## Preflight, verification and response rules
 

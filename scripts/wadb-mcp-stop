@@ -11,5 +11,5 @@ else
     stop_now manual
     write_status
   ' >> "$LOGDIR/stop.log" 2>&1 < /dev/null &
-  echo "STOP_MCP scheduled; saved credentials are preserved; recovery state is unchanged."
+  echo "Desktop Commander stop scheduled. Saved sign-in is preserved; recovery configuration is unchanged."
 fi

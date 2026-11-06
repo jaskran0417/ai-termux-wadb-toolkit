@@ -1,5 +1,44 @@
 #!/data/data/com.termux/files/usr/bin/bash
+set -u
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --help|-h) printf '%s\n' "Usage: wadb-mcp-github-sync [--machine]" "Fetches and processes a newer validated GitHub control generation, if configured." "A new control identity is safely baselined without executing its current action."; exit 0 ;;
+  "") ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
 source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
+if [ "$GITHUB_ENABLED" != 1 ] || [ -z "$GITHUB_OWNER" ] || [ -z "$GITHUB_REPO" ]; then
+  write_status
+  if [ "$MODE" = machine ]; then cat "$STATE/status"; else printf '%s\n' "GitHub control sync: Not configured." "- No remote control was fetched or executed." "- Desktop Commander MCP is unchanged."; fi
+  exit 0
+fi
+before="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
+previous_event="$(tail -n1 "$STATE/events.log" 2>/dev/null || true)"
 github_sync
 write_status
-cat "$STATE/status"
+if [ "$MODE" = machine ]; then
+  cat "$STATE/status"
+  exit 0
+fi
+after="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
+read_error="$(cat "$STATE/github.read_error" 2>/dev/null || echo none)"
+latest_event="$(tail -n1 "$STATE/events.log" 2>/dev/null || true)"
+printf '%s\n' "GitHub control sync" "- Repository: $GITHUB_OWNER/$GITHUB_REPO." "- Branch and file: $GITHUB_BRANCH / $GITHUB_FILE." "- Last processed generation: $after."
+if [ "$read_error" != none ]; then
+  echo "- Result: Control file could not be validated or read ($read_error)."
+  exit 1
+fi
+if [ "$after" != "$before" ]; then
+  if printf '%s' "$latest_event" | grep -q 'GITHUB_BASELINE'; then
+    echo "- Result: New control identity safely baselined. Its current action was not executed."
+  elif [ "$latest_event" != "$previous_event" ]; then
+    echo "- Result: A newer validated control action was processed."
+    echo "- Action details are recorded in the local recovery event log."
+  else
+    echo "- Result: Generation advanced; review the event log for its processing record."
+  fi
+else
+  echo "- Result: No newer control generation was available; no action was executed."
+fi
+exit 0

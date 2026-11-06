@@ -6,6 +6,17 @@ PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
 
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --help|-h)
+    printf '%s\\n' "Usage: wadb-local-status [--machine]"
+    printf '%s\\n' "Reads the independent authenticated loopback Local Termux Shell status."
+    exit 0
+    ;;
+  "") ;;
+  *) printf 'Unknown option: %s\\n' "$1" >&2; exit 2 ;;
+esac
 PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
 ENDPOINT="127.0.0.1:$PORT"
 TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
@@ -63,48 +74,39 @@ else
 fi
 
 if command -v wireless-debug-status >/dev/null 2>&1; then
-  wd="$(timeout 4 wireless-debug-status 2>&1 || true)"
+  wd="$(timeout 4 wireless-debug-status --machine 2>&1 || true)"
   val="$(printf '%s\n' "$wd" | sed -n 's/.*adb_wifi_enabled=\([0-9-]*\).*/\1/p' | tail -n1)"
   [ -n "$val" ] && ADB_WIFI_ENABLED="$val"
   adbd="$(printf '%s\n' "$wd" | sed -n 's/^adbd=//p' | tail -n1)"
   [ -n "$adbd" ] && ADBD_STATE="$adbd"
 fi
 
-echo "LOCAL_ADB_STATE=$LOCAL_ADB_STATE"
-echo "LOCAL_ADB_MODE=$LOCAL_ADB_MODE"
-echo "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT"
-echo "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL"
-echo "LOCAL_ADB_PORT=$LOCAL_ADB_PORT"
-echo "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID"
-echo "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID"
-echo "USB_DEBUGGING_REQUIRED=no"
-echo "WIRELESS_DEBUGGING_REQUIRED=no"
-echo "WIFI_REQUIRED=no"
-echo "ADBD_REQUIRED=no"
-echo "PROTOCOL=$PROTOCOL"
-echo "BRIDGE_AUTH=$BRIDGE_AUTH"
-echo "LISTENER_SCOPE=$LISTENER_SCOPE"
-echo "ADB_ENABLED=$ADB_ENABLED"
-echo "ADB_WIFI_ENABLED=$ADB_WIFI_ENABLED"
-echo "ADBD_STATE=$ADBD_STATE"
-echo "TCP_PORT=$TCP_PORT"
-echo "LISTEN_ADDRS=$LISTEN_ADDRS"
-echo "ADBD_TCP_EXPOSURE=$ADBD_TCP_EXPOSURE"
-echo "USB_CONFIG=$USB_CONFIG"
-echo "USB_STATE=$USB_STATE"
-echo "ADB_SECURE=$ADB_SECURE"
-echo "WIFI_STATE=$WIFI_STATE"
-
+SECURITY_STATE=not_running
+SECURITY_WARNING=""
 if [ "$LOCAL_ADB_STATE" = "ready" ]; then
-  if [ "$ADBD_TCP_EXPOSURE" = "none" ]; then
-    echo "SECURITY_STATE=termux_loopback_shell_no_adb_dependency"
-  else
-    echo "SECURITY_STATE=termux_loopback_shell_adbd_tcp_attention"
-    echo "SECURITY_WARNING=adbd_tcp_listener_is_separate_from_the_loopback_shell"
+  if [ "$ADBD_TCP_EXPOSURE" = "none" ]; then SECURITY_STATE=termux_loopback_shell_no_adb_dependency
+  else SECURITY_STATE=termux_loopback_shell_adbd_tcp_attention; SECURITY_WARNING=adbd_tcp_listener_is_separate_from_the_loopback_shell
   fi
 elif [ "$LOCAL_ADB_STATE" = "legacy_runtime" ]; then
-  echo "SECURITY_STATE=legacy_android_shell_uid_bridge"
-  echo "SECURITY_WARNING=run_wadb-local-on_to_replace_with_lower_privilege_termux_uid_bridge"
-else
-  echo "SECURITY_STATE=not_running"
+  SECURITY_STATE=legacy_android_shell_uid_bridge
+  SECURITY_WARNING=run_wadb-local-on_to_replace_with_lower_privilege_termux_uid_bridge
 fi
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "LOCAL_ADB_STATE=$LOCAL_ADB_STATE" "LOCAL_ADB_MODE=$LOCAL_ADB_MODE" "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT" "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL" "LOCAL_ADB_PORT=$LOCAL_ADB_PORT" "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID" "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID" "USB_DEBUGGING_REQUIRED=no" "WIRELESS_DEBUGGING_REQUIRED=no" "WIFI_REQUIRED=no" "ADBD_REQUIRED=no" "PROTOCOL=$PROTOCOL" "BRIDGE_AUTH=$BRIDGE_AUTH" "LISTENER_SCOPE=$LISTENER_SCOPE" "ADB_ENABLED=$ADB_ENABLED" "ADB_WIFI_ENABLED=$ADB_WIFI_ENABLED" "ADBD_STATE=$ADBD_STATE" "TCP_PORT=$TCP_PORT" "LISTEN_ADDRS=$LISTEN_ADDRS" "ADBD_TCP_EXPOSURE=$ADBD_TCP_EXPOSURE" "USB_CONFIG=$USB_CONFIG" "USB_STATE=$USB_STATE" "ADB_SECURE=$ADB_SECURE" "WIFI_STATE=$WIFI_STATE" "SECURITY_STATE=$SECURITY_STATE"
+  [ -n "$SECURITY_WARNING" ] && echo "SECURITY_WARNING=$SECURITY_WARNING"
+  exit 0
+fi
+echo "Local Termux Shell"
+case "$LOCAL_ADB_STATE" in
+  ready) printf '%s\n' "Status: Ready" "Runtime identity: Termux application UID $LOCAL_ADB_RUNTIME_UID" ;;
+  legacy_runtime) printf '%s\n' "Status: Legacy bridge detected" "Runtime identity: Android shell UID $LOCAL_ADB_RUNTIME_UID" ;;
+  *) echo "Status: Not running" ;;
+esac
+printf 'Loopback endpoint: %s\n' "$LOCAL_ADB_ENDPOINT"
+printf 'Authentication: %s\n' "$BRIDGE_AUTH"
+printf 'Listener scope: %s\n' "$LISTENER_SCOPE"
+printf '%s\n' "USB debugging dependency: None" "Wireless Debugging dependency: None" "Wi-Fi dependency: None" "Android adbd dependency: None"
+case "$ADBD_TCP_EXPOSURE" in none) echo "Android ADB TCP exposure: None" ;; loopback_only) echo "Android ADB TCP exposure: Loopback only" ;; *) printf 'Android ADB TCP exposure: %s\n' "$ADBD_TCP_EXPOSURE" ;; esac
+[ -n "$WIFI_STATE" ] && printf 'Wi-Fi: %s\n' "$WIFI_STATE"
+[ -n "$SECURITY_WARNING" ] && printf 'Security note: %s\n' "$SECURITY_WARNING"
+exit 0

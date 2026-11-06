@@ -8,7 +8,7 @@ YES=0
 
 usage() {
   cat <<'TXT'
-AI Termux WADB Toolkit v1.0.2 installer
+AI Termux WADB Toolkit v1.0.3 installer
 
 Usage:
   ./install.sh [--yes] [--help]
@@ -57,7 +57,7 @@ fi
 
 title() {
   printf '%s╭────────────────────────────────────────────────────────────╮%s\n' "$M" "$X"
-  printf '%s│%s%s      AI TERMUX WADB v1.0.2           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
+  printf '%s│%s%s      AI TERMUX WADB v1.0.3           %s%s│%s\n' "$M" "$X" "$B" "$X" "$M" "$X"
   printf '%s╰────────────────────────────────────────────────────────────╯%s\n' "$M" "$X"
 }
 
@@ -318,7 +318,7 @@ printf 'SHA256 %s\n' "$TRUST_PIN" > "$release_integrity/trusted-key-fingerprint.
 chmod 700 "$release_integrity"
 chmod 600 "$release_integrity"/*
 rm -f "$TERMUX_HOME/.ai-wadb/pairing.pending"
-ok "Documentation and WADB Bridge v1.5 package installed."
+ok "Documentation installed; bundled WADB Bridge APK cached and SHA-256 verified."
 
 BASHRC="$TERMUX_HOME/.bashrc"
 touch "$BASHRC"

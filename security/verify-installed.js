@@ -110,7 +110,7 @@ try {
 
   const data = JSON.parse(manifest.toString('utf8'));
   if (data.schema !== 2 || data.name !== 'AI Termux WADB Toolkit' ||
-      data.version !== '1.0.2' ||
+      data.version !== '1.0.3' ||
       data.signature_algorithm !== 'Ed25519' ||
       data.release_key_sha256 !== fingerprint ||
       !Array.isArray(data.targets) || data.targets.length < 1 || data.targets.length > 512) {

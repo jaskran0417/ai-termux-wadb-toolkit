@@ -1,58 +1,66 @@
 #!/data/data/com.termux/files/usr/bin/sh
 export PATH=/system/bin:/data/data/com.termux/files/usr/bin:$PATH
-
-run_get() {
-  /system/bin/am broadcast --user 0 --include-stopped-packages     -a com.jaskran.wadbbridge.GET_WIRELESS_DEBUG     -n com.jaskran.wadbbridge/.WirelessDebugReceiver </dev/null 2>&1
-}
-
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --help|-h)
+    printf '%s\n' "Usage: wireless-debug-status [--machine]"
+    printf '%s\n' "Reads Wireless Debugging and verifies Bridge write access with a no-op same-value request."
+    exit 0
+    ;;
+  "") ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
+BRIDGE_COMPONENT=com.jaskran.wadbbridge/.WirelessDebugReceiver
+adbd=$(/system/bin/getprop init.svc.adbd 2>/dev/null)
+[ -n "$adbd" ] || adbd=unknown
 out=""
+val=""
 i=1
-while [ $i -le 3 ]; do
-  out="$(run_get)"
+while [ "$i" -le 3 ]; do
+  out=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
+    -a com.jaskran.wadbbridge.GET_WIRELESS_DEBUG \
+    -n "$BRIDGE_COMPONENT" </dev/null 2>&1)
   rc=$?
-  printf '%s
-' "$out"
-  if [ $rc -eq 0 ] &&
-     printf '%s
-' "$out" | grep -q 'Broadcast completed: result=-1' &&
-     ! printf '%s
-' "$out" | grep -q 'Failure calling service'; then
-    break
+  if [ "$rc" -eq 0 ] &&
+     printf '%s\n' "$out" | grep -q 'Broadcast completed: result=-1' &&
+     ! printf '%s\n' "$out" | grep -q 'Failure calling service'; then
+    val=$(printf '%s\n' "$out" | sed -n 's/.*data="adb_wifi_enabled=\([0-9-]*\)".*/\1/p' | tail -n1)
+    case "$val" in 0|1) break ;; *) val="" ;; esac
   fi
-  [ $i -lt 3 ] && sleep 1
+  [ "$i" -lt 3 ] && sleep 1
   i=$((i+1))
 done
-
-val="$(printf '%s
-' "$out" | sed -n 's/.*data="adb_wifi_enabled=\([0-9-]*\)".*/\1/p' | tail -n1)"
-case "$val" in
-  0|1) ;;
-  *)
-    echo "bridge_status=unavailable"
-    echo "bridge_write=unknown"
-    printf 'adbd='
-    /system/bin/getprop init.svc.adbd 2>/dev/null
-    exit 1
-    ;;
-esac
-
-# Verify write capability without changing the current setting.
+if [ -z "$val" ]; then
+  if [ "$MODE" = machine ]; then
+    printf '%s\n' "bridge_status=unavailable" "adb_wifi_enabled=unknown" "bridge_write=unknown" "adbd=$adbd"
+  else
+    printf '%s\n' "Wireless Debugging: Unknown" "WADB Bridge: Not responding" "Bridge write access: Unknown" "Android ADB daemon: $adbd" "No setting was changed."
+  fi
+  exit 1
+fi
 enabled=false
 [ "$val" = 1 ] && enabled=true
-setout=$(/system/bin/am broadcast --user 0 --include-stopped-packages   -a com.jaskran.wadbbridge.SET_WIRELESS_DEBUG   -n com.jaskran.wadbbridge/.WirelessDebugReceiver   --ez enabled "$enabled" </dev/null 2>&1)
+setout=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
+  -a com.jaskran.wadbbridge.SET_WIRELESS_DEBUG \
+  -n "$BRIDGE_COMPONENT" --ez enabled "$enabled" </dev/null 2>&1)
 setrc=$?
-
-if [ $setrc -eq 0 ] &&
-   printf '%s
-' "$setout" | grep -q 'Broadcast completed: result=-1' &&
-   printf '%s
-' "$setout" | grep -Fq "data=\"adb_wifi_enabled=$val; write=true\"" &&
-   ! printf '%s
-' "$setout" | grep -q 'SecurityException'; then
-  echo "bridge_write=ready"
-else
-  echo "bridge_write=denied"
+write_ready=denied
+if [ "$setrc" -eq 0 ] &&
+   printf '%s\n' "$setout" | grep -q 'Broadcast completed: result=-1' &&
+   printf '%s\n' "$setout" | grep -Fq "data=\"adb_wifi_enabled=$val; write=true\"" &&
+   ! printf '%s\n' "$setout" | grep -q 'SecurityException'; then
+  write_ready=ready
 fi
-
-printf 'adbd='
-/system/bin/getprop init.svc.adbd 2>/dev/null
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "bridge_status=ready" "adb_wifi_enabled=$val" "bridge_write=$write_ready" "adbd=$adbd"
+else
+  [ "$val" = 1 ] && setting=ON || setting=OFF
+  printf 'Wireless Debugging: %s\n' "$setting"
+  printf '%s\n' "WADB Bridge: Available"
+  [ "$write_ready" = ready ] && echo "Bridge write access: Ready" || echo "Bridge write access: Not verified (permission may be restricted)"
+  case "$adbd" in running) echo "Android ADB daemon: Running" ;; stopped) echo "Android ADB daemon: Stopped" ;; *) printf 'Android ADB daemon: %s\n' "$adbd" ;; esac
+  echo "No setting was changed; write access was checked using the current value."
+fi
+[ "$write_ready" = ready ] && exit 0
+exit 2

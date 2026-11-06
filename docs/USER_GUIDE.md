@@ -95,7 +95,7 @@ As soon as the AI can run Termux commands through Desktop Commander, the AI take
 
 ### Toolkit installation — AI performs after MCP connects
 
-After Remote Desktop Commander can reach Termux, the AI must locate the supplied bundle or fetch the official v1.0.2 ZIP and separate RELEASE-TRUST-VALUES.txt asset itself using its available tools. It independently verifies the installer hash, release verifier hash, public-key fingerprint and signed package before installing. It must check current dependencies and install only missing ones, then run the installer, configure requested settings, and verify the result. Follow the security requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
+After Remote Desktop Commander can reach Termux, the AI must locate the supplied bundle or fetch the official v1.0.3 ZIP and separate RELEASE-TRUST-VALUES.txt asset itself using its available tools. It independently verifies the installer hash, release verifier hash, public-key fingerprint and signed package before installing. It must check current dependencies and install only missing ones, then run the installer, configure requested settings, and verify the result. Follow the security requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
 
 **The following are AI-executed commands through the connected Remote Desktop Commander terminal, not commands for the owner to copy/paste:**
 
@@ -249,7 +249,9 @@ For normal single-session users the authenticated MCP HOME is detected automatic
 wadb-mcp-recovery-setup --mcp-home /path/to/home --target NAME
 ```
 
-Android may show a one-time permission dialog for WADB Bridge to run the Termux recovery command. Tap **Allow**.
+Android may show a one-time permission dialog for WADB Bridge to run the Termux recovery command. Tap **Allow**, return to Termux, then run `wadb-mcp-recovery-setup` again if the first attempt reports that permission is still pending. Setup does not mark recovery enabled until it verifies the permission.
+
+The Bridge alarm-control handoff requires Android 11/API 30 or later and uses Termux's existing `WRITE_SECURE_SETTINGS` grant as its protected sender permission. The Bridge verifies its own Android `RUN_COMMAND` grant locally, so setup does not need a live ADB connection once the Bridge is installed. The Android `RUN_COMMAND` permission is required for boot/alarm recovery; Bridge notification permission is optional. Recovery setup enables Termux `allow-external-apps=true` only after the required permission check succeeds.
 
 Normal controls:
 

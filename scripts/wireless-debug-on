@@ -1,42 +1,49 @@
 #!/data/data/com.termux/files/usr/bin/sh
 export PATH=/system/bin:/data/data/com.termux/files/usr/bin:$PATH
 BRIDGE_COMPONENT=com.jaskran.wadbbridge/.WirelessDebugReceiver
-
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --help|-h) printf '%s\n' "Usage: wireless-debug-on [--machine]"; exit 0 ;;
+  "") ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
 read_value() {
   out=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
     -a com.jaskran.wadbbridge.GET_WIRELESS_DEBUG \
     -n "$BRIDGE_COMPONENT" </dev/null 2>&1)
+  rc=$?
+  [ "$rc" -eq 0 ] || return 1
+  printf '%s\n' "$out" | grep -q 'Broadcast completed: result=-1' || return 1
   printf '%s\n' "$out" | sed -n 's/.*data="adb_wifi_enabled=\([0-9-]*\)".*/\1/p' | tail -n1
 }
-
 verify_value() {
   want="$1"; i=1
-  while [ $i -le 4 ]; do
+  while [ "$i" -le 4 ]; do
     [ "$(read_value)" = "$want" ] && return 0
-    [ $i -lt 4 ] && sleep 1
+    [ "$i" -lt 4 ] && sleep 1
     i=$((i+1))
   done
   return 1
 }
-
-i=1
-while [ $i -le 3 ]; do
+success=0; i=1
+while [ "$i" -le 3 ]; do
   out=$(/system/bin/am broadcast --user 0 --include-stopped-packages \
     -a com.jaskran.wadbbridge.SET_WIRELESS_DEBUG \
     -n "$BRIDGE_COMPONENT" --ez enabled true </dev/null 2>&1)
   rc=$?
-  printf '%s\n' "$out"
-  if [ $rc -eq 0 ] &&
+  if [ "$rc" -eq 0 ] &&
      printf '%s\n' "$out" | grep -q 'Broadcast completed: result=-1' &&
      printf '%s\n' "$out" | grep -q 'data="adb_wifi_enabled=1; write=true"' &&
-     ! printf '%s\n' "$out" | grep -q 'SecurityException' &&
-     verify_value 1; then
-    echo "wireless_debug=on"
-    echo "write_path=bridge"
-    exit 0
+     ! printf '%s\n' "$out" | grep -q 'SecurityException' && verify_value 1; then
+    success=1; break
   fi
-  [ $i -lt 3 ] && sleep 1
+  [ "$i" -lt 3 ] && sleep 1
   i=$((i+1))
 done
-echo "WIRELESS_DEBUG_SET_FAILED"
+if [ "$success" -eq 1 ]; then
+  if [ "$MODE" = machine ]; then printf '%s\n' "wireless_debug=1" "write_path=bridge" "verified=yes"; else printf 'Wireless Debugging: ON\n'; printf '%s\n' "Result: Enable request completed through WADB Bridge." "Verification: Confirmed ON." "ADB transport and Desktop Commander MCP were not changed."; fi
+  exit 0
+fi
+if [ "$MODE" = machine ]; then printf '%s\n' "wireless_debug=unknown" "write_path=bridge" "verified=no" "result=failed"; else printf '%s\n' "Wireless Debugging: Requested state not verified." "Result: Enable request failed or the Bridge did not confirm it." "Next step: Run wireless-debug-status and check Bridge permission/availability."; fi
 exit 1

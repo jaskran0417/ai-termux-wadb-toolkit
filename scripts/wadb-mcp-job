@@ -1,12 +1,47 @@
 #!/data/data/com.termux/files/usr/bin/bash
+set -u
 TERMUX_HOME=/data/data/com.termux/files/home
 STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
 CONFIG="$STATE/config"
 PREFIX=/data/data/com.termux/files/usr
 
-[ -r "$CONFIG" ] || exit 0
 source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
-recovery_enabled || exit 0
-"$PREFIX/bin/wadb-mcp-watchdog-start"
-[ "$(mcp_desired_value)" = "online" ] && ensure_online job || true
+
+# A boot/package-replacement event with no owner configuration must never
+# leave or create a periodic Bridge alarm.
+if [ ! -r "$CONFIG" ]; then
+  bridge_recovery_alarm disable >/dev/null 2>&1 || true
+  exit 0
+fi
+
+if ! recovery_enabled; then
+  bridge_recovery_alarm disable || true
+  write_status
+  exit 0
+fi
+
+"$PREFIX/bin/wadb-mcp-watchdog-start" || {
+  echo "$(date -Iseconds) ERROR watchdog_start_failed" >> "$STATE/logs/errors.log"
+  notify_event RECOVERY_WATCHDOG_START_FAILED
+  exit 1
+}
+
+if [ "$(mcp_desired_value)" = "online" ]; then
+  ensure_online job || true
+fi
+
+# Recheck after potentially slow work. A concurrent disable must win and must
+# not be followed by this job creating a fresh one-shot alarm.
+if ! recovery_enabled; then
+  bridge_recovery_alarm disable || true
+  write_status
+  exit 0
+fi
+
+# Re-arm one one-shot only after this Termux job has validated that recovery is
+# still enabled. If this job cannot run, there is no infinite Bridge alarm loop.
+if ! bridge_recovery_alarm enable; then
+  echo "$(date -Iseconds) ERROR bridge_alarm_rearm_failed" >> "$STATE/logs/errors.log"
+  notify_event RECOVERY_ALARM_SYNC_FAILED
+fi
 write_status

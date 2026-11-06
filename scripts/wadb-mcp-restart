@@ -11,4 +11,4 @@ nohup /data/data/com.termux/files/usr/bin/bash -c '
   ensure_online restart
   write_status
 ' >> "$LOGDIR/restart.log" 2>&1 < /dev/null &
-echo "RESTART_MCP scheduled; saved credentials are preserved."
+echo "Desktop Commander restart scheduled. Saved sign-in is preserved."

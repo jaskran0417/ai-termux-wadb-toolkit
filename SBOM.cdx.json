@@ -3,7 +3,7 @@
   "specVersion": "1.6",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-01T21:28:17Z",
+    "timestamp": "2026-11-06T07:56:28Z",
     "tools": {
       "services": [
         {
@@ -19,8 +19,8 @@
     "component": {
       "type": "application",
       "name": "AI Termux WADB Toolkit",
-      "version": "1.0.2",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.2",
+      "version": "1.0.3",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.3",
       "licenses": [
         {
           "license": {
@@ -34,14 +34,36 @@
           "value": "Copyright 2026 Jaskran Singh"
         }
       ]
-    }
+    },
+    "properties": [
+      {
+        "name": "ai-termux-wadb:bridge-version",
+        "value": "1.6 (versionCode 7)"
+      },
+      {
+        "name": "ai-termux-wadb:recovery-alarm",
+        "value": "One-shot; Termux re-arms only while recovery is enabled; disable cancels"
+      },
+      {
+        "name": "ai-termux-wadb:recovery-control-permission",
+        "value": "android.permission.WRITE_SECURE_SETTINGS"
+      },
+      {
+        "name": "ai-termux-wadb:recovery-control-min-api",
+        "value": "30"
+      },
+      {
+        "name": "ai-termux-wadb:recovery-control-sender-uid",
+        "value": "not used; Android permission enforced"
+      }
+    ]
   },
   "components": [
     {
       "type": "application",
-      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.2",
+      "bom-ref": "urn:ai-termux-wadb:toolkit:1.0.3",
       "name": "AI Termux WADB Toolkit",
-      "version": "1.0",
+      "version": "1.0.3",
       "scope": "required",
       "properties": [
         {
@@ -63,14 +85,14 @@
     },
     {
       "type": "application",
-      "bom-ref": "urn:ai-termux-wadb:wadb-bridge:1.5",
+      "bom-ref": "urn:ai-termux-wadb:wadb-bridge:1.6",
       "name": "WADB Bridge",
-      "version": "1.5",
-      "purl": "pkg:generic/com.jaskran.wadbbridge@1.5",
+      "version": "1.6",
+      "purl": "pkg:generic/com.jaskran.wadbbridge@1.6",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4"
+          "content": "f5005c2c3509ab4baecf5c44ae58772af3cf016f2d5339bf869ebc8130ecef55"
         }
       ],
       "scope": "required",
@@ -85,6 +107,18 @@
         {
           "name": "ai-termux-wadb:copyright",
           "value": "Copyright 2026 Jaskran Singh"
+        },
+        {
+          "name": "android:versionCode",
+          "value": "7"
+        },
+        {
+          "name": "android:recovery_alarm",
+          "value": "one-shot, Termux-controlled rearm"
+        },
+        {
+          "name": "android:recovery_control_min_api",
+          "value": "30"
         }
       ]
     },
@@ -4857,10 +4891,10 @@
   ],
   "dependencies": [
     {
-      "ref": "urn:ai-termux-wadb:toolkit:1.0.2",
+      "ref": "urn:ai-termux-wadb:toolkit:1.0.3",
       "dependsOn": [
-        "urn:ai-termux-wadb:toolkit:1.0",
-        "urn:ai-termux-wadb:wadb-bridge:1.5",
+        "urn:ai-termux-wadb:toolkit:1.0.3",
+        "urn:ai-termux-wadb:wadb-bridge:1.6",
         "urn:ai-termux-wadb:native:wadb-local-bridge",
         "pkg:maven/androidx.databinding/databinding-common@9.3.1",
         "pkg:maven/androidx.databinding/databinding-compiler-common@9.3.1",
@@ -4991,7 +5025,7 @@
       ]
     },
     {
-      "ref": "urn:ai-termux-wadb:wadb-bridge:1.5",
+      "ref": "urn:ai-termux-wadb:wadb-bridge:1.6",
       "dependsOn": [
         "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib@2.2.10"
       ]

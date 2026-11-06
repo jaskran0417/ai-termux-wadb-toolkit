@@ -69,7 +69,11 @@ The first identifies the temporary pairing endpoint; the second identifies the n
 
 `McpRecoveryReceiver` is declared exported=false. The manifest registers it for `android.intent.action.BOOT_COMPLETED` and `android.intent.action.MY_PACKAGE_REPLACED`; the implementation also handles its internal `CHECK_MCP` and `START_MCP_RECOVERY` actions.
 
-On each receiver invocation, it requests the fixed Termux recovery job and schedules an inexact elapsed-realtime wakeup check. The first trigger is based on `SystemClock.elapsedRealtime()` plus two minutes; `AlarmManager.setInexactRepeating()` then uses `AlarmManager.ELAPSED_REALTIME_WAKEUP` and `AlarmManager.INTERVAL_FIFTEEN_MINUTES`. The receiver starts `com.termux.app.RunCommandService` with the `com.termux.RUN_COMMAND` action and a fixed path to:
+On boot, Bridge package replacement, or a pending one-shot alarm, it requests the fixed Termux recovery job. It does not schedule another alarm itself. The Termux job first checks the owner's recovery-enable state and then asks the Bridge to schedule the next one-shot check only when recovery remains enabled. The one-shot uses `AlarmManager.setAndAllowWhileIdle()` with an approximately fifteen-minute delay. If Termux cannot run the job, the alarm is not automatically re-armed; this fails safe instead of producing an endless wakeup loop.
+
+The Bridge alarm-control receiver is a separate explicit-only exported component protected at the manifest level by `android.permission.WRITE_SECURE_SETTINGS`. Android enforces that sender permission before delivering a control broadcast; the Toolkit's Termux app already holds the grant. The receiver schedules or cancels the one-shot `PendingIntent` and answers local permission queries from the Bridge process, so setup can verify `RUN_COMMAND` without an active ADB transport. Applications without the protected sender permission cannot reach the control handler. The Bridge stores the pending-alarm state in private preferences and clears it when an alarm, boot or package-replacement event is received; it does not infer that an alarm is pending merely because a `PendingIntent` object still exists. The Termux recovery-disable command sends the cancellation request immediately; if cancellation cannot be acknowledged, a remaining one-shot still consults the disabled Termux state and does not re-arm.
+
+The recovery receiver starts `com.termux.app.RunCommandService` with the `com.termux.RUN_COMMAND` action and a fixed path to:
 
 ~~~text
 /data/data/com.termux/files/usr/bin/wadb-mcp-job
@@ -79,7 +83,7 @@ It marks that job as a background command and sets the Termux home directory as 
 
 `PermissionActivity` only requests the supported `com.termux.permission.RUN_COMMAND` permission and, on Android 13/API 33 or later, the optional `POST_NOTIFICATIONS` permission when either is missing. It is a permission-request activity, not a caller-controlled command executor.
 
-The Android Bridge alarm and the Termux watchdog are separate mechanisms. The Termux watchdog uses the configured `WATCHDOG_INTERVAL` (15 seconds by default in the current recovery configuration); the Android alarm is the slower fallback. Neither mechanism should be described as a guarantee that Android will keep every background process alive.
+The Android Bridge one-shot alarm and the Termux watchdog are separate mechanisms. The Termux watchdog uses the configured `WATCHDOG_INTERVAL` (15 seconds by default); the Bridge alarm is the slower boot/process-loss fallback. Automatic Bridge scheduling requires Android 11/API 30+, the Termux app's `WRITE_SECURE_SETTINGS` grant for protected control broadcasts, the Bridge's `RUN_COMMAND` grant and `allow-external-apps=true`. Neither mechanism guarantees that Android/OEM battery management will permit every background task to run.
 
 #### Local Termux Shell binding and authentication
 
@@ -1254,16 +1258,16 @@ tail ~/.ai-wadb/mcp-recovery/events.log
 
 Package: `com.jaskran.wadbbridge`
 
-The Bridge remains the privileged writer for `adb_wifi_enabled`. Its `WirelessDebugReceiver` is exported but protected by `android.permission.WRITE_SECURE_SETTINGS`. `McpRecoveryReceiver` remains non-exported and invokes only the fixed Termux recovery job.
+The Bridge remains the privileged writer for `adb_wifi_enabled`. Its `WirelessDebugReceiver` is exported but protected by `android.permission.WRITE_SECURE_SETTINGS`. `McpRecoveryReceiver` remains non-exported and invokes only the fixed Termux recovery job. The separate explicit-only `RecoveryControlReceiver` is exported solely so callers holding `android.permission.WRITE_SECURE_SETTINGS` can arm/cancel the one-shot alarm and query Bridge-owned permissions; Android enforces the sender permission before delivery.
 
 Version:
-- versionCode 6
-- versionName 1.5
+- versionCode 7
+- versionName 1.6
 - minSdk 30
 - targetSdk 36
 
 ## Recovery notifications
-The Bridge now owns a local Android notification channel named **WADB Recovery**. It posts only transition/check notifications for boot, package replacement, or an explicit recovery request. The recurring fifteen-minute Android alarm remains silent. Actual watchdog/MCP success notifications are posted by the Termux recovery scripts only after the corresponding state transition occurs.
+The Bridge now owns a local Android notification channel named **WADB Recovery**. It posts only transition/check notifications for boot, package replacement, or an explicit recovery request. The one-shot Android alarm is silent and is re-armed by the Termux recovery job only while recovery remains enabled. Actual watchdog/MCP success notifications are posted by the Termux recovery scripts only after the corresponding state transition occurs.
 
 On Android 13+, `PermissionActivity` requests `POST_NOTIFICATIONS` together with the existing Termux `RUN_COMMAND` permission when either permission is missing. Notification permission is optional for recovery itself: denial suppresses notifications but does not disable recovery.
 

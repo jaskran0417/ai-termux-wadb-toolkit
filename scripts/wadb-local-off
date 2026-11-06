@@ -1,55 +1,43 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -u
-
 TERMUX_HOME=/data/data/com.termux/files/home
 PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
-
 TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
-
-case "${1:-}" in
-  --help|-h)
-    cat <<'TXT'
-Usage:
-  wadb-local-off --confirm
-
-Stops the authenticated loopback-only uid=2000 shell bridge.
-It does not disable adb_enabled and does not enable classic adbd TCP.
-TXT
-    exit 0
-    ;;
-  --confirm) ;;
-  *)
-    echo "CONFIRMATION_REQUIRED=yes"
-    echo "Run: wadb-local-off --confirm"
-    exit 2
-    ;;
-esac
-
-if ! command -v wadb-local-shell >/dev/null 2>&1 || [ ! -s "$TOKEN_FILE" ]; then
-  echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"
-  exit 0
-fi
-
-if ! timeout 4 wadb-local-shell --ping >/dev/null 2>&1; then
-  rm -f "$TOKEN_FILE"
-  echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"
-  exit 0
-fi
-
-wadb-local-shell --stop || {
-  echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_FAILED"
-  exit 20
+MODE=human
+CONFIRM=0
+for arg in "$@"; do
+  case "$arg" in
+    --confirm) CONFIRM=1 ;;
+    --machine) MODE=machine ;;
+    --help|-h)
+      printf '%s\n' "Usage: wadb-local-off --confirm [--machine]"
+      printf '%s\n' "Stops only the authenticated loopback Local Termux Shell."
+      exit 0
+      ;;
+    *) printf 'Unknown option: %s\n' "$arg" >&2; exit 2 ;;
+  esac
+done
+[ "$CONFIRM" -eq 1 ] || { echo "No action taken. Explicit confirmation is required: wadb-local-off --confirm"; exit 2; }
+not_running() {
+  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"; else echo "Local Termux Shell: Already stopped."; fi
 }
-
+if ! command -v wadb-local-shell >/dev/null 2>&1 || [ ! -s "$TOKEN_FILE" ]; then not_running; exit 0; fi
+if ! timeout 4 wadb-local-shell --ping >/dev/null 2>&1; then rm -f "$TOKEN_FILE"; not_running; exit 0; fi
+if ! wadb-local-shell --stop; then
+  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_FAILED"; else echo "Local Termux Shell: Stop request failed."; fi
+  exit 20
+fi
 sleep 1
 if timeout 3 wadb-local-shell --ping >/dev/null 2>&1; then
-  echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_VERIFY_FAILED"
+  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_VERIFY_FAILED"; else echo "Local Termux Shell: Could not verify that it stopped."; fi
   exit 21
 fi
-
 rm -f "$TOKEN_FILE"
-echo "ADBD_STATE=$(getprop init.svc.adbd 2>/dev/null || true)"
-echo "TCP_PORT=$(getprop service.adb.tcp.port 2>/dev/null || true)"
-echo "RESULT=SECURE_LOCAL_BRIDGE_STOPPED"
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "ADBD_STATE=$(getprop init.svc.adbd 2>/dev/null || true)" "TCP_PORT=$(getprop service.adb.tcp.port 2>/dev/null || true)" "RESULT=SECURE_LOCAL_BRIDGE_STOPPED"
+else
+  echo "Local Termux Shell: Stopped and verified."
+  echo "Wireless Debugging, USB debugging and Desktop Commander MCP were not changed."
+fi

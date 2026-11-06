@@ -1,4 +1,4 @@
-# AI Termux WADB Toolkit v1.0.2
+# AI Termux WADB Toolkit v1.0.3
 
 AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termux environment on Android. It gives the owner and the AI a consistent way to inspect status, run available Termux commands, manage Wireless ADB, use a separate no-debug Local Termux Shell, and configure optional Desktop Commander recovery.
 
