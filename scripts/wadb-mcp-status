@@ -1,7 +1,16 @@
 #!/data/data/com.termux/files/usr/bin/bash
 source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
 write_status
-if [ "${1:-}" = "--json" ]; then
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --json) MODE=json ;;
+  --help|-h) printf '%s\n' "Usage: wadb-mcp-status [--json|--machine]" "Shows Desktop Commander and recovery state."; exit 0 ;;
+  "") ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
+if [ "$MODE" = machine ]; then cat "$STATE/status"; exit 0; fi
+if [ "$MODE" = json ]; then
   python - "$STATE/status" <<'PY'
 import json,sys
 out={}
@@ -11,6 +20,38 @@ for line in open(sys.argv[1],encoding="utf-8"):
         out[k]=v
 print(json.dumps(out,indent=2))
 PY
-else
-  cat "$STATE/status"
+  exit $?
 fi
+# Parse the state file as data. Never source status values as shell code.
+while IFS='=' read -r key value; do
+  case "$key" in
+    timestamp) timestamp="$value" ;; owner) owner="$value" ;;
+    mcp_home) mcp_home="$value" ;; recovery_enabled) recovery_enabled="$value" ;;
+    mcp_desired) mcp_desired="$value" ;; mcp_actual) mcp_actual="$value" ;;
+    mcp_process_count) mcp_process_count="$value" ;; remote_pid) remote_pid="$value" ;;
+    credentials) credentials="$value" ;; watchdog_pid) watchdog_pid="$value" ;;
+    watchdog_interval) watchdog_interval="$value" ;; bridge_alarm_sync) bridge_alarm_sync="$value" ;; android_api_level) android_api_level="$value" ;; notifications_enabled) notifications_enabled="$value" ;;
+    github_enabled) github_enabled="$value" ;; github_repo) github_repo="$value" ;;
+    github_owner) github_owner="$value" ;; target) target="$value" ;;
+  esac
+done < "$STATE/status"
+echo "Desktop Commander"
+printf 'Service status: %s\n' "$([ "${mcp_actual:-offline}" = online ] && echo Online || echo Offline)"
+printf 'Saved sign-in: %s\n' "$([ "${credentials:-no}" = yes ] && echo Present || echo Not found)"
+printf 'Process ID: %s\n' "${remote_pid:-not running}"
+printf 'Running processes: %s\n' "${mcp_process_count:-0}"
+printf 'Desired state: %s\n' "${mcp_desired:-unknown}"
+printf 'Session label: %s\n' "${owner:-not set}"
+printf '\n%s\n' "Automatic recovery"
+case "${recovery_enabled:-0}" in 1|yes) echo "Recovery: Enabled" ;; *) echo "Recovery: Disabled" ;; esac
+if [ -n "${watchdog_pid:-}" ] && [ "${watchdog_pid:-none}" != none ] && kill -0 "$watchdog_pid" 2>/dev/null; then echo "Watchdog: Running"; else echo "Watchdog: Stopped"; fi
+printf 'Watchdog interval: %s seconds\n' "${watchdog_interval:-not set}"
+printf 'Android recovery alarm: %s\n' "${bridge_alarm_sync:-unknown}"
+printf 'Android API level: %s\n' "${android_api_level:-unknown}"
+if [ "${github_enabled:-0}" = 1 ]; then
+  echo "GitHub control: Configured"
+  [ -n "${github_repo:-}" ] && printf 'Control repository: %s\n' "$github_repo"
+else
+  echo "GitHub control: Not configured"
+fi
+exit 0

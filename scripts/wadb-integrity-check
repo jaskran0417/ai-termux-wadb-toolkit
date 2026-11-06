@@ -1,13 +1,27 @@
 #!/data/data/com.termux/files/usr/bin/bash
-set -euo pipefail
+set -u
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
-command -v node >/dev/null 2>&1 || {
-  echo "Node.js is required for the signed integrity check. Install it with: pkg install nodejs" >&2
-  exit 2
-}
-if [ "$#" -eq 0 ] && [ -z "${WADB_TRUSTED_RELEASE_KEY_SHA256:-}" ]; then
-  echo "An independently obtained release-key fingerprint is required:" >&2
-  echo "  wadb-integrity-check --expected-fingerprint YOUR_TRUSTED_FINGERPRINT" >&2
-  exit 2
+command -v node >/dev/null 2>&1 || { echo "Node.js is required for the signed integrity check. Install it with: pkg install nodejs" >&2; exit 2; }
+MODE=human
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  printf '%s\n' "Usage: wadb-integrity-check [--machine] [--expected-fingerprint SHA256]" "Verifies the installed signed file inventory; this command does not modify the Toolkit."
+  exit 0
 fi
-exec node "$PREFIX/libexec/ai-wadb/verify-installed.js" "$@"
+if [ "${1:-}" = "--machine" ]; then MODE=machine; shift; fi
+if [ "$MODE" = machine ]; then exec node "$PREFIX/libexec/ai-wadb/verify-installed.js" "$@"; fi
+output="$(node "$PREFIX/libexec/ai-wadb/verify-installed.js" "$@" 2>&1)"
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "Installed Toolkit integrity: FAILED"
+  printf '%s\n' "$output" | sed -E 's/^RELEASE_VERSION=/Release: /; s/^SIGNATURE=/Signature: /; s/^TRUST_PIN_MATCH=/Trusted key matched: /; s/^FILES_CHECKED=/Files checked: /; s/^FILES_FAILED=/Files failed: /; s/^INSTALLED_INTEGRITY=/Result: /; s/^MODIFIED=/Problem: /'
+  exit "$rc"
+fi
+version="$(printf '%s\n' "$output" | sed -n 's/^RELEASE_VERSION=//p' | tail -n1)"
+checked="$(printf '%s\n' "$output" | sed -n 's/^FILES_CHECKED=//p' | tail -n1)"
+failed="$(printf '%s\n' "$output" | sed -n 's/^FILES_FAILED=//p' | tail -n1)"
+echo "Installed Toolkit integrity: VERIFIED"
+printf 'Release version: %s\n' "$version"
+printf '%s\n' "Release signature: Valid" "Trusted signing key: Matched"
+printf 'Installed files checked: %s\n' "$checked"
+printf 'Files with problems: %s\n' "$failed"
+exit 0

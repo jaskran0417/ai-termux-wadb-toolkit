@@ -1,7 +1,7 @@
 {
   "name": "AI Termux WADB Toolkit",
-  "version": "1.0.2",
-  "release_date": "2026-11-02",
+  "version": "1.0.3",
+  "release_date": "2026-11-06",
   "interface": {
     "human": "ai-info",
     "guided": "ai-info",
@@ -13,7 +13,7 @@
     "wireless_adb": true,
     "typed_mdns_discovery": true,
     "trusted_key_first": true,
-    "wadb_bridge_version": "1.5",
+    "wadb_bridge_version": "1.6",
     "desktop_commander_mcp_docs": true,
     "mcp_local_recovery": true,
     "mcp_boot_recovery": true,
@@ -111,7 +111,27 @@
     "localhost_wireless_debugging_required": false,
     "localhost_wifi_required": false,
     "localhost_adbd_required": false,
-    "localhost_adb_enabled_required": false
+    "localhost_adb_enabled_required": false,
+    "human_status_output": true,
+    "machine_status_modes": true,
+    "bridge_package_version_read_without_adb": true,
+    "bootstrap_status_exit_codes": true,
+    "recovery_control_receiver_exported": true,
+    "recovery_control_receiver_explicit_only": true,
+    "recovery_control_sender_uid_verified": false,
+    "recovery_control_min_android_api": 30,
+    "recovery_alarm_one_shot": true,
+    "recovery_alarm_rearmed_only_after_enabled_job": true,
+    "recovery_alarm_state_query": true,
+    "recovery_disable_cancels_bridge_alarm": true,
+    "recovery_job_rechecks_master_switch_before_rearm": true,
+    "recovery_requires_termux_run_command_permission": true,
+    "recovery_setup_verifies_run_command_before_enable": true,
+    "recovery_setup_rolls_back_external_apps_on_failure": true,
+    "bridge_notifications_optional_for_recovery": true,
+    "recovery_no_alarm_when_disabled": true,
+    "recovery_control_permission_protected": true,
+    "recovery_control_sender_permission": "android.permission.WRITE_SECURE_SETTINGS"
   },
   "github_allowed_actions": [
     "START_MCP",
@@ -123,7 +143,7 @@
     "LOGOUT_MCP"
   ],
   "privilege": "Termux app UID for normal local execution and Local Termux Shell; Wireless ADB is separate and only uses Android shell UID when explicitly enabled and authorised; optional owner-authorised su on rooted devices.",
-  "wadb_bridge_apk_sha256": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4",
+  "wadb_bridge_apk_sha256": "f5005c2c3509ab4baecf5c44ae58772af3cf016f2d5339bf869ebc8130ecef55",
   "wadb_bridge_certificate_sha256": "e99e14787a8e24e8b12b59f2b3d71f4a114ddcaa72d4d837e4839de87436579a",
   "release_security": {
     "signature_algorithm": "Ed25519",

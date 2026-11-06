@@ -1,67 +1,66 @@
 #!/data/data/com.termux/files/usr/bin/bash
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine ;;
+  --help|-h) printf '%s\n' "Usage: wadb-mcp-github-test [--machine]" "Reads and validates the configured GitHub control file. It never executes the action."; exit 0 ;;
+  "") ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
 source /data/data/com.termux/files/usr/libexec/ai-wadb/mcp-recovery-common
 
 [ "$GITHUB_ENABLED" = "1" ] || {
-  echo "GITHUB_RECOVERY=DISABLED"
+  if [ "$MODE" = machine ]; then echo "GITHUB_RECOVERY=DISABLED"; else echo "GitHub recovery: Not configured."; echo "- No remote control file was fetched."; echo "- This is optional and does not affect Desktop Commander MCP."; fi
   exit 2
 }
 
 json="$(/data/data/com.termux/files/usr/libexec/ai-wadb/github-control-fetch)" || {
-  echo "GITHUB_READ=FAIL"
-  echo "MODE=$GITHUB_READ_MODE"
-  echo "ERROR=$(cat "$STATE/github.read_error" 2>/dev/null || echo unknown)"
+  if [ "$MODE" = machine ]; then
+    printf '%s\n' "GITHUB_READ=FAIL" "MODE=$GITHUB_READ_MODE" "ERROR=$(cat "$STATE/github.read_error" 2>/dev/null || echo unknown)"
+  else
+    echo "GitHub control check: Could not read the configured control file."
+    echo "- Read mode: $GITHUB_READ_MODE."
+    echo "- Check repository access, branch/file name and the saved read-only credentials."
+  fi
   exit 3
 }
 
 parsed="$(printf '%s' "$json" | python -c 'import json,sys; d=json.load(sys.stdin); print(str(d.get("schema",""))+"\t"+str(d.get("generation",""))+"\t"+str(d.get("action",""))+"\t"+str(d.get("target","")))' 2>/dev/null)" || {
-  echo "GITHUB_READ=INVALID_JSON"
+  if [ "$MODE" = machine ]; then echo "GITHUB_READ=INVALID_JSON"; else echo "GitHub control check: The downloaded file is not valid JSON."; fi
   exit 4
 }
 IFS=$'\t' read -r schema gen action target <<< "$parsed"
 
-echo "GITHUB_READ=PASS"
-echo "MODE_REQUESTED=$GITHUB_READ_MODE"
-echo "MODE_USED=$(cat "$STATE/github.read_mode.last" 2>/dev/null || echo unknown)"
-echo "SCHEMA=$schema"
-echo "GENERATION=$gen"
-echo "ACTION=$action"
-echo "TARGET=$target"
-echo "EXPECTED_TARGET=$MCP_TARGET"
+mode_used="$(cat "$STATE/github.read_mode.last" 2>/dev/null || echo unknown)"
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "GITHUB_READ=PASS" "MODE_REQUESTED=$GITHUB_READ_MODE" "MODE_USED=$mode_used" "SCHEMA=$schema" "GENERATION=$gen" "ACTION=$action" "TARGET=$target" "EXPECTED_TARGET=$MCP_TARGET"
+fi
 
 [ "$schema" = "1" ] || {
-  echo "GITHUB_CONTROL_VALID=FAIL"
-  echo "ERROR=unsupported_schema"
+  if [ "$MODE" = machine ]; then echo "GITHUB_CONTROL_VALID=FAIL"; echo "ERROR=unsupported_schema"; else echo "GitHub control check: Unsupported schema version."; fi
   exit 5
 }
 [[ "$gen" =~ ^[0-9]+$ ]] || {
-  echo "GITHUB_CONTROL_VALID=FAIL"
-  echo "ERROR=invalid_generation"
+  if [ "$MODE" = machine ]; then echo "GITHUB_CONTROL_VALID=FAIL"; echo "ERROR=invalid_generation"; else echo "GitHub control check: The generation number is invalid."; fi
   exit 5
 }
 case "$action" in
   START_MCP|STOP_MCP|RESTART_MCP|STATUS) ;;
   *)
-    echo "GITHUB_CONTROL_VALID=FAIL"
-    echo "ERROR=invalid_action"
+    if [ "$MODE" = machine ]; then echo "GITHUB_CONTROL_VALID=FAIL"; echo "ERROR=invalid_action"; else echo "GitHub control check: The requested action is not supported."; fi
     exit 5
     ;;
 esac
 [ "$target" = "$MCP_TARGET" ] || {
-  echo "GITHUB_CONTROL_VALID=FAIL"
-  echo "ERROR=target_mismatch"
+  if [ "$MODE" = machine ]; then echo "GITHUB_CONTROL_VALID=FAIL"; echo "ERROR=target_mismatch"; else echo "GitHub control check: The control file targets a different device/session."; info="Expected target: $MCP_TARGET; received target: $target."; echo "- $info"; fi
   exit 5
 }
 
 identity="$GITHUB_OWNER/$GITHUB_REPO@$GITHUB_BRANCH:$GITHUB_FILE#$MCP_TARGET"
 baseline_identity="$(cat "$STATE/github.control_identity" 2>/dev/null || true)"
 last="$(cat "$STATE/github.last_generation" 2>/dev/null || echo 0)"
-echo "CONTROL_IDENTITY=$identity"
-echo "LAST_PROCESSED_GENERATION=$last"
-if [ "$baseline_identity" = "$identity" ]; then
-  echo "BASELINE_ON_NEXT_SYNC=no"
+if [ "$baseline_identity" = "$identity" ]; then baseline=yes; else baseline=no; fi
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "CONTROL_IDENTITY=$identity" "LAST_PROCESSED_GENERATION=$last" "BASELINE_ON_NEXT_SYNC=$([ "$baseline" = yes ] && echo no || echo yes)" "ACTION_EXECUTED=no" "GITHUB_CONTROL_VALID=PASS"
 else
-  echo "BASELINE_ON_NEXT_SYNC=yes"
-  echo "BASELINE_NOTE=current_generation_will_be_recorded_without_executing_current_action"
+  printf '%s\n' "GitHub control check: Valid." "- Repository: $GITHUB_OWNER/$GITHUB_REPO." "- Branch: $GITHUB_BRANCH; file: $GITHUB_FILE." "- Generation: $gen; requested action: $action." "- Target: $target." "- Previous processed generation: $last." "- Baseline required on next sync: $([ "$baseline" = yes ] && echo No || echo Yes)." "No remote action was executed by this test."
 fi
-echo "ACTION_EXECUTED=no"
-echo "GITHUB_CONTROL_VALID=PASS"

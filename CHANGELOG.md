@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.3 — recovery, connectivity and status improvements (2026-11-06)
+
+- Replaced the repeating Android recovery alarm with a one-shot check that is re-armed only after the Termux recovery job confirms recovery remains enabled.
+- Added an explicit-only Bridge alarm-control receiver protected by Android's `WRITE_SECURE_SETTINGS` sender permission.
+- Added live pending-alarm state queries so MCP status and AI Info report the Bridge's actual pending alarm state.
+- Recovery disable now cancels the Android Bridge alarm as well as stopping the local watchdog.
+- Added a recovery master-switch check immediately before alarm re-arming to prevent a concurrent disable from being undone.
+- Recovery setup verifies the Bridge's `com.termux.permission.RUN_COMMAND` grant before enabling recovery or changing Termux external-command access.
+- Recovery setup restores the previous Termux external-command setting if Bridge alarm scheduling fails.
+- Bridge notification permission remains optional and separate from the required Termux command-integration permission.
+- Increased the Termux:API notification helper timeout to accommodate slower notification responses after boot while retaining a finite limit.
+- Replaced raw Wireless Debugging broadcast output with readable status, permission and verification summaries, with separate machine-readable modes.
+- Corrected bootstrap reporting so Wireless Debugging state is distinct from ADB transport connectivity and Bridge errors are not silently suppressed.
+- Added a Package Manager fallback for detecting the installed Bridge version when ADB is disconnected.
+- Improved human-readable MCP, Local Termux Shell, pairing, connection and installed-integrity status while retaining JSON and machine interfaces.
+- Updated the WADB Bridge to version 1.6 (versionCode 7) and aligned its recovery control implementation, documentation and package metadata.
+- Preserved the existing USB/Wireless debugging separation, trusted ADB-key handling, Desktop Commander authorization and local-shell security boundaries.
+
 ## 1.0.2 — installed-integrity version hotfix (2026-11-02)
 
 - Fixed the installed-file verifier's release identity check: it now requires the same 1.0.2 version written into the signed installed inventory.
@@ -14,7 +32,6 @@
 - Expanded the Android recovery receiver, alarm schedule, fixed Termux RUN_COMMAND hand-off, and permission-activity boundaries.
 - Clarified Secure Local Shell loopback binding/token authentication and separated Desktop Commander MCP tool names from Toolkit commands.
 - Documented the optional Termux:API commands and the distinct Bridge notification channel.
-
 
 ## 1.0.1 — documentation and setup clarity update (2026-11-02)
 

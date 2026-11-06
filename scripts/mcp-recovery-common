@@ -28,6 +28,107 @@ NOTIFY_MCP_STATE="${NOTIFY_MCP_STATE:-1}"
 NOTIFY_WATCHDOG_STATE="${NOTIFY_WATCHDOG_STATE:-1}"
 NOTIFY_RECOVERY_FAILURES="${NOTIFY_RECOVERY_FAILURES:-1}"
 
+BRIDGE_PACKAGE="com.jaskran.wadbbridge"
+BRIDGE_CONTROL_ACTION="com.jaskran.wadbbridge.SET_RECOVERY_ALARM_STATE"
+BRIDGE_CONTROL_COMPONENT="com.jaskran.wadbbridge/.RecoveryControlReceiver"
+
+bridge_android_api() {
+  local api
+  api="$(getprop ro.build.version.sdk 2>/dev/null || true)"
+  [[ "$api" =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$api"
+}
+
+# The exported Bridge control receiver is protected by Android's
+# WRITE_SECURE_SETTINGS sender permission, which Termux already holds.
+bridge_recovery_alarm() {
+  local requested api operation result
+  requested="${1:-}"
+  case "$requested" in
+    enable|enabled|on|1) operation=schedule ;;
+    disable|disabled|off|0) operation=cancel ;;
+    query|status) operation=query ;;
+    *) echo "Bridge recovery alarm: invalid state request." >&2; return 2 ;;
+  esac
+  api="$(bridge_android_api)" || return 3
+  if [ "$api" -lt 30 ]; then
+    echo "Bridge recovery alarm: Android 11 or later is required." >&2
+    return 4
+  fi
+  [ -x /system/bin/am ] || return 5
+  result="$(/system/bin/am broadcast --user 0 \
+    -n "$BRIDGE_CONTROL_COMPONENT" \
+    -a "$BRIDGE_CONTROL_ACTION" \
+    --es operation "$operation" 2>&1)" || {
+      printf '%s\n' "$result" >&2
+      return 6
+    }
+
+  if [ "$operation" = query ]; then
+    if printf '%s\n' "$result" | grep -q 'Broadcast completed: result=-1'; then
+      printf 'scheduled\n' > "$STATE/bridge_alarm_state"
+      echo "Bridge recovery alarm: One-shot is currently scheduled."
+      return 0
+    fi
+    if printf '%s\n' "$result" | grep -q 'Broadcast completed: result=0'; then
+      printf 'cancelled\n' > "$STATE/bridge_alarm_state"
+      echo "Bridge recovery alarm: No pending one-shot."
+      return 0
+    fi
+  elif printf '%s\n' "$result" | grep -q 'Broadcast completed: result=-1'; then
+    if [ "$operation" = schedule ]; then
+      printf 'scheduled\n' > "$STATE/bridge_alarm_state"
+      echo "Bridge recovery alarm: One-shot check scheduled."
+    else
+      printf 'cancelled\n' > "$STATE/bridge_alarm_state"
+      echo "Bridge recovery alarm: Cancelled."
+    fi
+    return 0
+  fi
+
+  printf '%s\n' "$result" >&2
+  printf 'unknown\n' > "$STATE/bridge_alarm_state"
+  echo "Bridge recovery alarm: request was not acknowledged by the Bridge." >&2
+  return 7
+}
+
+# Query Bridge-owned permissions through its WRITE_SECURE_SETTINGS-protected local control channel.
+# Returns 0=granted, 1=denied, 2=Bridge/receiver unavailable or result unverified.
+bridge_permission_granted() {
+  local permission operation api result
+  permission="${1:-}"
+  case "$permission" in
+    run-command) operation=permission ;;
+    notifications) operation=notifications ;;
+    *) echo "Bridge permission query: unsupported permission." >&2; return 2 ;;
+  esac
+  api="$(bridge_android_api)" || return 2
+  [ "$api" -ge 30 ] 2>/dev/null || return 2
+  result="$(/system/bin/am broadcast --user 0 \
+    -n "$BRIDGE_CONTROL_COMPONENT" \
+    -a "$BRIDGE_CONTROL_ACTION" \
+    --es operation "$operation" 2>&1)" || {
+      printf '%s\n' "$result" >&2
+      return 2
+    }
+  if printf '%s\n' "$result" | grep -q 'Broadcast completed: result=-1'; then
+    return 0
+  fi
+  if printf '%s\n' "$result" | grep -q 'Broadcast completed: result=1'; then
+    return 1
+  fi
+  printf '%s\n' "$result" >&2
+  return 2
+}
+
+bridge_run_command_granted() {
+  bridge_permission_granted run-command
+}
+
+bridge_notifications_granted() {
+  bridge_permission_granted notifications
+}
+
 watchdog_pid_live() {
   local p="${1:-}"
   [ -n "$p" ] && [ -r "/proc/$p/cmdline" ] || return 1
@@ -121,14 +222,28 @@ pid_matches_mcp() {
 }
 
 find_mcp_pids() {
-  local envf p
-  for envf in /proc/[0-9]*/environ; do
-    p="${envf#/proc/}"; p="${p%/environ}"
-    pid_matches_mcp "$p" && printf '%s\n' "$p"
+  # Check cmdline first; reading every process environment on Android is slow.
+  # Only processes whose command line names Desktop Commander are checked for HOME.
+  local cmdf p command_line
+  for cmdf in /proc/[0-9]*/cmdline; do
+    p="${cmdf#/proc/}"; p="${p%/cmdline}"
+    [ -r "$cmdf" ] || continue
+    command_line="$(tr '\0' ' ' < "$cmdf" 2>/dev/null)"
+    case "$command_line" in
+      *desktop-commander*/dist/index.js*" remote"*|*npx*desktop-commander*" remote"*)
+        pid_matches_mcp "$p" && printf '%s\n' "$p"
+        ;;
+    esac
   done
 }
 
 find_mcp_pid() {
+  local cached
+  cached="$(cat "$STATE/remote.pid" 2>/dev/null || true)"
+  if [ -n "$cached" ] && pid_matches_mcp "$cached"; then
+    printf '%s\n' "$cached"
+    return 0
+  fi
   find_mcp_pids 2>/dev/null | head -n1
 }
 
@@ -209,8 +324,9 @@ stop_now() {
 }
 
 write_status() {
-  local p desired creds wd owner rec actual count
+  local p desired creds wd owner rec actual count bridge_alarm api_level
   p="$(find_mcp_pid 2>/dev/null || true)"
+  if [ -n "$p" ]; then printf '%s\n' "$p" > "$STATE/remote.pid"; fi
   count="$(find_mcp_pids 2>/dev/null | wc -l | tr -d ' ')"
   desired="$(mcp_desired_value)"
   creds="$(credentials_state)"
@@ -219,6 +335,11 @@ write_status() {
   owner="$(owner_label)"
   [ -n "$owner" ] || owner="NOT_SET"
   recovery_enabled && rec=yes || rec=no
+  api_level="$(bridge_android_api 2>/dev/null || echo unknown)"
+  if [ "$api_level" -ge 30 ] 2>/dev/null; then
+    bridge_recovery_alarm query >/dev/null 2>&1 || true
+  fi
+  bridge_alarm="$(cat "$STATE/bridge_alarm_state" 2>/dev/null || echo unknown)"
   [ -n "$p" ] && actual=online || actual=offline
   {
     echo "timestamp=$(date -Iseconds)"
@@ -233,6 +354,8 @@ write_status() {
     echo "credentials=$creds"
     echo "watchdog_pid=${wd:-none}"
     echo "watchdog_interval=$WATCHDOG_INTERVAL"
+    echo "bridge_alarm_sync=$bridge_alarm"
+    echo "android_api_level=$api_level"
     echo "notifications_enabled=${NOTIFICATIONS_ENABLED:-1}"
     echo "github_enabled=$GITHUB_ENABLED"
     echo "github_owner=$GITHUB_OWNER"

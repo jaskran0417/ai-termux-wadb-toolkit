@@ -1,4 +1,4 @@
-# AI Termux WADB Environment — v1.0.2
+# AI Termux WADB Environment — v1.0.3
 
 This file is the installed environment reference. The mandatory AI workflow is in:
 
@@ -236,7 +236,7 @@ The toolkit keeps **automatic recovery** separate from the desired Desktop Comma
 
 If the watcher dies while recovery is enabled and MCP is intentionally offline, `wadb-mcp-job` may restore the watcher while leaving MCP offline. This lets a later GitHub `START_MCP` work without incorrectly turning MCP on during watcher restoration.
 
-The normal watchdog interval is 15 seconds. The WADB Bridge Android recovery alarm is a slower fallback and remains separate from the 15-second Termux watchdog.
+The normal watchdog interval is 15 seconds. The WADB Bridge Android recovery alarm is a one-shot fallback scheduled for about fifteen minutes later and re-armed only after the Termux recovery job confirms that recovery is enabled. Disable cancels the alarm. The explicit-only Bridge control channel is protected by Android's WRITE_SECURE_SETTINGS sender permission (already granted to the Toolkit's Termux app); the Bridge's Termux RUN_COMMAND permission is separately required for recovery jobs.
 
 ### Notifications
 
@@ -244,7 +244,7 @@ Recovery notifications are local Android notifications; no Firebase/FCM or exter
 
 When both the Termux `termux-api` command package and the compatible Termux:API Android companion app are available, Termux can notify on state transitions such as watchdog start, MCP start/stop/recovery, GitHub recovery, and recovery enable/disable. Successful 15-second heartbeat checks remain silent.
 
-WADB Bridge v1.5 (versionCode 6) also has a native **WADB Recovery** notification channel for Android-side boot, package-replaced, and explicit recovery-check transitions. Recurring fifteen-minute alarm checks are silent. On Android 13 and later, notification permission may be requested; denying notification permission suppresses notifications but does not disable recovery.
+WADB Bridge v1.6 (versionCode 7) also has a native **WADB Recovery** notification channel for Android-side boot, package-replaced, and explicit recovery-check transitions. The one-shot alarm check is silent. On Android 13 and later, notification permission may be requested; denying notification permission suppresses notifications but does not disable recovery.
 
 ### Termux:API is an optional capability
 

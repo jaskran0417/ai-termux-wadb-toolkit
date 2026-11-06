@@ -6,6 +6,13 @@ PREFIX=/data/data/com.termux/files/usr
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PATH="$SCRIPT_DIR:$PREFIX/bin:/system/bin:$PATH"
 export PATH
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine; shift ;;
+  --help|-h) printf '%s\n' "Usage: wadb-local-on [--machine]" "Starts the authenticated loopback Local Termux Shell under the Termux app UID." "This does not enable USB or Wireless debugging."; exit 0 ;;
+esac
+[ "$#" -eq 0 ] || { printf 'Unknown option: %s\n' "$1" >&2; exit 2; }
+report() { code="$1"; message="$2"; rc="${3:-1}"; if [ "$MODE" = machine ]; then echo "RESULT=$code"; else echo "Local Termux Shell: $message"; fi; return "$rc"; }
 
 PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
 BRIDGE_BIN="$PREFIX/libexec/ai-wadb/wadb-local-bridge"
@@ -14,19 +21,16 @@ LAUNCH_TOKEN="$TERMUX_HOME/.ai-wadb/.local-bridge-launch.$$"
 TERMUX_UID="$(id -u 2>/dev/null || true)"
 
 case "$PORT" in
-  ''|*[!0-9]*) echo "RESULT=INVALID_PORT"; exit 2 ;;
+  ''|*[!0-9]*) report INVALID_PORT "The requested loopback port is invalid." 2; exit 2 ;;
 esac
 if [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then
-  echo "RESULT=INVALID_PORT"
+  report INVALID_PORT "The requested loopback port must be between 1024 and 65535." 2
   exit 2
 fi
 case "$TERMUX_UID" in
-  ''|*[!0-9]*) echo "RESULT=TERMUX_UID_UNAVAILABLE"; exit 2 ;;
+  ''|*[!0-9]*) report TERMUX_UID_UNAVAILABLE "The Termux app identity could not be read." 2; exit 2 ;;
 esac
-[ -x "$BRIDGE_BIN" ] || {
-  echo "RESULT=LOCAL_BRIDGE_BINARY_MISSING"
-  exit 2
-}
+[ -x "$BRIDGE_BIN" ] || { report LOCAL_BRIDGE_BINARY_MISSING "The secure local-shell helper is missing; reinstall Toolkit files." 2; exit 2; }
 
 mkdir -p "$TERMUX_HOME/.ai-wadb"
 chmod 700 "$TERMUX_HOME/.ai-wadb"
@@ -50,20 +54,20 @@ current_ping="$(ping_current)"
 current_uid="$(printf '%s\n' "$current_ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
 
 if [ "$current_uid" = "$TERMUX_UID" ]; then
-  status="$(wadb-local-status 2>/dev/null || true)"
-  printf '%s\n' "$status"
-  echo "RESULT=SECURE_LOCAL_BRIDGE_ALREADY_READY"
-  echo "RUNTIME_UID=$TERMUX_UID"
-  echo "USB_DEBUGGING_REQUIRED=no"
-  echo "WIRELESS_DEBUGGING_REQUIRED=no"
+  status="$(wadb-local-status --machine 2>/dev/null || true)"
+  if [ "$MODE" = machine ]; then
+    printf '%s\n' "$status" "RESULT=SECURE_LOCAL_BRIDGE_ALREADY_READY" "RUNTIME_UID=$TERMUX_UID" "USB_DEBUGGING_REQUIRED=no" "WIRELESS_DEBUGGING_REQUIRED=no"
+  else
+    printf '%s\n' "Local Termux Shell" "- Status: Already running and authenticated." "- Runtime identity: Termux app UID $TERMUX_UID." "- Endpoint: 127.0.0.1:$PORT." "- Network exposure: Loopback only." "- USB/Wireless debugging: Not required."
+  fi
   exit 0
 fi
 
 # A bridge from the previous release can be stopped only while its saved token works.
 if [ -n "$current_uid" ]; then
-  echo "LEGACY_BRIDGE_UID=$current_uid"
+  [ "$MODE" = machine ] && echo "LEGACY_BRIDGE_UID=$current_uid" || echo "- Updating an older local-shell helper under the same authenticated Termux identity."
   wadb-local-shell --stop >/dev/null 2>&1 || {
-    echo "RESULT=LEGACY_BRIDGE_STOP_FAILED"
+    report LEGACY_BRIDGE_STOP_FAILED "An older local-shell helper could not be stopped safely." 20
     exit 20
   }
   stopped=0
@@ -72,13 +76,19 @@ if [ -n "$current_uid" ]; then
     sleep 1
   done
   if [ "$stopped" -ne 1 ]; then
-    echo "RESULT=LEGACY_BRIDGE_PORT_STILL_OCCUPIED"
+    report LEGACY_BRIDGE_PORT_STILL_OCCUPIED "The previous local-shell listener is still occupying the port." 21
     exit 21
   fi
 elif port_open; then
   # Do not kill an unknown process or switch debugging on to reclaim the port.
-  echo "RESULT=LOCAL_BRIDGE_PORT_OCCUPIED"
-  echo "ACTION=inspect_the_existing_127.0.0.1_listener_without_enabling_debugging"
+  if [ "$MODE" = machine ]; then
+    echo "RESULT=LOCAL_BRIDGE_PORT_OCCUPIED"
+    echo "ACTION=inspect_the_existing_127.0.0.1_listener_without_enabling_debugging"
+  else
+    echo "Local Termux Shell: The loopback port is already in use by an unrecognised process."
+    echo "- No process was killed and no debugging setting was changed."
+    echo "- Inspect the 127.0.0.1:$PORT listener before trying again."
+  fi
   exit 22
 fi
 
@@ -111,28 +121,30 @@ rm -f "$LAUNCH_TOKEN"
 
 if [ "$ready" -ne 1 ]; then
   rm -f "$TOKEN_FILE"
-  echo "RESULT=LOCAL_BRIDGE_START_FAILED"
-  echo "EXPECTED_RUNTIME_UID=$TERMUX_UID"
-  echo "OBSERVED_RUNTIME_UID=${runtime_uid:-none}"
+  if [ "$MODE" = machine ]; then
+    echo "RESULT=LOCAL_BRIDGE_START_FAILED" "EXPECTED_RUNTIME_UID=$TERMUX_UID" "OBSERVED_RUNTIME_UID=${runtime_uid:-none}"
+  else
+    echo "Local Termux Shell: The helper did not pass its authentication check."
+    echo "- Expected runtime identity: Termux app UID $TERMUX_UID."
+    echo "- Observed identity: ${runtime_uid:-unavailable}."
+  fi
   exit 23
 fi
 
-status="$(wadb-local-status)"
-printf '%s\n' "$status"
+status="$(wadb-local-status --machine)"
+[ "$MODE" = machine ] && printf '%s\n' "$status"
 state="$(printf '%s\n' "$status" | sed -n 's/^LOCAL_ADB_STATE=//p' | tail -n1)"
 scope="$(printf '%s\n' "$status" | sed -n 's/^LISTENER_SCOPE=//p' | tail -n1)"
 exposure="$(printf '%s\n' "$status" | sed -n 's/^ADBD_TCP_EXPOSURE=//p' | tail -n1)"
 if [ "$state" != "ready" ] || [ "$scope" != "loopback_only" ] || [ "$exposure" != "none" ]; then
   wadb-local-shell --stop >/dev/null 2>&1 || true
   rm -f "$TOKEN_FILE"
-  echo "RESULT=LOCAL_BRIDGE_FINAL_VERIFY_FAILED"
+  report LOCAL_BRIDGE_FINAL_VERIFY_FAILED "The local-shell listener did not pass its loopback/security verification; it was stopped." 24
   exit 24
 fi
 
-echo "RESULT=SECURE_LOCAL_BRIDGE_READY"
-echo "RUNTIME_UID=$TERMUX_UID"
-echo "LISTENER=127.0.0.1:$PORT"
-echo "USB_DEBUGGING_REQUIRED=no"
-echo "WIRELESS_DEBUGGING_REQUIRED=no"
-echo "WIFI_REQUIRED=no"
-echo "ADBD_REQUIRED=no"
+if [ "$MODE" = machine ]; then
+  printf '%s\n' "RESULT=SECURE_LOCAL_BRIDGE_READY" "RUNTIME_UID=$TERMUX_UID" "LISTENER=127.0.0.1:$PORT" "USB_DEBUGGING_REQUIRED=no" "WIRELESS_DEBUGGING_REQUIRED=no" "WIFI_REQUIRED=no" "ADBD_REQUIRED=no"
+else
+  printf '%s\n' "Local Termux Shell: Started and verified." "- Runtime identity: Termux app UID $TERMUX_UID." "- Endpoint: 127.0.0.1:$PORT." "- Authentication: Random token; token file is private." "- Listener scope: Loopback only." "- USB debugging: Not required." "- Wireless Debugging: Not required." "- Wi-Fi and Android adbd: Not required." "The Local Termux Shell is independent of Wireless ADB and Desktop Commander MCP."
+fi

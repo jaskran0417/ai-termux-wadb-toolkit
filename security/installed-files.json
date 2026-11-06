@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "name": "AI Termux WADB Toolkit",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "signature_algorithm": "Ed25519",
   "release_key_sha256": "87aaf967095808f2e384ed912a3d28c6e1d969774d4975a905468f26b4078ca5",
   "targets": [
@@ -14,7 +14,7 @@
     {
       "kind": "PREFIX_BIN",
       "path": "ai-info",
-      "sha256": "c5fc896bb5c9132f0a733ad03548b513a5ff97560a42b3bb9dbd99244ea271d4",
+      "sha256": "4fb1b214f82227295c4af42cb6c076680a803b1ca91e4fdc7e8f0573de26271e",
       "mode": "755"
     },
     {
@@ -26,25 +26,25 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-bootstrap",
-      "sha256": "d81cab9e5b54e6009e4dd5b5a6b54a02c9d6dd0f12fc265fbf9e209f6a375847",
+      "sha256": "b2dd4fcd029cde95e6e4f005d0a14da418ae10a6f3a0d59c88a5acc257e5c266",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-integrity-check",
-      "sha256": "54031e76ed14233528f62924b0b35a938e85bb7ad74c27f3e725f554f3369459",
+      "sha256": "c6eb4d8ddbcf8f35c843a31cf42aafa0d52251458c917df55211eca4b1834695",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-local-off",
-      "sha256": "c432334be37365ac41cb377411602d9b6e16c9956057819b3b8fe465658c369f",
+      "sha256": "d250c1ec62f807bd6712ed1f5d9b9194e2b1737c4c75829fa18e4b8ad7da49fa",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-local-on",
-      "sha256": "4b635236aa1be92a16eb694076577487e11ddf967ed760a254190c1fd35c3ff3",
+      "sha256": "bcd8f53ee446c49582916c0170080cccbeda1934890d13b74d388a44427a76dd",
       "mode": "755"
     },
     {
@@ -56,7 +56,7 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-local-status",
-      "sha256": "476c339023c5f2f441b3611c7ddf3c8706bc44e0c57899d5bd151d57c7613149",
+      "sha256": "5875b847dcfd1c1ddff1f6ae0af7608d2eed45c7dfd5bc1bee26bb07c84a2e14",
       "mode": "755"
     },
     {
@@ -68,19 +68,19 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-github-sync",
-      "sha256": "f00202ee7937b1b0e37327287f5205b4e41d56aba3ba8ec0428192abe9a2c6b4",
+      "sha256": "25123ef1adf067f3fc64d05e6c75fc59a5b5cbd44a3b02119e03faf9b19cfd5e",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-github-test",
-      "sha256": "38161758ca7eb4030c2b071d8d3408fa59e3c8ad196a82544de7a26211f3a7a9",
+      "sha256": "532aadd52899fa1c1997fa5f5f6c7c44dc0177e2374b070c8132db66b992f798",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-job",
-      "sha256": "aab61c93b91ee7b49a86a2c8d06a80c6f971d3a51ec03303cbec34d0d82fa01d",
+      "sha256": "9792b565a0a0a093776cdac6c331cb499774594640c72530a85a9ab36cbf9be9",
       "mode": "755"
     },
     {
@@ -98,37 +98,37 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-recovery-disable",
-      "sha256": "b0053d378bfc3da6dbc432954bdcc5f05d72aee72cf9dce0e72d3a951f7d8ca3",
+      "sha256": "580e27b845d905e2e0e5b1fdcfe22de62fd3bb6c3f05149a965aab615fb2ba1e",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-recovery-setup",
-      "sha256": "0cadf9d14d968ea4efe1e6c7e8626f39fa35df7174942a9f8a1233f10b1d58ad",
+      "sha256": "8d46f8fa7360a567d0f0bb7500e84e11bfb345a5070e35c3955154dbb735ec0c",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-restart",
-      "sha256": "f534d66881123a5b41d3aa440deb2b0705c1fa3a6480c7bdde6bb12a659bdc30",
+      "sha256": "c19d25cc3acd0e6b995e4526f6fd621a4982d7c4b057df8cf94b2987c1abfef2",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-start",
-      "sha256": "042eeb851faace7da9a1c10bc80d0a5d1f9c64829c98d60d19ddaf92e1606aae",
+      "sha256": "01cd9f356fff6416de7e09bd735a68af451ac26364df4abd6f0e1640eae5d3d9",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-status",
-      "sha256": "c9d6d8bdce34cf05dc94829f2eaf94084d560a7467e2c13488fd7d2cc5bc4dbe",
+      "sha256": "f09ae4fd0ccce4e3ca0d91970c6bdc14e8e5d88a72522865158eb626f467347c",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-mcp-stop",
-      "sha256": "931163e82b9160b97ee74b4dc77c2471260d760d8a857f05922708a7b7d4fef1",
+      "sha256": "639f064faff14bb6018b9641c73f74620a33614901121961f07515538db0b418",
       "mode": "755"
     },
     {
@@ -146,7 +146,7 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wadb-notify",
-      "sha256": "6a07301a384ae996a4cad9e93c586a2cb6ce2c50e339596e90e94c5fce34621e",
+      "sha256": "4fa4067a75ace55be6ecfbe83016c013e27cdae96c5f41079abb5ffc3aa69c80",
       "mode": "755"
     },
     {
@@ -158,25 +158,25 @@
     {
       "kind": "PREFIX_BIN",
       "path": "wireless-adb-connect",
-      "sha256": "891601b9bcda7943805143de4b33e6daeff4d89283ad8fe848ab7ddca7b84036",
+      "sha256": "414a056a9d1b4778f4d9a6b53244dbc624c13f5999407eb254ab052ad7c78318",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wireless-debug-off",
-      "sha256": "602335321141af929dbf5422a85b5386e568403a316292edc60340c1bdb07d61",
+      "sha256": "591f9a4d8e81991f1b5413cbd38d82796449772f97666aca6b39d208012f4ef8",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wireless-debug-on",
-      "sha256": "7b0e36d5dac0a74feb50f5705a01ac81b5a31300b575f574cbb9d21d48db1aa4",
+      "sha256": "fb5ea178d6e8269497865f42142aabbfdd7bcefc56983465a5514abf522ec6d7",
       "mode": "755"
     },
     {
       "kind": "PREFIX_BIN",
       "path": "wireless-debug-status",
-      "sha256": "eace1bd3b04cecced8df6b10f2f3edf4f73f3a8d6d988eb7b530f518753724f2",
+      "sha256": "608b4b8c90f1eb97dc81fc9a8b4bce456dc1485bd81a5eaf0b00bf8e6a4bbbe1",
       "mode": "755"
     },
     {
@@ -188,19 +188,19 @@
     {
       "kind": "PREFIX_LIBEXEC",
       "path": "mcp-recovery-common",
-      "sha256": "195293d9282912954dbba404ae5acda319edd3e3d3a4895ac8532148a1c2dbd2",
+      "sha256": "9360829b26a0556e6ec7aed3bb6334deaa49858f626ee3c2f7f6f36733e816ea",
       "mode": "755"
     },
     {
       "kind": "PREFIX_LIBEXEC",
       "path": "verify-installed.js",
-      "sha256": "8839dd3b79dea80d00c488d2a5f8097bf377bf8ad440d4f5b7f7418814a44200",
+      "sha256": "6c5c069ff3ac0b82d7280cb978222f496ef2290b344e7f8f6b8e9ff227d2a779",
       "mode": "755"
     },
     {
       "kind": "PREFIX_LIBEXEC",
       "path": "wadb-bridge.apk.sha256",
-      "sha256": "68180029d17673e00c5df34bdbe90e70af423378c675ae7cbf104646b5de09cd",
+      "sha256": "484be26abffdc7eba6bc9427063a821b8962612665f63dad66d68b24c6d3839d",
       "mode": "644"
     },
     {
@@ -218,19 +218,19 @@
     {
       "kind": "PRIVATE_HOME",
       "path": "wadb-bridge.apk",
-      "sha256": "150755ff8f312b7764b954d7b6508f38d51d66ace5e8fe551c0328ce828c68c4",
+      "sha256": "f5005c2c3509ab4baecf5c44ae58772af3cf016f2d5339bf869ebc8130ecef55",
       "mode": "600"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "AI_GUIDE.md",
-      "sha256": "2fa2595147e497c3758dd6bdbd8f8d60691b1460a6e4a0a6aa8d2c4439f25657",
+      "sha256": "02ea3fc89fd960decd633ed79e06a90da637cb1d79035f0f6641863f62d51b9c",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "COMMAND_REFERENCE.md",
-      "sha256": "d54bc0a626ccd8463b795c660bc1adb57ef2adaeadc53e6fe7b0b38f5ae94566",
+      "sha256": "adbb04d47238975e7696325cfd2357cfc1e56696902b4b021bde7fe885db6628",
       "mode": "644"
     },
     {
@@ -248,19 +248,19 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "README.md",
-      "sha256": "b17b89c1b9ea50fea82ea35e8feaa861ca7275dd5ec12cd857eaac5adf396f1b",
+      "sha256": "14c6e95a8660a96433046cf4add202cf33c0e855524f4dd210189655b5cdc3ee",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "TECHNICAL_REFERENCE.md",
-      "sha256": "1b40389be5f6011b718297a015c7679234f4e6793ca33f0ba186e63f3fbfe904",
+      "sha256": "845083d0418b72de95b409af95b9a8967dc1af516a07ebc19f75558ae0ab9c0a",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "toolkit-manifest.json",
-      "sha256": "abf0ec5162ea4df4b632379d065eced84a58929d004f46202ebcf839241a568c",
+      "sha256": "08af1c7919fc19522e159c3e5f36c535734ecab957c6b99654d83729ea747f31",
       "mode": "644"
     },
     {
@@ -272,13 +272,13 @@
     {
       "kind": "TERMUX_HOME_DOCS",
       "path": "USER_GUIDE.md",
-      "sha256": "dea417fbbe7bc345ac0677c09c830ab16b1a138e2654b59922d618a49b085018",
+      "sha256": "355ff9c5d8561f0cd0098cc03998a5b62c238e91b146eea77928cae5993f08eb",
       "mode": "644"
     },
     {
       "kind": "TERMUX_HOME",
       "path": "AI_ENVIRONMENT.md",
-      "sha256": "50d5d470df99ef90c622e33ed4f0a250a6b99a8c8397f2d43c9e90b1d57e8669",
+      "sha256": "e71dab0ec308b82350963a2775b148ac21b739d6204361936ee1b934174a36ee",
       "mode": "644"
     }
   ]

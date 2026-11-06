@@ -67,6 +67,8 @@ fi
 printf '%s|%s|%s\n' "$now" "$event" "$detail" > "$last_file"
 chmod 600 "$last_file" 2>/dev/null || true
 
-timeout 5 termux-notification --id 42117 --title "$title" --content "$content" \
+# Termux:API can take several seconds to return after boot. Avoid killing its
+# ResultReturner callback early, but keep a finite limit for stuck requests.
+timeout 20 termux-notification --id 42117 --title "$title" --content "$content" \
   --group "wadb-recovery" --priority default >/dev/null 2>&1 || true
 exit 0

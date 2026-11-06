@@ -20,6 +20,7 @@ NOTIFICATIONS_ENABLED=1
 NOTIFY_MCP_STATE=1
 NOTIFY_WATCHDOG_STATE=1
 NOTIFY_RECOVERY_FAILURES=1
+OUTPUT_MODE=human
 
 # Preserve an existing recovery configuration when setup is run again.
 if [ -r "$CONFIG" ]; then
@@ -33,6 +34,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --mcp-home) EXPLICIT_HOME="${2:-}"; shift 2 ;;
     --target) EXPLICIT_TARGET="${2:-}"; shift 2 ;;
+    --machine) OUTPUT_MODE=machine; shift ;;
     -h|--help)
       echo "Usage: wadb-mcp-recovery-setup [--mcp-home PATH] [--target NAME]"
       echo "Without --mcp-home, setup prefers the current authenticated MCP HOME,"
@@ -54,8 +56,7 @@ choose_home() {
 
   if [ -n "$EXPLICIT_HOME" ]; then
     has_creds "$EXPLICIT_HOME" || {
-      echo "MCP_HOME_NOT_AUTHENTICATED=$EXPLICIT_HOME"
-      echo "Authenticate Desktop Commander there first, then rerun setup."
+      if [ "$OUTPUT_MODE" = machine ]; then echo "MCP_HOME_NOT_AUTHENTICATED=$EXPLICIT_HOME"; else echo "Recovery setup: The selected MCP home does not contain a saved Desktop Commander login."; echo "- Authenticate Desktop Commander in that home first, then retry."; fi
       exit 3
     }
     printf '%s\n' "$EXPLICIT_HOME"
@@ -104,15 +105,20 @@ choose_home() {
       return
     fi
 
-    echo "MCP_HOME_AMBIGUOUS" >&2
-    for p in "${found[@]}"; do echo "CANDIDATE=$p" >&2; done
-    echo "Rerun with: wadb-mcp-recovery-setup --mcp-home PATH" >&2
+    if [ "$OUTPUT_MODE" = machine ]; then
+      echo "MCP_HOME_AMBIGUOUS" >&2
+      for p in "${found[@]}"; do echo "CANDIDATE=$p" >&2; done
+    else
+      echo "Recovery setup: More than one authenticated Desktop Commander home was found." >&2
+      for p in "${found[@]}"; do printf '%s %s\n' "- Candidate:" "$p" >&2; done
+    fi
+    echo "Select the intended home explicitly with --mcp-home PATH." >&2
     exit 4
   fi
 
-  echo "MCP_AUTH_NOT_FOUND" >&2
-  echo "First run: npx @wonderwhy-er/desktop-commander@0.3.1 remote" >&2
-  echo "Complete its browser/AI authentication, then rerun recovery setup." >&2
+  if [ "$OUTPUT_MODE" = machine ]; then echo "MCP_AUTH_NOT_FOUND" >&2; else echo "Recovery setup: No saved Desktop Commander login was found." >&2; fi
+  echo "- Start Desktop Commander with: npx @wonderwhy-er/desktop-commander@0.3.1 remote" >&2
+  echo "- Complete its browser/AI authentication, then retry recovery setup." >&2
   exit 3
 }
 
@@ -137,6 +143,62 @@ MCP_HOME="$(choose_home)"
 } > "$CONFIG"
 chmod 600 "$CONFIG"
 
+source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
+
+API_LEVEL="$(bridge_android_api 2>/dev/null || echo 0)"
+if [ "$API_LEVEL" -lt 30 ]; then
+  "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+  echo "Recovery setup: Android recovery scheduling requires Android 11 or later."
+  echo "- The Bridge control channel is protected by the Android WRITE_SECURE_SETTINGS sender permission."
+  echo "- Recovery remains disabled; Wireless ADB and Local Termux Shell are separate features."
+  exit 7
+fi
+
+# Query permission state in the Bridge itself; this works without an ADB
+# transport and does not rely on the package-manager shell interface.
+PERMISSION_RC=0
+bridge_run_command_granted || PERMISSION_RC=$?
+if [ "$PERMISSION_RC" -eq 2 ]; then
+  "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+  write_status
+  echo "Desktop Commander automatic recovery: Not enabled."
+  echo "- WADB Bridge did not answer its WRITE_SECURE_SETTINGS-protected permission query."
+  echo "- Check that WADB Bridge v1.6 is installed and that both Termux and Bridge retain WRITE_SECURE_SETTINGS."
+  echo "- When authenticated ADB is available, run wadb-bootstrap --finalize, then retry."
+  echo "- The local watchdog was stopped and the previous Termux external-app setting was restored."
+  exit 9
+fi
+
+if [ "$PERMISSION_RC" -eq 1 ]; then
+  PERMISSION_ACTIVITY_OUT="$(/system/bin/am start -n com.jaskran.wadbbridge/.PermissionActivity 2>&1)" || {
+    "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+    write_status
+    echo "Desktop Commander automatic recovery: Not enabled."
+    echo "- Android could not open the WADB Bridge permission screen."
+    printf '%s\n' "$PERMISSION_ACTIVITY_OUT"
+    exit 10
+  }
+  case "$PERMISSION_ACTIVITY_OUT" in
+    *"Starting: Intent"* ) ;;
+    *"Warning: Activity not started"* ) ;;
+    *)
+      "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+      write_status
+      echo "Desktop Commander automatic recovery: Not enabled."
+      echo "- Android did not confirm that the WADB Bridge permission screen opened."
+      printf '%s\n' "$PERMISSION_ACTIVITY_OUT"
+      exit 10
+      ;;
+  esac
+  "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+  write_status
+  echo "Desktop Commander automatic recovery: Not enabled yet."
+  echo "- The WADB Bridge permission screen was opened."
+  echo "- Grant its Termux command-integration permission, return to Termux, then rerun wadb-mcp-recovery-setup."
+  echo "- Recovery remains disabled until the Bridge confirms that permission."
+  exit 6
+fi
+
 PROP="$TERMUX_HOME/.termux/termux.properties"
 PREV_PROP="$STATE/allow-external-apps.previous.json"
 mkdir -p "$TERMUX_HOME/.termux"
@@ -160,39 +222,35 @@ prop.write_text("\n".join(lines)+"\n")
 PYPROP
 termux-reload-settings >/dev/null 2>&1 || true
 
-# Recovery enablement and MCP desired state are independent.
+# Recovery enablement and desired MCP state are independent.
 echo 1 > "$STATE/recovery_enabled"
 if [ ! -f "$STATE/mcp_desired_state" ]; then
   legacy="$(cat "$STATE/desired_state" 2>/dev/null || echo online)"
   case "$legacy" in offline) echo offline > "$STATE/mcp_desired_state" ;; *) echo online > "$STATE/mcp_desired_state" ;; esac
 fi
-source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
+
 "$PREFIX/bin/wadb-mcp-watchdog-start"
 [ "$(mcp_desired_value)" = "online" ] && ensure_online setup || true
+
+if ! bridge_recovery_alarm enable; then
+  "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
+  echo "Desktop Commander automatic recovery: Not enabled."
+  echo "- The Bridge did not acknowledge the secure alarm request."
+  echo "- Recovery has been returned to disabled; inspect Bridge/Termux permissions and retry."
+  exit 8
+fi
+
 notify_event RECOVERY_ENABLED
 write_status
 
-BRIDGE_STATE="unknown"
-if command -v wireless-debug-status >/dev/null 2>&1; then
-  if wireless-debug-status >/dev/null 2>&1; then
-    BRIDGE_STATE="ready"
-  else
-    BRIDGE_STATE="not_ready"
-  fi
+if bridge_notifications_granted; then
+  NOTIFICATION_STATE="granted"
+else
+  NOTIFICATION_STATE="not_granted_or_not_verifiable"
 fi
 
-RUN_PERMISSION="not_requested"
-if [ "$BRIDGE_STATE" = "ready" ]; then
-  /system/bin/am start -n com.jaskran.wadbbridge/.PermissionActivity >/dev/null 2>&1 || true
-  RUN_PERMISSION="requested_if_needed"
+if [ "$OUTPUT_MODE" = machine ]; then
+  printf '%s\n' "MCP_RECOVERY=CONFIGURED" "MCP_HOME=$MCP_HOME" "LOCAL_WATCHDOG=STARTED" "BRIDGE_ALARM=ONE_SHOT_SCHEDULED" "RUN_COMMAND_PERMISSION=verified" "BRIDGE_NOTIFICATIONS=$NOTIFICATION_STATE" "ALLOW_EXTERNAL_APPS=true"
+else
+  printf '%s\n' "Desktop Commander automatic recovery: Configured." "- Authenticated MCP home: $MCP_HOME." "- Recovery watchdog: Started (every $WATCHDOG_INTERVAL seconds)." "- Android Bridge alarm: One-shot scheduled; it is re-armed only after a valid Termux recovery job." "- Termux external-command access: Enabled for the recovery helper." "- Android RUN_COMMAND permission: Verified." "- Bridge notifications: $NOTIFICATION_STATE." "- GitHub-based recovery: Not changed; it remains a separate optional setup." "The existing Desktop Commander sign-in is preserved."
 fi
-
-echo "MCP_RECOVERY=CONFIGURED"
-echo "MCP_HOME=$MCP_HOME"
-echo "LOCAL_WATCHDOG=STARTED"
-echo "ALLOW_EXTERNAL_APPS=true"
-echo "WADB_BRIDGE=$BRIDGE_STATE"
-echo "RUN_COMMAND_PERMISSION=$RUN_PERMISSION"
-echo
-echo "If Android shows a WADB Bridge permission dialog, tap Allow once."
-echo "GitHub recovery is optional and is configured separately."

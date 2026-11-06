@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    namespace 'com.jaskran.wadbbridge'
-    compileSdk 36
+    namespace = 'com.jaskran.wadbbridge'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId 'com.jaskran.wadbbridge'
-        minSdk 30
-        targetSdk 36
-        versionCode 6
-        versionName '1.5'
+        applicationId = 'com.jaskran.wadbbridge'
+        minSdk = 30
+        targetSdk = 36
+        versionCode = 7
+        versionName = '1.6'
     }
 }

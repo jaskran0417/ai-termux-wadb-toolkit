@@ -6,21 +6,21 @@ STATE="$TERMUX_HOME/.ai-wadb/mcp-recovery"
 PROP="$TERMUX_HOME/.termux/termux.properties"
 PREV_PROP="$STATE/allow-external-apps.previous.json"
 KEEP_EXTERNAL=0
+OUTPUT_MODE=human
 
-case "${1:-}" in
-  "") ;;
-  --keep-external-apps) KEEP_EXTERNAL=1 ;;
-  -h|--help)
-    echo "Usage: wadb-mcp-recovery-disable [--keep-external-apps]"
-    echo "Disables automatic recovery/watchdog only; it does not stop or log out an already-running MCP."
-    echo "By default this restores the allow-external-apps setting that existed before recovery setup."
-    exit 0
-    ;;
-  *) echo "Unknown option: $1"; exit 2 ;;
-esac
+for arg in "$@"; do
+  case "$arg" in
+    --keep-external-apps) KEEP_EXTERNAL=1 ;;
+    --machine) OUTPUT_MODE=machine ;;
+    -h|--help) echo "Usage: wadb-mcp-recovery-disable [--keep-external-apps] [--machine]"; echo "Disables the watchdog and cancels the Android Bridge one-shot alarm; MCP remains online."; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$arg" >&2; exit 2 ;;
+  esac
+done
+
 
 source "$PREFIX/libexec/ai-wadb/mcp-recovery-common"
 set_recovery_enabled 0
+if bridge_recovery_alarm disable; then ALARM_CANCELLED=1; else ALARM_CANCELLED=0; fi
 
 p="$(cat "$STATE/watchdog.pid" 2>/dev/null || true)"
 [ -n "$p" ] && kill "$p" 2>/dev/null || true
@@ -50,9 +50,18 @@ prop.write_text("\n".join(lines)+("\n" if lines else ""))
 PYPROP
   rm -f "$PREV_PROP"
   termux-reload-settings >/dev/null 2>&1 || true
-  echo "ALLOW_EXTERNAL_APPS=RESTORED"
+  external_state=restored
 else
-  echo "ALLOW_EXTERNAL_APPS=UNCHANGED"
+  external_state=unchanged
 fi
-
-echo "Local MCP recovery disabled. Running MCP and saved Desktop Commander credentials were NOT removed."
+if [ "$OUTPUT_MODE" = machine ]; then
+  echo "RECOVERY=disabled"
+  if [ "$ALARM_CANCELLED" -eq 1 ]; then echo "BRIDGE_ALARM=cancelled"; else echo "BRIDGE_ALARM=cancel_unconfirmed"; fi
+  echo "ALLOW_EXTERNAL_APPS=$external_state"
+else
+  echo "Desktop Commander automatic recovery: Disabled."
+  [ "$external_state" = restored ] && echo "- Termux external-command setting: Restored to its previous value." || echo "- Termux external-command setting: Left unchanged."
+  echo "- Running Desktop Commander process: Not stopped."
+  echo "- Saved Desktop Commander sign-in: Preserved."
+  if [ "$ALARM_CANCELLED" -eq 1 ]; then echo "- Android Bridge recovery alarm: Cancelled."; else echo "- Android Bridge recovery alarm: Cancellation was not confirmed; a remaining one-shot can only run the disabled-state check."; fi
+fi

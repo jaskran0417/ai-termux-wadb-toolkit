@@ -30,6 +30,35 @@ This is tamper detection, not an immutable boundary. A determined device owner c
 
 For a toolkit task, use these commands before substituting lower-level Android commands.
 
+## Human and machine status output (v1.0.3)
+
+Status commands display a readable report by default. Automation should explicitly request machine output rather than parse prose.
+
+- `wireless-debug-status` reports Wireless Debugging ON/OFF, Bridge availability, Bridge write access and Android `adbd` state. `--machine` emits stable fields. Exit 0 means read and write verification succeeded; exit 1 means the Bridge state could not be read; exit 2 means state was readable but write access was not verified.
+- `wireless-debug-on` and `wireless-debug-off` show requested state and read-back verification. `--machine` is available for scripts.
+- `wadb-bootstrap --status` distinguishes Wireless Debugging from ADB transport. A disconnected ADB transport is not itself a failure; an unreadable Bridge state returns non-zero. `--machine` emits automation fields. Status is read-only.
+- `ai-info --status` displays the readable dashboard. `ai-info --json` remains the structured interface; `--status-machine`, `--mcp-machine` and `--recovery-machine` retain key/value output.
+- `wadb-local-status` and `wadb-mcp-status` are readable by default; use `--machine` for parsers. `wadb-mcp-status --json` remains available.
+- `wadb-integrity-check` shows a readable verification result; `--machine` retains verifier fields.
+
+Bridge package version comparison can use Android's local Package Manager information when ADB is disconnected. `bridge_sync=current`, `upgrade_required`, `install_required`, `installed_newer`, `cached_apk_missing`, and `installed_version_unavailable` distinguish known states.
+
+## Human-readable command results (v1.0.3 local correction)
+
+Interactive/manual commands display short status sentences and hyphen-led details by default. They do not print raw Android broadcast intents or machine result codes as the primary user interface. Use the explicit machine option when another program needs stable fields.
+
+- `ai-info --connect` and `ai-info --pair CODE` give readable outcomes. Their `--connect-machine` and `--pair-machine CODE` forms emit stable result fields. `ai-info --pair-reset` is readable; `--pair-reset-machine` is for automation.
+- `wireless-adb-connect` gives a readable connection result; `wireless-adb-connect --machine` is used by Toolkit automation.
+- `wadb-bootstrap --status`, `--finalize` and `--pair-code CODE` are readable. Add `--machine` to those individual operations for stable fields. `--machine` without a supported operation is rejected.
+- `wadb-local-on`, `wadb-local-off --confirm` and `wadb-local-status` give readable results. Add `--machine` only for script output. Starting/stopping Local Termux Shell changes only that loopback helper; it does not change Android debugging or Desktop Commander.
+- `wadb-mcp-status` is readable by default; `--machine` and `--json` are for automation. `ai-info --mcp-machine` and `--recovery-machine` are similarly explicit.
+- `wadb-mcp-recovery-setup` and `wadb-mcp-recovery-disable` show readable confirmation; add `--machine` for stable fields. The latter does not stop the running MCP or remove saved sign-in.
+- `wadb-mcp-github-test` provides a readable validation result. `--machine` emits stable validation fields; the test never executes the remote action.
+- `wadb-mcp-github-sync` gives a readable summary of the processed generation. It only processes a newer valid generation; a new control identity is safely baselined without executing the current action. `--machine` prints the status record for automation.
+- `wadb-integrity-check` displays a readable signature/file-integrity summary; `--machine` emits verifier fields.
+
+Exit-code convention: 0 means the requested check/action was verified, 1 means an operational/read/verification failure, and 2 means invalid usage or a command precondition that requires user correction. Commands with documented specialized exit codes (for example first-time ADB pairing) retain those codes; the human result explains the next action.
+
 ### `ai-info`
 
 **Use case:** Human-friendly current status and available options.
@@ -128,7 +157,7 @@ Users should not manually copy a replacement APK into the cache; updating the to
 
 ### Local Termux Shell bridge
 
-The v1.0.2 Local Termux Shell is a native, token-authenticated loopback service that runs directly under the Termux app UID. It is independent of Android `adbd`, USB debugging, Wireless Debugging and Wi-Fi.
+The v1.0.3 Local Termux Shell is a native, token-authenticated loopback service that runs directly under the Termux app UID. It is independent of Android `adbd`, USB debugging, Wireless Debugging and Wi-Fi.
 
 ```text
 Termux client -> 127.0.0.1:47173 -> native bridge -> Termux app UID
@@ -253,11 +282,14 @@ Do not infer role from port number.
 
 **Use case:** Enable local automatic Desktop Commander recovery after the first MCP login.
 
-**What it changes:**
-- creates recovery state/config under `~/.ai-wadb/mcp-recovery`,
-- enables Termux `allow-external-apps=true`,
-- starts the local watchdog,
-- requests the WADB Bridge `RUN_COMMAND` permission activity when available.
+**Preconditions and behavior:**
+- Requires Android 11/API 30 or later and the existing Termux `WRITE_SECURE_SETTINGS` grant. Android enforces that sender permission on the Bridge's explicit-only alarm-control receiver.
+- Requires the WADB Bridge `com.termux.permission.RUN_COMMAND` permission. The Bridge checks this itself, without requiring an active ADB transport. If it is missing, setup opens the Android permission activity, leaves recovery disabled, and asks you to grant it and rerun setup.
+- Creates recovery state/config under `~/.ai-wadb/mcp-recovery`.
+- Enables Termux `allow-external-apps=true` only after the required Android permission is verified; the original value is saved for rollback.
+- Starts the local watchdog and schedules a single Android Bridge alarm.
+- The alarm is re-armed only after the Termux recovery job verifies recovery is still enabled. A failed job does not create an endless repeating wakeup.
+- Bridge notification permission is optional. Denying it suppresses Bridge notifications but does not disable recovery.
 
 **MCP HOME selection:**
 - default single-session users normally resolve to the standard Termux HOME,
@@ -395,9 +427,9 @@ For a newly selected control identity, the first sync only establishes the basel
 
 ### `wadb-mcp-recovery-disable`
 
-**Use case:** Disable local watchdog/recovery without deleting saved MCP authorization.
+**Use case:** Disable local watchdog/recovery and cancel the Android Bridge one-shot alarm without deleting saved MCP authorization.
 
-**Does not:** stop or log out an already-running Desktop Commander process. This is the recovery master switch; `wadb-mcp-stop` is the separate MCP process stop.
+**Does not:** stop or log out an already-running Desktop Commander process. This is the recovery master switch; `wadb-mcp-stop` is the separate MCP process stop. If the Bridge cannot acknowledge cancellation, the Termux job still sees recovery disabled and will not re-arm the alarm.
 
 ### `wadb-mcp-log`
 

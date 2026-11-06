@@ -4,6 +4,12 @@ export HOME=/data/data/com.termux/files/home
 export PREFIX=/data/data/com.termux/files/usr
 export TMPDIR=$PREFIX/tmp
 export PATH=$PREFIX/bin:/system/bin:$PATH
+MODE=human
+case "${1:-}" in
+  --machine) MODE=machine; shift ;;
+  --help|-h) printf '%s\n' "Usage: wireless-adb-connect [--machine]" "Connects only to this phone's typed Wireless ADB endpoint and verifies shell UID 2000."; exit 0 ;;
+esac
+[ "$#" -eq 0 ] || { printf 'Unknown option: %s\n' "$1" >&2; exit 2; }
 
 . "$PREFIX/libexec/ai-wadb/wadb-common"
 
@@ -22,8 +28,12 @@ verify_connected() {
     fi
     adb -s "$s" shell id 2>/dev/null | grep -q 'uid=2000(shell)' || continue
     is_same_phone "$s" || continue
-    echo "ADB_CONNECTED=$s"
-    adb -s "$s" shell id 2>/dev/null | sed -n '1p'
+    if [ "$MODE" = machine ]; then
+      echo "ADB_CONNECTED=$s"
+      adb -s "$s" shell id 2>/dev/null | sed -n '1p'
+    else
+      printf '%s\n' "- Wireless ADB: Connected and authenticated." "- Device: This phone was verified through Android shell UID 2000." "- Target: $s"
+    fi
     return 0
   done < <(adb devices -l 2>/dev/null | awk '$2=="device"{print $1}')
   return 1
@@ -86,9 +96,9 @@ try_typed_connect() {
 
   while IFS=$'	' read -r kind ip port instance; do
     [ "$kind" = CONNECT ] || continue
-    echo "CONNECT_ENDPOINT=$ip:$port"
+    if [ "$MODE" = machine ]; then echo "CONNECT_ENDPOINT=$ip:$port"; else echo "- Checking Android's discovered Wireless ADB endpoint."; fi
     if ! tcp_open "$ip" "$port"; then
-      echo "CONNECT_ENDPOINT_NOT_REACHABLE=$ip:$port"
+      [ "$MODE" = machine ] && echo "CONNECT_ENDPOINT_NOT_REACHABLE=$ip:$port" || echo "- The discovered endpoint is not reachable yet."
       continue
     fi
     adb connect "$ip:$port" >/dev/null 2>&1 || true
@@ -112,8 +122,14 @@ try_typed_connect() {
     fi
   done <<< "$connect_rows"
 
-  echo 'PAIRING_REQUIRED'
-  echo 'REASON=typed_connect_endpoint_reachable_but_existing_adb_key_not_accepted'
+  if [ "$MODE" = machine ]; then
+    echo 'PAIRING_REQUIRED'
+    echo 'REASON=typed_connect_endpoint_reachable_but_existing_adb_key_not_accepted'
+  else
+    echo "- Android is advertising Wireless ADB, but this device's saved key was not accepted."
+    echo "- Open Developer options > Wireless debugging > Pair device with pairing code."
+    echo "- Keep the pairing popup open, then run: ai-info --pair CODE."
+  fi
   return 30
 }
 
@@ -126,11 +142,11 @@ else
   [ "$trc" -eq 30 ] && exit 30
 fi
 
-status="$(wireless-debug-status 2>&1 || true)"
+status="$(wireless-debug-status --machine 2>&1 || true)"
 if ! printf '%s
 ' "$status" | grep -q 'adb_wifi_enabled=1'; then
   wireless-debug-on >/dev/null 2>&1 || {
-    echo 'WIRELESS_DEBUG_ENABLE_FAILED'
+    if [ "$MODE" = machine ]; then echo 'WIRELESS_DEBUG_ENABLE_FAILED'; else echo "Wireless ADB: Could not enable Wireless Debugging through WADB Bridge."; fi
     exit 20
   }
   sleep 3
@@ -146,17 +162,24 @@ fi
 
 # If typed mDNS is unavailable, fall back to current-IP probing. Candidate role is UNKNOWN.
 ip="$(wifi_ip 2>/dev/null || true)"
-[ -n "$ip" ] || { echo 'CURRENT_WIFI_IP_NOT_DETECTED'; exit 40; }
-echo "CURRENT_WIFI_IP=$ip"
+[ -n "$ip" ] || { [ "$MODE" = machine ] && echo 'CURRENT_WIFI_IP_NOT_DETECTED' || echo "Wireless ADB: The current Wi-Fi address could not be detected."; exit 40; }
+[ "$MODE" = machine ] && echo "CURRENT_WIFI_IP=$ip" || echo "- Checking the phone's current Wi-Fi address for an ADB endpoint."
 ports="$(scan_ports "$ip" 2>/dev/null || true)"
-[ -n "$ports" ] || { echo 'NO_CANDIDATE_PORTS_FOUND'; exit 41; }
+[ -n "$ports" ] || { [ "$MODE" = machine ] && echo 'NO_CANDIDATE_PORTS_FOUND' || echo "Wireless ADB: No fallback endpoint was found. No unverified port was used."; exit 41; }
 for port in $ports; do
-  echo "UNVERIFIED_CANDIDATE=$ip:$port"
+  [ "$MODE" = machine ] && echo "UNVERIFIED_CANDIDATE=$ip:$port"
   adb connect "$ip:$port" >/dev/null 2>&1 || true
   sleep .3
   if verify_connected; then exit 0; fi
 done
 
-echo 'ADB_CONNECT_FAILED_WITH_UNTYPED_CANDIDATES'
-echo 'DO_NOT_INFER_PAIRING_PORT_FROM_FAILURE'
+if [ "$MODE" = machine ]; then
+  echo 'ADB_CONNECT_FAILED_WITH_UNTYPED_CANDIDATES'
+  echo 'DO_NOT_INFER_PAIRING_PORT_FROM_FAILURE'
+else
+  echo "Wireless ADB: No authenticated connection could be established."
+  echo "- Automatic discovery did not find a trusted CONNECT endpoint."
+  echo "- No pairing port was inferred from the fallback scan."
+  echo "- Run ai-info --status and check Android Wireless debugging."
+fi
 exit 42

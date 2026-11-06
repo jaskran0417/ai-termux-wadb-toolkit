@@ -4,4 +4,4 @@ set_mcp_desired online
 recovery_enabled && /data/data/com.termux/files/usr/bin/wadb-mcp-watchdog-start
 ensure_online manual
 write_status
-[ "${1:-}" = "--quiet" ] || echo "START_MCP requested; saved credentials are preserved."
+[ "${1:-}" = "--quiet" ] || echo "Desktop Commander start requested. Saved sign-in is preserved."
