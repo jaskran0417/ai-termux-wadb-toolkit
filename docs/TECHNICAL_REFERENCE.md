@@ -231,15 +231,18 @@ WADB Bridge is deliberately narrow:
 - it does not replace ADB or Desktop Commander;
 - it does not grant the assistant unrestricted access to Android's private app data.
 
-### 7. Local Termux Shell: an independent loopback route
+### 7. Local Termux Shell and Local Android Shell
 
-Wireless ADB is useful for initial pairing and for actions that specifically require Android shell UID 2000. The Local Termux Shell is a separate route for ordinary authenticated local command execution without keeping debugging enabled.
+The Toolkit provides two independent authenticated local shell services:
 
-The native helper is launched directly by Termux and runs under the Termux app UID. It opens an authenticated IPv4 loopback socket on `127.0.0.1:47173`, rejects peers outside loopback, and requires a random 256-bit token for every request. It does not start, depend on or keep Android `adbd` alive. USB debugging and Wireless Debugging may remain OFF.
+- Local Termux Shell: port 47173, Termux app UID (normally 10572 on this device), no ADB/debugging dependency.
+- Local Android Shell: port 47174, Android shell UID 2000, automatically bootstrapped by ai-info --connect through the verified ADB transport.
 
-The app-UID permission boundary is intentional and safer for normal use. It cannot perform operations reserved for Android shell UID 2000, such as certain global Settings reads/writes or shell-only device-management commands. Use WADB Bridge for its narrowly permissioned Wireless Debugging controls. Use Wireless ADB only when a task genuinely needs shell UID 2000 and the owner explicitly authorises it.
+Both bind only to 127.0.0.1, reject non-loopback peers and authenticate requests with separate private tokens. The local client defaults to Termux-UID mode; wadb-local-shell --android -c 'id' selects the UID-2000 bridge. It verifies the real execution identity and never labels the Termux-UID service as Android shell.
 
-The helper is an app-owned background process, not a system service. Android may reclaim it during force-stop, reboot or OEM background restrictions. Rerun `wadb-local-on` to start it again; this does not enable debugging.
+Authenticated ADB is needed to create or repair the UID-2000 helper. After launch, that helper is an Android shell process listening on device loopback; it does not require an active ADB transport, but Android adbd must remain running. Disconnecting the ADB network transport while Wireless Debugging remains ON leaves adbd running and the helper available. Turning Wireless Debugging OFF while USB debugging is also OFF stops adbd and therefore terminates the UID-2000 helper. The Toolkit does not enable USB debugging automatically. Reboot, force-stop or Android process reclamation may also remove the helper; ai-info --connect recreates it. The Termux-UID bridge remains independent and works with all debugging disabled.
+
+UID 2000 is Android shell, not root, and remains subject to Android shell-user restrictions. WADB Bridge remains the dedicated path for its specifically permissioned Wireless Debugging setting controls.
 
 ### 8. MCP process management
 
@@ -486,7 +489,7 @@ Android may reclaim the app-owned helper during force-stop, reboot or background
 McpRecoveryReceiver is now non-exported. External apps can no longer directly invoke the recovery receiver. Android system boot/package-replaced broadcasts and the app's own explicit PendingIntent alarm remain supported.
 
 #### Permission activity
-PermissionActivity remains exported intentionally because the recovery setup may need Android to show the one-time com.termux.permission.RUN_COMMAND runtime-permission dialog on devices where ADB shell cannot grant that permission.
+PermissionActivity remains exported intentionally because the recovery setup may need Android to show the one-time com.termux.permission.RUN_COMMAND runtime-permission dialog on devices where ADB shell cannot grant that permission. The Toolkit launches this activity through its authenticated Local Android Shell (UID 2000); launching it through the Termux app UID is rejected by Android's activity-manager package/UID check.
 
 The activity:
 - requests only com.termux.permission.RUN_COMMAND,

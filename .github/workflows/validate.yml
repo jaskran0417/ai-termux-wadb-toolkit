@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(cat VERSION)" = "1.0.3"
+          test "$(cat VERSION)" = "1.0.4"
           test ! -e EDITION
           test -s docs/USER_GUIDE.md
           test -s docs/AI_GUIDE.md

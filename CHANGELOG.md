@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.4 — dual local shells and recovery setup improvements (2026-11-07)
+
+- Retained the authenticated no-debug Local Termux Shell on 127.0.0.1:47173 under the Termux app UID.
+- Added a second authenticated Local Android Shell on 127.0.0.1:47174 under Android shell UID 2000, with its own private token and loopback-only listener.
+- Integrated Local Android Shell creation and repair into `ai-info --connect` after the ADB target and WADB Bridge are verified; no separate bootstrap command is required.
+- Local Android Shell remains available after an ADB network transport disconnect while Android `adbd` continues running. Turning off the last debugging mode stops `adbd` and this helper; the Toolkit does not enable USB debugging automatically.
+- Corrected the recovery setup permission hand-off: when the Bridge's Termux command-integration permission needs owner approval, the permission screen is opened through the authenticated Android shell UID rather than attempting an activity launch from the Termux app UID.
+- Expanded status, command, AI, user and technical documentation to distinguish both local shell identities, dependencies and independent stop controls.
+- Kept Desktop Commander authorization, Termux ADB keys, and the two local shell tokens separate; ordinary MCP lifecycle and recovery do not delete the saved login.
+
 ## 1.0.3 — recovery, connectivity and status improvements (2026-11-06)
 
 - Replaced the repeating Android recovery alarm with a one-shot check that is re-armed only after the Termux recovery job confirms recovery remains enabled.
@@ -23,9 +33,8 @@
 - Fixed the installed-file verifier's release identity check: it now requires the same 1.0.2 version written into the signed installed inventory.
 - Fixed the v1.0.1 installer failure where the generated inventory identified itself as 1.0.1 but the verifier accepted only 1.0, causing the transactional installer to roll back.
 - Added a CI assertion that the package VERSION, generated installed inventory and installed verifier all agree.
-- No Wireless ADB, MCP, recovery, Secure Local Shell or Android Bridge behavior changed.
 
-## Unreleased — technical documentation parity (2026-11-02)
+## Technical documentation improvements (2026-11-02)
 
 - Added source-verified Android Settings.Global calls and explicit WADB Bridge broadcast actions.
 - Documented the separate Wireless ADB pairing/connection mDNS service identifiers.
@@ -36,7 +45,7 @@
 ## 1.0.1 — documentation and setup clarity update (2026-11-02)
 
 - Expanded the user guide with Termux installation paths, the role of each app/component, and a clear first-time setup definition.
-- Documented post-bootstrap Wireless Debugging ON/OFF through WADB Bridge without an active ADB transport for each toggle.
+- Documented post-bootstrap Wireless Debugging ON/OFF through WADB Bridge without an active ADB transport for each later toggle.
 - Explained the difference between ADB transport disconnect, Wireless Debugging OFF, MCP stop/logout and Secure Local Shell stop.
 - Added an implementation map for the Bash entry points, Android Bridge classes, native C helper and recovery components.
 - Removed stale candidate-era and old dashboard-version wording.

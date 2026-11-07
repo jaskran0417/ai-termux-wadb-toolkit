@@ -33,7 +33,7 @@ The Toolkit provides controls and diagnostics for Wireless ADB, trusted-key reco
 
 ## Use the separate Local Termux Shell
 
-The authenticated Local Termux Shell is a loopback-only command route that runs under the Termux app UID. After setup, it can operate without an active ADB transport, USB debugging, Wireless Debugging, Wi-Fi, or Android adbd. It is not Android root and cannot perform operations that require Android shell UID or protected system privileges.
+The authenticated Local Termux Shell is a loopback-only route under the Termux app UID and needs no ADB or debugging. For Android shell-UID tasks, the Toolkit also provides a separate Local Android Shell bridge under UID 2000. ai-info --connect automatically creates or repairs it using the verified ADB session; after creation it can continue when the ADB network transport is disconnected while adbd remains running. Turning OFF the last debugging mode stops adbd and the UID-2000 service. Keeping Wireless Debugging OFF while preserving it requires USB debugging ON; the Toolkit does not enable that setting automatically. It is Android shell, not root.
 
 ## Manage the phone-side connection and recovery
 
@@ -48,7 +48,7 @@ The documented workflow runs on Android. A PC and a locally installed AI model a
 - The Toolkit is not an AI model.
 - The Toolkit is not the MCP server. Desktop Commander is the separate Remote MCP dependency.
 - Termux provides the local shell, packages, and filesystem environment.
-- Wireless ADB, Local Termux Shell, and Remote MCP are separate connections.
+- Wireless ADB, Local Termux Shell (Termux UID 10572), Local Android Shell (Android UID 2000), and Remote MCP are separate connections.
 - Android application sandboxing and storage permissions remain in force.
 - AI provider account, context, tool-call, and usage limits are not removed by the Toolkit.
 

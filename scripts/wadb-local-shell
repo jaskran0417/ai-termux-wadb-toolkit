@@ -5,18 +5,28 @@ import struct
 import sys
 
 HOME = "/data/data/com.termux/files/home"
-TOKEN_FILE = os.path.join(HOME, ".ai-wadb", "local-bridge.token")
-PORT = int(os.environ.get("WADB_LOCAL_BRIDGE_PORT", "47173"))
+TERMUX_TOKEN_FILE = os.path.join(HOME, ".ai-wadb", "local-bridge.token")
+ANDROID_TOKEN_FILE = os.path.join(HOME, ".ai-wadb", "local-android-shell.token")
+TERMUX_PORT = int(os.environ.get("WADB_LOCAL_BRIDGE_PORT", "47173"))
+ANDROID_PORT = int(os.environ.get("WADB_LOCAL_ANDROID_SHELL_PORT", "47174"))
 HOST = "127.0.0.1"
 MAGIC = b"WB01"
+
 
 def usage(code=2):
     print("Usage:")
     print("  wadb-local-shell --ping")
     print("  wadb-local-shell --stop")
     print("  wadb-local-shell -c 'COMMAND'")
-    print("  wadb-local-shell COMMAND ...")
+    print("  wadb-local-shell --android --ping")
+    print("  wadb-local-shell --android --stop")
+    print("  wadb-local-shell --android -c 'COMMAND'")
+    print("  wadb-local-shell --adb -c 'COMMAND'  (alias for --android)")
+    print()
+    print("Default mode: Termux app UID loopback shell.")
+    print("--android/--adb: Android shell UID 2000 loopback bridge.")
     raise SystemExit(code)
+
 
 def recv_exact(s, n):
     data = bytearray()
@@ -27,22 +37,27 @@ def recv_exact(s, n):
         data.extend(chunk)
     return bytes(data)
 
-def load_token():
+
+def load_token(token_file):
     try:
-        token = open(TOKEN_FILE, "rt", encoding="ascii").read().strip()
+        with open(token_file, "rt", encoding="ascii") as f:
+            token = f.read().strip()
     except OSError as e:
         raise RuntimeError(f"token unavailable: {e}")
     if len(token) != 64 or any(c not in "0123456789abcdefABCDEF" for c in token):
         raise RuntimeError("invalid bridge token")
     return token.encode("ascii")
 
-def run(cmd):
-    token = load_token()
+
+def run(cmd, token_file, port, mode):
+    token = load_token(token_file)
     raw = cmd.encode("utf-8")
     if not raw or len(raw) > 1024 * 1024:
         raise RuntimeError("invalid command size")
+    if not 1024 <= port <= 65535:
+        raise RuntimeError("invalid bridge port")
 
-    with socket.create_connection((HOST, PORT), timeout=3.0) as s:
+    with socket.create_connection((HOST, port), timeout=3.0) as s:
         s.settimeout(30.0)
         s.sendall(token + struct.pack("!I", len(raw)) + raw)
         hdr = recv_exact(s, 12)
@@ -57,8 +72,19 @@ def run(cmd):
     sys.stdout.buffer.flush()
     return status
 
+
 def main():
     args = sys.argv[1:]
+    if not args:
+        usage()
+
+    android_mode = False
+    if args[0] in ("--android", "--adb"):
+        android_mode = True
+        args = args[1:]
+    elif args[0] == "--termux":
+        args = args[1:]
+
     if not args:
         usage()
 
@@ -73,13 +99,22 @@ def main():
     else:
         cmd = " ".join(args)
 
+    if android_mode:
+        token_file = ANDROID_TOKEN_FILE
+        port = ANDROID_PORT
+        mode = "Android shell"
+    else:
+        token_file = TERMUX_TOKEN_FILE
+        port = TERMUX_PORT
+        mode = "Termux app"
+
     try:
-        rc = run(cmd)
+        return int(run(cmd, token_file, port, mode)) & 0xff
     except Exception as e:
-        print(f"WADB_LOCAL_BRIDGE_ERROR={e}", file=sys.stderr)
+        prefix = "WADB_LOCAL_ANDROID_SHELL_ERROR" if android_mode else "WADB_LOCAL_BRIDGE_ERROR"
+        print(f"{prefix}={e}", file=sys.stderr)
         return 70
 
-    return int(rc) & 0xff
 
 if __name__ == "__main__":
     raise SystemExit(main())

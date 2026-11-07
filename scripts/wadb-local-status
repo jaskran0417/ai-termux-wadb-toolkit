@@ -10,16 +10,25 @@ MODE=human
 case "${1:-}" in
   --machine) MODE=machine ;;
   --help|-h)
-    printf '%s\\n' "Usage: wadb-local-status [--machine]"
-    printf '%s\\n' "Reads the independent authenticated loopback Local Termux Shell status."
+    cat <<'EOF'
+Usage: wadb-local-status [--machine]
+
+Reports both independent loopback command services:
+- Local Termux Shell: runs under the Termux application UID; no ADB required.
+- Local Android Shell: runs under Android shell UID 2000; created automatically by ai-info --connect.
+EOF
     exit 0
     ;;
   "") ;;
-  *) printf 'Unknown option: %s\\n' "$1" >&2; exit 2 ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
 esac
+
 PORT="${WADB_LOCAL_BRIDGE_PORT:-47173}"
+ANDROID_PORT="${WADB_LOCAL_ANDROID_SHELL_PORT:-47174}"
 ENDPOINT="127.0.0.1:$PORT"
+ANDROID_ENDPOINT="127.0.0.1:$ANDROID_PORT"
 TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+ANDROID_TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-android-shell.token"
 TERMUX_UID="$(id -u 2>/dev/null || echo unknown)"
 
 LOCAL_ADB_STATE="not_connected"
@@ -33,6 +42,19 @@ PROTOCOL="authenticated_termux_loopback_v1"
 BRIDGE_AUTH="token"
 LISTENER_SCOPE="not_listening"
 
+LOCAL_ANDROID_ADB_STATE="not_initialized"
+LOCAL_ANDROID_ADB_MODE="android_shell_loopback"
+LOCAL_ANDROID_ADB_ENDPOINT="$ANDROID_ENDPOINT"
+LOCAL_ANDROID_ADB_PORT="$ANDROID_PORT"
+LOCAL_ANDROID_ADB_RUNTIME_UID=""
+LOCAL_ANDROID_ADB_REQUIRED_UID="2000"
+LOCAL_ANDROID_ADB_PROTOCOL="authenticated_android_shell_loopback_v1"
+LOCAL_ANDROID_ADB_AUTH="token"
+LOCAL_ANDROID_ADB_LISTENER_SCOPE="not_listening"
+LOCAL_ANDROID_ADB_REQUIRES_ADBD="yes"
+LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT="no"
+LOCAL_ANDROID_ADB_LIFETIME="adbd_process_lifetime"
+
 ADBD_STATE="$(getprop init.svc.adbd 2>/dev/null || true)"
 TCP_PORT="$(getprop service.adb.tcp.port 2>/dev/null || true)"
 LISTEN_ADDRS="$(getprop service.adb.listen_addrs 2>/dev/null || true)"
@@ -45,18 +67,38 @@ ADBD_TCP_EXPOSURE="unknown"
 WIFI_STATE="$(dumpsys wifi 2>/dev/null | grep -m1 -E 'Wi-Fi is (enabled|disabled)' || true)"
 
 if command -v wadb-local-shell >/dev/null 2>&1 && [ -s "$TOKEN_FILE" ]; then
-  ping="$(timeout 4 wadb-local-shell --ping 2>/dev/null || true)"
+  ping="$(timeout 4 wadb-local-shell --termux --ping 2>/dev/null || true)"
   runtime_uid="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
   if [ -n "$runtime_uid" ]; then
     LOCAL_ADB_RUNTIME_UID="$runtime_uid"
-    LOCAL_ADB_SHELL_UID=""
     if [ "$runtime_uid" = "$TERMUX_UID" ]; then
       LOCAL_ADB_STATE="ready"
       LISTENER_SCOPE="loopback_only"
     else
-      LOCAL_ADB_STATE="legacy_runtime"
+      LOCAL_ADB_STATE="wrong_identity"
       LISTENER_SCOPE="loopback_only"
     fi
+  else
+    LOCAL_ADB_STATE="not_running"
+  fi
+elif [ -s "$TOKEN_FILE" ]; then
+  LOCAL_ADB_STATE="client_missing"
+fi
+
+if [ -s "$ANDROID_TOKEN_FILE" ] && command -v wadb-local-shell >/dev/null 2>&1; then
+  android_ping="$(timeout 4 wadb-local-shell --android --ping 2>/dev/null || true)"
+  android_uid="$(printf '%s\n' "$android_ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+  if [ -n "$android_uid" ]; then
+    LOCAL_ANDROID_ADB_RUNTIME_UID="$android_uid"
+    if [ "$android_uid" = "2000" ]; then
+      LOCAL_ANDROID_ADB_STATE="ready"
+      LOCAL_ANDROID_ADB_LISTENER_SCOPE="loopback_only"
+    else
+      LOCAL_ANDROID_ADB_STATE="wrong_identity"
+      LOCAL_ANDROID_ADB_LISTENER_SCOPE="loopback_only"
+    fi
+  else
+    LOCAL_ANDROID_ADB_STATE="not_running"
   fi
 fi
 
@@ -81,32 +123,97 @@ if command -v wireless-debug-status >/dev/null 2>&1; then
   [ -n "$adbd" ] && ADBD_STATE="$adbd"
 fi
 
-SECURITY_STATE=not_running
+SECURITY_STATE=termux_loopback_shell_no_adb_dependency
 SECURITY_WARNING=""
-if [ "$LOCAL_ADB_STATE" = "ready" ]; then
-  if [ "$ADBD_TCP_EXPOSURE" = "none" ]; then SECURITY_STATE=termux_loopback_shell_no_adb_dependency
-  else SECURITY_STATE=termux_loopback_shell_adbd_tcp_attention; SECURITY_WARNING=adbd_tcp_listener_is_separate_from_the_loopback_shell
-  fi
-elif [ "$LOCAL_ADB_STATE" = "legacy_runtime" ]; then
-  SECURITY_STATE=legacy_android_shell_uid_bridge
-  SECURITY_WARNING=run_wadb-local-on_to_replace_with_lower_privilege_termux_uid_bridge
+if [ "$ADBD_TCP_EXPOSURE" != "none" ] && [ "$ADBD_TCP_EXPOSURE" != "loopback_only" ]; then
+  SECURITY_STATE=adbd_tcp_attention
+  SECURITY_WARNING=adbd_tcp_listener_is_separate_from_both_loopback_shells
 fi
+
 if [ "$MODE" = machine ]; then
-  printf '%s\n' "LOCAL_ADB_STATE=$LOCAL_ADB_STATE" "LOCAL_ADB_MODE=$LOCAL_ADB_MODE" "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT" "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL" "LOCAL_ADB_PORT=$LOCAL_ADB_PORT" "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID" "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID" "USB_DEBUGGING_REQUIRED=no" "WIRELESS_DEBUGGING_REQUIRED=no" "WIFI_REQUIRED=no" "ADBD_REQUIRED=no" "PROTOCOL=$PROTOCOL" "BRIDGE_AUTH=$BRIDGE_AUTH" "LISTENER_SCOPE=$LISTENER_SCOPE" "ADB_ENABLED=$ADB_ENABLED" "ADB_WIFI_ENABLED=$ADB_WIFI_ENABLED" "ADBD_STATE=$ADBD_STATE" "TCP_PORT=$TCP_PORT" "LISTEN_ADDRS=$LISTEN_ADDRS" "ADBD_TCP_EXPOSURE=$ADBD_TCP_EXPOSURE" "USB_CONFIG=$USB_CONFIG" "USB_STATE=$USB_STATE" "ADB_SECURE=$ADB_SECURE" "WIFI_STATE=$WIFI_STATE" "SECURITY_STATE=$SECURITY_STATE"
+  printf '%s\n' \
+    "LOCAL_ADB_STATE=$LOCAL_ADB_STATE" \
+    "LOCAL_ADB_MODE=$LOCAL_ADB_MODE" \
+    "LOCAL_ADB_ENDPOINT=$LOCAL_ADB_ENDPOINT" \
+    "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL" \
+    "LOCAL_ADB_PORT=$LOCAL_ADB_PORT" \
+    "LOCAL_ADB_SHELL_UID=$LOCAL_ADB_SHELL_UID" \
+    "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID" \
+    "USB_DEBUGGING_REQUIRED=no" \
+    "WIRELESS_DEBUGGING_REQUIRED=no" \
+    "WIFI_REQUIRED=no" \
+    "ADBD_REQUIRED=no" \
+    "PROTOCOL=$PROTOCOL" \
+    "BRIDGE_AUTH=$BRIDGE_AUTH" \
+    "LISTENER_SCOPE=$LISTENER_SCOPE" \
+    "LOCAL_ANDROID_ADB_STATE=$LOCAL_ANDROID_ADB_STATE" \
+    "LOCAL_ANDROID_ADB_MODE=$LOCAL_ANDROID_ADB_MODE" \
+    "LOCAL_ANDROID_ADB_ENDPOINT=$LOCAL_ANDROID_ADB_ENDPOINT" \
+    "LOCAL_ANDROID_ADB_PORT=$LOCAL_ANDROID_ADB_PORT" \
+    "LOCAL_ANDROID_ADB_REQUIRED_UID=$LOCAL_ANDROID_ADB_REQUIRED_UID" \
+    "LOCAL_ANDROID_ADB_RUNTIME_UID=$LOCAL_ANDROID_ADB_RUNTIME_UID" \
+    "LOCAL_ANDROID_ADB_PROTOCOL=$LOCAL_ANDROID_ADB_PROTOCOL" \
+    "LOCAL_ANDROID_ADB_AUTH=$LOCAL_ANDROID_ADB_AUTH" \
+    "LOCAL_ANDROID_ADB_LISTENER_SCOPE=$LOCAL_ANDROID_ADB_LISTENER_SCOPE" \
+    "LOCAL_ANDROID_ADB_REQUIRES_ADBD=$LOCAL_ANDROID_ADB_REQUIRES_ADBD" \
+    "LOCAL_ANDROID_ADB_ADBD_STATE=$ADBD_STATE" \
+    "LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT=$LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT" \
+    "LOCAL_ANDROID_ADB_LIFETIME=$LOCAL_ANDROID_ADB_LIFETIME" \
+    "LOCAL_ANDROID_ADB_BOOTSTRAP=ai-info_connect" \
+    "ADB_ENABLED=$ADB_ENABLED" \
+    "ADB_WIFI_ENABLED=$ADB_WIFI_ENABLED" \
+    "ADBD_STATE=$ADBD_STATE" \
+    "TCP_PORT=$TCP_PORT" \
+    "LISTEN_ADDRS=$LISTEN_ADDRS" \
+    "ADBD_TCP_EXPOSURE=$ADBD_TCP_EXPOSURE" \
+    "USB_CONFIG=$USB_CONFIG" \
+    "USB_STATE=$USB_STATE" \
+    "ADB_SECURE=$ADB_SECURE" \
+    "WIFI_STATE=$WIFI_STATE" \
+    "SECURITY_STATE=$SECURITY_STATE"
   [ -n "$SECURITY_WARNING" ] && echo "SECURITY_WARNING=$SECURITY_WARNING"
   exit 0
 fi
+
 echo "Local Termux Shell"
 case "$LOCAL_ADB_STATE" in
   ready) printf '%s\n' "Status: Ready" "Runtime identity: Termux application UID $LOCAL_ADB_RUNTIME_UID" ;;
-  legacy_runtime) printf '%s\n' "Status: Legacy bridge detected" "Runtime identity: Android shell UID $LOCAL_ADB_RUNTIME_UID" ;;
-  *) echo "Status: Not running" ;;
+  wrong_identity) printf '%s\n' "Status: Wrong execution identity" "Observed UID: $LOCAL_ADB_RUNTIME_UID" ;;
+  not_running) echo "Status: Not running (token exists)" ;;
+  client_missing) echo "Status: Client missing" ;;
+  *) echo "Status: Not initialized" ;;
 esac
 printf 'Loopback endpoint: %s\n' "$LOCAL_ADB_ENDPOINT"
 printf 'Authentication: %s\n' "$BRIDGE_AUTH"
 printf 'Listener scope: %s\n' "$LISTENER_SCOPE"
-printf '%s\n' "USB debugging dependency: None" "Wireless Debugging dependency: None" "Wi-Fi dependency: None" "Android adbd dependency: None"
-case "$ADBD_TCP_EXPOSURE" in none) echo "Android ADB TCP exposure: None" ;; loopback_only) echo "Android ADB TCP exposure: Loopback only" ;; *) printf 'Android ADB TCP exposure: %s\n' "$ADBD_TCP_EXPOSURE" ;; esac
+printf '%s\n' "USB/Wireless debugging: Not required" "Wi-Fi: Not required" "Android adbd: Not required"
+
+echo
+echo "Local Android ADB Shell"
+case "$LOCAL_ANDROID_ADB_STATE" in
+  ready) printf '%s\n' "Status: Ready" "Runtime identity: Android shell UID $LOCAL_ANDROID_ADB_RUNTIME_UID" ;;
+  wrong_identity) printf '%s\n' "Status: Wrong execution identity" "Observed UID: $LOCAL_ANDROID_ADB_RUNTIME_UID (expected 2000)" ;;
+  not_running) echo "Status: Not responding (initialization is performed by ai-info --connect)" ;;
+  client_missing) echo "Status: Client missing" ;;
+  *) echo "Status: Not initialized (run ai-info --connect)" ;;
+esac
+printf 'Loopback endpoint: %s\n' "$LOCAL_ANDROID_ADB_ENDPOINT"
+printf 'Required identity: Android UID %s (shell)\n' "$LOCAL_ANDROID_ADB_REQUIRED_UID"
+printf 'Bootstrap: automatic through ai-info --connect\n'
+echo "Runtime dependency: Android adbd must remain running for this UID-2000 process."
+echo "Transport dependency: an active ADB device connection is not required after startup."
+case "$ADBD_STATE" in
+  running) echo "Android adbd: Running; local shell process can serve loopback clients." ;;
+  stopped) echo "Android adbd: Stopped; Android has stopped the UID-2000 helper." ;;
+  *) printf 'Android adbd: %s (UID-2000 bridge lifetime cannot be guaranteed)\n' "$ADBD_STATE" ;;
+esac
+echo "Turning OFF the last debugging mode stops adbd and this UID-2000 bridge. Keep USB debugging ON to retain it while Wireless Debugging is OFF; this setting is not enabled automatically."
+
+case "$ADBD_TCP_EXPOSURE" in
+  none) echo "Android ADB TCP exposure: None" ;;
+  loopback_only) echo "Android ADB TCP exposure: Loopback only" ;;
+  *) printf 'Android ADB TCP exposure: %s\n' "$ADBD_TCP_EXPOSURE" ;;
+esac
 [ -n "$WIFI_STATE" ] && printf 'Wi-Fi: %s\n' "$WIFI_STATE"
 [ -n "$SECURITY_WARNING" ] && printf 'Security note: %s\n' "$SECURITY_WARNING"
 exit 0

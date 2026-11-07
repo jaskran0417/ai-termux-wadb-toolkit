@@ -42,7 +42,7 @@ WADB Bridge is the separate Android companion package used for the Toolkit's pro
 
 ## What is Local Termux Shell?
 
-It is an authenticated, loopback-only command bridge that runs under the Termux app UID. It is separate from Wireless ADB and does not require Android adbd, USB debugging, Wireless Debugging, Wi-Fi, or an active ADB transport after setup. It does not provide root or Android shell UID privileges.
+It is the no-debug, authenticated loopback bridge on 127.0.0.1:47173, running under the Termux app UID. The Toolkit also provides a separate Local Android Shell bridge on 127.0.0.1:47174 under Android shell UID 2000. ai-info --connect creates or repairs that second bridge automatically after verifying Wireless ADB and WADB Bridge; no separate bootstrap command is needed. It can continue after the ADB network transport is disconnected while Android adbd remains running. If both Wireless Debugging and USB debugging are OFF, adbd stops and the UID-2000 bridge exits. Keeping Wireless Debugging OFF while preserving the bridge requires USB debugging ON in USB mode; the Toolkit does not enable that setting automatically. UID 2000 is not root.
 
 ## Can every AI app connect in the same way?
 

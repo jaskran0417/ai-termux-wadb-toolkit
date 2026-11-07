@@ -4,7 +4,7 @@ Read this before an AI assistant performs setup, changes settings, uses ADB, cha
 
 ## Mandatory operating instructions
 
-Version: 1.0.3
+Version: 1.0.4
 
 **README starter prompt:** The root README contains a copy-ready **“Start here — copy this instruction to your AI”** block. When a user asks for a reusable setup prompt, direct them to that block. If you already have repository access and the user asks you to set up the Toolkit, use the block directly instead of asking them to paste it again. It is a short task brief; this AI Guide remains the mandatory operating instructions.
 
@@ -102,7 +102,7 @@ Existing trusted ADB keys must be tried before requesting pairing. Ask for a 6-d
 
 After `RESULT=PAIRING_REQUIRED`, **do not run `ai-info --connect` again before using the user's code**. The toolkit records `PAIRING_STATE=pending` and a second `--connect` is deliberately blocked with `RESULT=PAIRING_CODE_REQUIRED`. Immediately run `ai-info --pair CURRENT_CODE`. The toolkit never stores the code. If the Android pairing popup was closed/changed, run `ai-info --pair-reset` and then start a fresh `ai-info --connect` cycle.
 
-For a fresh WADB Bridge setup, `ai-info --connect` is not complete merely because `adb shell id` works. After the first authenticated ADB shell it must automatically run/verify the documented bridge finalization when needed. Do not report the WADB setup complete until the command returns `RESULT=CONNECTED_AND_READY` and `ai-info --json` reports `"bridge_write":"ready"`.
+For a fresh WADB Bridge setup, ai-info --connect is not complete merely because adb shell id works. After the first authenticated ADB shell it must automatically run/verify Bridge finalization and create/verify the Local Android Shell UID-2000 bridge. Do not report setup complete until the command returns RESULT=CONNECTED_AND_READY, BRIDGE_WRITE=ready, LOCAL_ANDROID_ADB=ready and LOCAL_ANDROID_ADB_UID=2000; ai-info --json must show the local Android shell runtime UID as 2000. No separate local-shell bootstrap command is used.
 
 If it returns `RESULT=MANUAL_WIRELESS_DEBUG_ON_REQUIRED_ONCE`, first-time Wireless ADB bootstrap is incomplete. On normal Android, ask the user to turn Wireless Debugging ON. On ColorOS/OPPO/OnePlus/realme, ask for both **Wireless Debugging ON** and **Disable permission monitoring ON (blue)** in the same user action. The command itself reports `DISABLE_PERMISSION_MONITORING=on|off|unknown`, so do not omit this step merely because an AI forgot it. Then rerun `ai-info --connect`. Reuse the existing trusted key first; do not ask for a new pairing code unless Android actually rejects it.
 
@@ -164,20 +164,11 @@ If an owner label exists, verify it before changing a sensitive multi-session se
 
 ### Do not mix these concepts
 
-The AI must treat MCP, Wireless ADB and Local Termux Shell as separate connections. Desktop Commander MCP is the AI-to-Termux path. Wireless ADB is the authenticated Android debugging transport and is used only when an Android shell-UID operation is actually required. Local Termux Shell is a token-authenticated loopback service running under the Termux app UID; it does not require USB debugging, Wireless Debugging, Wi-Fi or adbd. WADB Bridge is the Android companion used for protected Wireless Debugging setting changes and Android-side recovery.
+The AI must distinguish MCP, Wireless ADB, Local Termux Shell and Local Android Shell. Desktop Commander MCP is the AI-to-Termux path. Wireless ADB is the authenticated bootstrap transport. Local Termux Shell is a token-authenticated loopback service on 127.0.0.1:47173 under the Termux app UID; it needs no ADB, USB/Wireless Debugging, Wi-Fi or adbd. Local Android Shell is a separate token-authenticated loopback service on 127.0.0.1:47174 under Android shell UID 2000. ai-info --connect creates or repairs it automatically after verifying the ADB target and WADB Bridge; there is no separate bootstrap command. Once running, it can continue after ADB transport disconnect while Android adbd remains running. Turning OFF the last debugging mode stops adbd and the UID-2000 helper. Keeping Wireless Debugging OFF while retaining this bridge requires USB debugging ON in USB mode; the AI must not enable that setting without the owner's explicit approval. The two local bridges use separate tokens and execution identities. WADB Bridge is the Android companion used for protected Wireless Debugging setting changes and Android-side recovery.
 
 After the initial ADB-authorised setup grants and verifies WRITE_SECURE_SETTINGS for both Termux and WADB Bridge, wireless-debug-on and wireless-debug-off use the Bridge receiver directly. They do not require an already-connected ADB transport for each later toggle. Enabling the setting does not pair/connect ADB; run ai-info --connect for that separate operation. The AI must check wireless-debug-status before and after a toggle and report the observed result.
 
-The disconnect menu has two different actions: disconnect only the exact current network ADB transport (Wireless Debugging remains ON), or switch Wireless Debugging OFF through WADB Bridge. Neither action stops Desktop Commander MCP or Local Termux Shell. wadb-mcp-stop, wadb-local-off --confirm and wadb-mcp-logout --confirm each affect different layers and must never be presented as synonyms.
-
-
-- Desktop Commander MCP and Wireless ADB are separate connections.
-- MCP can remain online while ADB is off.
-- Existing trusted ADB reconnect is not first-time pairing.
-- MCP stop/restart is not MCP logout.
-- Owner label is not authentication.
-- GitHub recovery is not required for normal MCP.
-- WADB Bridge is not root and ADB shell is not root.
+The disconnect menu has two different actions: disconnect only the exact current network ADB transport (Wireless Debugging remains ON), or switch Wireless Debugging OFF through WADB Bridge. Neither action stops Desktop Commander MCP or the Termux-UID bridge. Turning Wireless Debugging OFF also stops the UID-2000 bridge when USB debugging is OFF, because adbd stops. wadb-local-off --confirm stops only the Termux-UID bridge; wadb-local-off --android --confirm stops only the Android UID-2000 bridge; wadb-local-off --all --confirm stops both. wadb-mcp-stop and wadb-mcp-logout --confirm affect different layers.
 
 ### Hard rules
 

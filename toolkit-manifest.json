@@ -1,7 +1,7 @@
 {
   "name": "AI Termux WADB Toolkit",
-  "version": "1.0.3",
-  "release_date": "2026-11-06",
+  "version": "1.0.4",
+  "release_date": "2026-11-07",
   "interface": {
     "human": "ai-info",
     "guided": "ai-info",
@@ -131,7 +131,16 @@
     "bridge_notifications_optional_for_recovery": true,
     "recovery_no_alarm_when_disabled": true,
     "recovery_control_permission_protected": true,
-    "recovery_control_sender_permission": "android.permission.WRITE_SECURE_SETTINGS"
+    "recovery_control_sender_permission": "android.permission.WRITE_SECURE_SETTINGS",
+    "localhost_android_shell_bridge": true,
+    "localhost_android_shell_default_port": 47174,
+    "localhost_android_shell_runtime_uid": 2000,
+    "localhost_android_shell_requires_adbd": true,
+    "localhost_android_shell_requires_active_adb_transport": false,
+    "localhost_android_shell_survives_adb_transport_disconnect": true,
+    "local_shells_use_separate_tokens": true,
+    "ai_info_connect_bootstraps_android_shell": true,
+    "recovery_setup_permission_activity_uses_android_shell_uid": true
   },
   "github_allowed_actions": [
     "START_MCP",

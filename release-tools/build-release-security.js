@@ -110,7 +110,7 @@ targets.sort((a, b) => (a.kind + '/' + a.path).localeCompare(b.kind + '/' + b.pa
 const installed = {
   schema: 2,
   name: 'AI Termux WADB Toolkit',
-  version: '1.0.3',
+  version: '1.0.4',
   signature_algorithm: 'Ed25519',
   release_key_sha256: fingerprint,
   targets

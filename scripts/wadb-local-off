@@ -4,40 +4,81 @@ TERMUX_HOME=/data/data/com.termux/files/home
 PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
-TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+
+TERMUX_TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-bridge.token"
+ANDROID_TOKEN_FILE="$TERMUX_HOME/.ai-wadb/local-android-shell.token"
 MODE=human
 CONFIRM=0
+TARGET=termux
 for arg in "$@"; do
   case "$arg" in
     --confirm) CONFIRM=1 ;;
     --machine) MODE=machine ;;
+    --android|--adb) TARGET=android ;;
+    --termux) TARGET=termux ;;
+    --all) TARGET=all ;;
     --help|-h)
-      printf '%s\n' "Usage: wadb-local-off --confirm [--machine]"
-      printf '%s\n' "Stops only the authenticated loopback Local Termux Shell."
+      cat <<'EOF'
+Usage:
+  wadb-local-off --confirm                  Stop only Local Termux Shell (UID 10572).
+  wadb-local-off --android --confirm        Stop only Local Android Shell (UID 2000).
+  wadb-local-off --all --confirm            Stop both local shell services.
+
+Stopping either bridge does not change Wireless Debugging, USB debugging, MCP, or saved ADB trust.
+EOF
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
 [ "$CONFIRM" -eq 1 ] || { echo "No action taken. Explicit confirmation is required: wadb-local-off --confirm"; exit 2; }
-not_running() {
-  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_NOT_RUNNING"; else echo "Local Termux Shell: Already stopped."; fi
+
+stop_termux() {
+  if [ ! -s "$TERMUX_TOKEN_FILE" ] || ! timeout 4 wadb-local-shell --termux --ping >/dev/null 2>&1; then
+    rm -f "$TERMUX_TOKEN_FILE"
+    echo "LOCAL_TERMUX_SHELL=not_running"
+    return 0
+  fi
+  wadb-local-shell --termux --stop || return 20
+  sleep 1
+  if timeout 3 wadb-local-shell --termux --ping >/dev/null 2>&1; then return 21; fi
+  rm -f "$TERMUX_TOKEN_FILE"
+  echo "LOCAL_TERMUX_SHELL=stopped"
 }
-if ! command -v wadb-local-shell >/dev/null 2>&1 || [ ! -s "$TOKEN_FILE" ]; then not_running; exit 0; fi
-if ! timeout 4 wadb-local-shell --ping >/dev/null 2>&1; then rm -f "$TOKEN_FILE"; not_running; exit 0; fi
-if ! wadb-local-shell --stop; then
-  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_FAILED"; else echo "Local Termux Shell: Stop request failed."; fi
-  exit 20
-fi
-sleep 1
-if timeout 3 wadb-local-shell --ping >/dev/null 2>&1; then
-  if [ "$MODE" = machine ]; then echo "RESULT=SECURE_LOCAL_BRIDGE_STOP_VERIFY_FAILED"; else echo "Local Termux Shell: Could not verify that it stopped."; fi
-  exit 21
-fi
-rm -f "$TOKEN_FILE"
+
+stop_android() {
+  if [ ! -s "$ANDROID_TOKEN_FILE" ] || ! timeout 4 wadb-local-shell --android --ping >/dev/null 2>&1; then
+    rm -f "$ANDROID_TOKEN_FILE"
+    echo "LOCAL_ANDROID_ADB_SHELL=not_running"
+    return 0
+  fi
+  uid="$(timeout 4 wadb-local-shell --android --ping 2>/dev/null | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+  [ "$uid" = "2000" ] || { echo "LOCAL_ANDROID_ADB_SHELL=wrong_identity"; return 22; }
+  wadb-local-shell --android --stop || return 23
+  sleep 1
+  if timeout 3 wadb-local-shell --android --ping >/dev/null 2>&1; then return 24; fi
+  rm -f "$ANDROID_TOKEN_FILE"
+  echo "LOCAL_ANDROID_ADB_SHELL=stopped"
+}
+
+rc=0
+case "$TARGET" in
+  termux) stop_termux || rc=$? ;;
+  android) stop_android || rc=$? ;;
+  all)
+    stop_termux || rc=$?
+    stop_android || rc=$?
+    ;;
+esac
+
 if [ "$MODE" = machine ]; then
-  printf '%s\n' "ADBD_STATE=$(getprop init.svc.adbd 2>/dev/null || true)" "TCP_PORT=$(getprop service.adb.tcp.port 2>/dev/null || true)" "RESULT=SECURE_LOCAL_BRIDGE_STOPPED"
-else
-  echo "Local Termux Shell: Stopped and verified."
-  echo "Wireless Debugging, USB debugging and Desktop Commander MCP were not changed."
+  [ "$rc" -eq 0 ] && echo "RESULT=LOCAL_SHELL_STOPPED" || echo "RESULT=LOCAL_SHELL_STOP_FAILED"
+  exit "$rc"
 fi
+if [ "$rc" -eq 0 ]; then
+  echo "Local shell stop request completed and was verified."
+  echo "Wireless Debugging, USB debugging, ADB trust and Desktop Commander MCP were not changed."
+else
+  echo "Local shell stop failed verification (exit $rc)."
+fi
+exit "$rc"
