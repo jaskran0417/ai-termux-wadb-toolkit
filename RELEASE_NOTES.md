@@ -1,24 +1,23 @@
-# AI Termux WADB Toolkit v1.0.3
+# AI Termux WADB Toolkit v1.0.4
 
-Release date: 2026-11-06
+Release date: 2026-11-07
 
 ## Highlights
 
-- Clearer human-readable output and stable machine-readable status for Wireless Debugging, ADB transport, pairing, Bridge, MCP, Local Termux Shell, bootstrap and installed-file integrity.
-- Wireless Debugging state is reported separately from the active ADB connection. Bridge state and permission checks remain available after the ADB transport disconnects.
-- WADB Bridge 1.6 (versionCode 7) adds a protected recovery-alarm control channel and one-shot Android recovery checks.
-- The Android alarm is re-armed only by the Termux recovery job after it verifies that automatic recovery is still enabled. Disabling recovery cancels the alarm.
-- Recovery setup verifies the Bridge's Termux `RUN_COMMAND` permission before enabling recovery or changing Termux external-command access. Bridge notification permission is optional.
-- The notification helper allows a longer bounded response window for Termux:API after boot.
-- Existing trusted ADB keys and Desktop Commander saved authorization are preserved by the documented update and recovery paths.
+- Adds two independent authenticated loopback shells: Local Termux Shell under the Termux app UID on port 47173, and Local Android Shell under Android shell UID 2000 on port 47174.
+- `ai-info --connect` creates or repairs the Android shell after checking the authenticated ADB target and WADB Bridge; no separate shell-bootstrap command is required.
+- Both services use separate private tokens and bind only to device loopback. The Termux shell does not require ADB or Android debugging. The Android shell survives an ADB transport disconnect while Android `adbd` remains running.
+- Reports the actual Android-shell UID and runtime dependencies separately from Wireless ADB transport state. Turning off the last debugging mode stops `adbd` and the Android shell helper; USB debugging is not enabled automatically.
+- Corrects the recovery setup permission hand-off so the Bridge permission screen is launched through the authenticated Android shell UID when owner approval is required.
+- Retains the v1.0.3 one-shot Android recovery alarm, recovery master switch, Bridge-side permission checks and 15-second watchdog configuration.
 
 ## Security and compatibility
 
 - The release package uses an Ed25519-signed SHA-256 manifest and an independently supplied release-key fingerprint.
 - The installer validates the package inventory and installation paths before writing, captures a rollback snapshot, and verifies the installed-file inventory after installation.
 - The Bridge recovery control receiver is protected by Android's `WRITE_SECURE_SETTINGS` sender permission.
-- The Local Termux Shell remains loopback-only and runs with the Termux app identity. It does not require USB debugging, Wireless Debugging, Wi-Fi or Android adbd after initial setup.
-- USB debugging and Wireless Debugging remain separate settings. The Toolkit does not require USB debugging for its normal operation.
+- Both local shell listeners are loopback-only and token-authenticated; their execution identities are deliberately separate. The Android shell uses UID 2000, not root.
+- USB debugging and Wireless Debugging remain separate settings. The Toolkit does not require USB debugging for normal Local Termux Shell operation and does not enable it automatically.
 - Android Bridge notifications are optional; they are not a prerequisite for automatic recovery.
 
 ## Release verification

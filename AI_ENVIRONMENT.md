@@ -1,4 +1,4 @@
-# AI Termux WADB Environment — v1.0.3
+# AI Termux WADB Environment — v1.0.4
 
 This file is the installed environment reference. The mandatory AI workflow is in:
 
@@ -158,6 +158,29 @@ The lower-privilege identity is intentional. Commands that require Android shell
 The bridge is an app-owned process, not a guaranteed Android system service. Android may stop it during process reclamation, force-stop, reboot or OEM background restriction. Rerun `wadb-local-on` to start it; this will not enable debugging.
 
 The local bridge does not expose an ADB protocol listener or classic adbd TCP port 5555.
+## Local Android Shell / UID-2000 loopback bridge
+
+The Toolkit maintains a second local command bridge for operations that require Android shell UID 2000. It is separate from the no-debug Termux-UID shell above.
+
+The Android shell bridge listens only on 127.0.0.1:47174 and uses its own random 256-bit token at ~/.ai-wadb/local-android-shell.token (mode 600). Its native helper is staged under /data/local/tmp and launched by the authenticated ADB shell, so the helper runs as uid=2000(shell).
+
+There is no separate bootstrap command. ai-info --connect creates or repairs this bridge after it has authenticated the ADB transport and verified WADB Bridge permissions. The command verifies both the local authenticated ping and the actual id output before reporting ready.
+
+Use:
+
+    wadb-local-status
+    wadb-local-shell --android -c 'id'
+
+The default wadb-local-shell -c 'id' remains under the Termux app UID. Add --android (or --adb) only when Android shell UID 2000 is required. UID 2000 is not root.
+
+An authenticated ADB session is needed to create or repair the local bridge. After launch, it can continue when the ADB network transport is disconnected while Android adbd remains running. If Wireless Debugging and USB debugging are both OFF, Android stops adbd and the UID-2000 helper exits. Keeping Wireless Debugging OFF while retaining the helper requires USB debugging ON in USB mode; the Toolkit does not enable that security-sensitive setting automatically. Android may also remove it during reboot, force-stop or process reclamation; run ai-info --connect to recreate it.
+
+Stop only this bridge with:
+
+    wadb-local-off --android --confirm
+
+This does not stop the Termux-UID bridge, MCP or alter Wireless Debugging. Use wadb-local-off --all --confirm only to stop both local shell bridges deliberately.
+
 ## MCP recovery
 
 Local recovery:

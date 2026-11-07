@@ -170,7 +170,10 @@ if [ "$PERMISSION_RC" -eq 2 ]; then
 fi
 
 if [ "$PERMISSION_RC" -eq 1 ]; then
-  PERMISSION_ACTIVITY_OUT="$(/system/bin/am start -n com.jaskran.wadbbridge/.PermissionActivity 2>&1)" || {
+  # Android rejects activity launches when the shell package identity is
+  # invoked from the Termux app UID. Use the Toolkit's authenticated UID-2000
+  # loopback shell, which ai-info --connect initializes during ADB setup.
+  PERMISSION_ACTIVITY_OUT="$("$PREFIX/bin/wadb-local-shell" --android -c '/system/bin/am start -n com.jaskran.wadbbridge/.PermissionActivity' 2>&1)" || {
     "$PREFIX/bin/wadb-mcp-recovery-disable" >/dev/null 2>&1 || true
     write_status
     echo "Desktop Commander automatic recovery: Not enabled."

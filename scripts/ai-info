@@ -6,7 +6,7 @@ PREFIX=/data/data/com.termux/files/usr
 PATH="$PREFIX/bin:/system/bin:$PATH"
 export PATH
 [ -r "$PREFIX/libexec/ai-wadb/wadb-common" ] && . "$PREFIX/libexec/ai-wadb/wadb-common"
-VERSION="1.0.3"
+VERSION="1.0.4"
 DOC="$TERMUX_HOME/AI_ENVIRONMENT.md"
 AI_FIRST="$TERMUX_HOME/AI_WADB_DOCS/AI_GUIDE.md"
 USER_FIRST="$TERMUX_HOME/AI_WADB_DOCS/USER_GUIDE.md"
@@ -239,6 +239,13 @@ get_state() {
   LOCAL_ADB_USB_CONFIG=""; LOCAL_ADB_USB_STATE=""; LOCAL_ADB_WIFI_STATE="unknown"
   LOCAL_ADB_LISTENER_SCOPE="unknown"; LOCAL_ADB_PROTOCOL=""
   LOCAL_ADB_AUTH=""; LOCAL_ADB_TCP_EXPOSURE="unknown"
+  LOCAL_ANDROID_ADB_STATE="not_initialized"; LOCAL_ANDROID_ADB_MODE="android_shell_loopback"
+  LOCAL_ANDROID_ADB_ENDPOINT="127.0.0.1:47174"; LOCAL_ANDROID_ADB_PORT="47174"
+  LOCAL_ANDROID_ADB_REQUIRED_UID="2000"; LOCAL_ANDROID_ADB_RUNTIME_UID=""
+  LOCAL_ANDROID_ADB_PROTOCOL="authenticated_android_shell_loopback_v1"
+  LOCAL_ANDROID_ADB_AUTH="token"; LOCAL_ANDROID_ADB_LISTENER_SCOPE="not_listening"
+  LOCAL_ANDROID_ADB_REQUIRES_ADBD="yes"; LOCAL_ANDROID_ADB_ADBD_STATE="unknown"
+  LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT="no"; LOCAL_ANDROID_ADB_LIFETIME="adbd_process_lifetime"
   if command -v wadb-local-status >/dev/null 2>&1; then
     lsout="$(timeout 4 wadb-local-status --machine 2>/dev/null || true)"
     LOCAL_ADB_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ADB_STATE=//p' | tail -n1)"
@@ -259,6 +266,27 @@ get_state() {
     LOCAL_ADB_PROTOCOL="$(printf '%s\n' "$lsout" | sed -n 's/^PROTOCOL=//p' | tail -n1)"
     LOCAL_ADB_AUTH="$(printf '%s\n' "$lsout" | sed -n 's/^BRIDGE_AUTH=//p' | tail -n1)"
     LOCAL_ADB_TCP_EXPOSURE="$(printf '%s\n' "$lsout" | sed -n 's/^ADBD_TCP_EXPOSURE=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_STATE=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_MODE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_MODE=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_ENDPOINT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_ENDPOINT=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_PORT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_PORT=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_REQUIRED_UID="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_REQUIRED_UID=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_RUNTIME_UID="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_RUNTIME_UID=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_PROTOCOL="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_PROTOCOL=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_AUTH="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_AUTH=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_LISTENER_SCOPE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_LISTENER_SCOPE=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_REQUIRES_ADBD="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_REQUIRES_ADBD=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_ADBD_STATE="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_ADBD_STATE=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT=//p' | tail -n1)"
+    LOCAL_ANDROID_ADB_LIFETIME="$(printf '%s\n' "$lsout" | sed -n 's/^LOCAL_ANDROID_ADB_LIFETIME=//p' | tail -n1)"
+    [ -n "$LOCAL_ANDROID_ADB_REQUIRES_ADBD" ] || LOCAL_ANDROID_ADB_REQUIRES_ADBD="yes"
+    [ -n "$LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT" ] || LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT="no"
+    [ -n "$LOCAL_ANDROID_ADB_LIFETIME" ] || LOCAL_ANDROID_ADB_LIFETIME="adbd_process_lifetime"
+    [ -n "$LOCAL_ANDROID_ADB_STATE" ] || LOCAL_ANDROID_ADB_STATE="not_initialized"
+    [ -n "$LOCAL_ANDROID_ADB_MODE" ] || LOCAL_ANDROID_ADB_MODE="android_shell_loopback"
+    [ -n "$LOCAL_ANDROID_ADB_ENDPOINT" ] || LOCAL_ANDROID_ADB_ENDPOINT="127.0.0.1:47174"
+    [ -n "$LOCAL_ANDROID_ADB_PORT" ] || LOCAL_ANDROID_ADB_PORT="47174"
+    [ -n "$LOCAL_ANDROID_ADB_REQUIRED_UID" ] || LOCAL_ANDROID_ADB_REQUIRED_UID="2000"
     [ -n "$LOCAL_ADB_STATE" ] || LOCAL_ADB_STATE="unknown"
     [ -n "$LOCAL_ADB_MODE" ] || LOCAL_ADB_MODE="secure_shell_bridge"
     [ -n "$LOCAL_ADB_ENDPOINT" ] || LOCAL_ADB_ENDPOINT="127.0.0.1:47173"
@@ -288,6 +316,8 @@ get_state() {
     esac
     [ -n "$adbd" ] && ADBD_STATE="$adbd"
   fi
+  [ "$LOCAL_ANDROID_ADB_ADBD_STATE" = "unknown" ] && LOCAL_ANDROID_ADB_ADBD_STATE="$ADBD_STATE"
+  [ -n "$LOCAL_ANDROID_ADB_ADBD_STATE" ] || LOCAL_ANDROID_ADB_ADBD_STATE="$ADBD_STATE"
 
   MCP_STATE="Not configured"; MCP_PID="offline"; MCP_CREDS="no"
   MCP_OWNER="NOT_SET"; WATCHDOG="Off"; GITHUB="Off"; MCP_HOME_DETECTED="$TERMUX_HOME"
@@ -449,6 +479,16 @@ show_dashboard() {
     fi
   fi
 
+  case "$LOCAL_ANDROID_ADB_STATE" in ready) c="$GREEN";; *) c="$YELLOW";; esac
+  kv "Local Android shell" "$LOCAL_ANDROID_ADB_STATE" "$c"
+  kv "Android shell endpoint" "$LOCAL_ANDROID_ADB_ENDPOINT" "$DIM"
+  if [ "$LOCAL_ANDROID_ADB_STATE" = ready ]; then
+    kv "Android shell identity" "UID ${LOCAL_ANDROID_ADB_RUNTIME_UID:-unknown} (shell)" "$GREEN"
+    [ "$LOCAL_ANDROID_ADB_ADBD_STATE" = running ] && kv "Android shell runtime" "adbd running; ADB transport not required" "$GREEN" || kv "Android shell runtime" "adbd ${LOCAL_ANDROID_ADB_ADBD_STATE}; bridge may stop" "$YELLOW"
+  else
+    kv "Android shell setup" "Automatic via ai-info --connect" "$DIM"
+  fi
+
   section "REMOTE CONTROL"
   mcp_color="$YELLOW"; [ "$MCP_STATE" = Online ] && mcp_color="$GREEN"
   kv "Desktop Commander" "$MCP_STATE" "$mcp_color"
@@ -478,8 +518,8 @@ show_dashboard() {
     info "Pair using the current code: ai-info --pair CODE"
   elif [ "$MCP_CREDS" != yes ]; then
     info "Authenticate Desktop Commander."
-  elif [ "$BRIDGE_STATE" != Ready ] || [ "$ADB_KEY" != Present ]; then
-    info "Connect Wireless ADB: ai-info --connect"
+  elif [ "$BRIDGE_STATE" != Ready ] || [ "$ADB_KEY" != Present ] || [ "$LOCAL_ANDROID_ADB_STATE" != ready ]; then
+    info "Connect Wireless ADB and initialize/repair Local Android Shell: ai-info --connect"
   elif [ "$RECOVERY_ENABLED" != yes ]; then
     info "Review automatic recovery: wadb-mcp-recovery-setup"
   elif [ "$WATCHDOG" != Running ]; then
@@ -517,6 +557,10 @@ show_json() {
   export LOCAL_ADB_SHELL_UID LOCAL_ADB_RUNTIME_UID LOCAL_ADB_PROTOCOL LOCAL_ADB_AUTH LOCAL_ADB_ENABLED
   export LOCAL_ADB_WIFI_ENABLED ADBD_STATE LOCAL_ADB_TCP_PORT LOCAL_ADB_TCP_EXPOSURE
   export LOCAL_ADB_USB_CONFIG LOCAL_ADB_USB_STATE LOCAL_ADB_SECURE LOCAL_ADB_WIFI_STATE LOCAL_ADB_LISTENER_SCOPE
+  export LOCAL_ANDROID_ADB_STATE LOCAL_ANDROID_ADB_MODE LOCAL_ANDROID_ADB_ENDPOINT LOCAL_ANDROID_ADB_PORT
+  export LOCAL_ANDROID_ADB_REQUIRED_UID LOCAL_ANDROID_ADB_RUNTIME_UID LOCAL_ANDROID_ADB_PROTOCOL
+  export LOCAL_ANDROID_ADB_AUTH LOCAL_ANDROID_ADB_LISTENER_SCOPE LOCAL_ANDROID_ADB_REQUIRES_ADBD
+  export LOCAL_ANDROID_ADB_ADBD_STATE LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT LOCAL_ANDROID_ADB_LIFETIME
   export WIRELESS_STATE ADB_STATE ADB_KEY BRIDGE_STATE BRIDGE_WRITE DPM_STATE PAIRING_STATE PAIRING_AGE_SECONDS
   export BRIDGE_CACHED_VERSION_CODE BRIDGE_INSTALLED_VERSION_CODE BRIDGE_SYNC BRIDGE_SYNC_SOURCE
   export GITHUB GITHUB_REPO_DISPLAY MCP_TARGET GITHUB_READ_MODE GITHUB_READ_MODE_LAST GITHUB_READ_ERROR
@@ -547,6 +591,18 @@ data = {
     "adbd_tcp_exposure": get("LOCAL_ADB_TCP_EXPOSURE"), "usb_config": get("LOCAL_ADB_USB_CONFIG"),
     "usb_state": get("LOCAL_ADB_USB_STATE"), "adb_secure": get("LOCAL_ADB_SECURE"),
     "wifi_state": get("LOCAL_ADB_WIFI_STATE"), "listener_scope": get("LOCAL_ADB_LISTENER_SCOPE")
+  },
+  "local_android_adb": {
+    "state": get("LOCAL_ANDROID_ADB_STATE"), "mode": get("LOCAL_ANDROID_ADB_MODE"),
+    "endpoint": get("LOCAL_ANDROID_ADB_ENDPOINT"), "port": get("LOCAL_ANDROID_ADB_PORT"),
+    "required_uid": get("LOCAL_ANDROID_ADB_REQUIRED_UID"), "runtime_uid": get("LOCAL_ANDROID_ADB_RUNTIME_UID"),
+    "protocol": get("LOCAL_ANDROID_ADB_PROTOCOL"), "auth": get("LOCAL_ANDROID_ADB_AUTH"),
+    "listener_scope": get("LOCAL_ANDROID_ADB_LISTENER_SCOPE"),
+    "requires_adbd": get("LOCAL_ANDROID_ADB_REQUIRES_ADBD"),
+    "adbd_state": get("LOCAL_ANDROID_ADB_ADBD_STATE"),
+    "requires_active_adb_transport": get("LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT"),
+    "lifetime": get("LOCAL_ANDROID_ADB_LIFETIME"),
+    "bootstrap": "ai-info --connect"
   },
   "wireless_adb": {
     "state": get("WIRELESS_STATE"), "adbd": get("ADBD_STATE"), "adb": get("ADB_STATE"),
@@ -665,6 +721,17 @@ doctor() {
   else
     info "Local Termux Shell is not currently ready"
   fi
+  case "$LOCAL_ANDROID_ADB_STATE" in
+    ready)
+      ok "Local Android Shell bridge is ready under Android shell UID ${LOCAL_ANDROID_ADB_RUNTIME_UID:-unknown}"
+      [ "$LOCAL_ANDROID_ADB_LISTENER_SCOPE" = loopback_only ] && ok "Android shell bridge is loopback-only" || warn "Android shell bridge loopback scope is not verified"
+      [ "$LOCAL_ANDROID_ADB_ADBD_STATE" = running ] && ok "Android adbd is running; active ADB transport is not required" || warn "Android adbd is not confirmed running; UID-2000 bridge lifetime is at risk"
+      ;;
+    not_initialized|not_running)
+      info "Local Android Shell bridge is not ready; ai-info --connect initializes/repairs it automatically"
+      ;;
+    *) warn "Local Android Shell bridge state: $LOCAL_ANDROID_ADB_STATE" ;;
+  esac
   [ "$ADB_KEY" = Present ] && ok "ADB key present" || warn "ADB key not present"
   [ "$MCP_CREDS" = yes ] && ok "Desktop Commander saved login present" || warn "saved MCP login not detected"
   if [ "$RECOVERY_ENABLED" = yes ]; then
@@ -689,6 +756,110 @@ doctor() {
   [ "$GITHUB" = Configured ] && ok "GitHub recovery configured" || info "GitHub recovery is optional"
   echo
   echo "No settings were changed."
+}
+
+
+ensure_local_android_shell() {
+  local serial="$1"
+  local token_file="$TERMUX_HOME/.ai-wadb/local-android-shell.token"
+  local bridge_bin="$PREFIX/libexec/ai-wadb/wadb-local-bridge"
+  local remote_bin="/data/local/tmp/wadb-local-android-shell"
+  local remote_token="/data/local/tmp/.wadb-local-android-shell-token"
+  local port="${WADB_LOCAL_ANDROID_SHELL_PORT:-47174}"
+  local ping uid ident
+  case "$port" in ''|*[!0-9]*) echo "LOCAL_ANDROID_ADB_ERROR=invalid_port"; return 2 ;; esac
+  [ "$port" -ge 1024 ] && [ "$port" -le 65535 ] || { echo "LOCAL_ANDROID_ADB_ERROR=invalid_port"; return 2; }
+  [ -n "$serial" ] || { echo "LOCAL_ANDROID_ADB_ERROR=verified_adb_target_missing"; return 3; }
+  command -v adb >/dev/null 2>&1 || { echo "LOCAL_ANDROID_ADB_ERROR=adb_client_missing"; return 4; }
+  command -v wadb-local-shell >/dev/null 2>&1 || { echo "LOCAL_ANDROID_ADB_ERROR=local_shell_client_missing"; return 5; }
+  [ -x "$bridge_bin" ] || { echo "LOCAL_ANDROID_ADB_ERROR=native_bridge_binary_missing"; return 6; }
+  command -v wadb_verify_shell >/dev/null 2>&1 && wadb_verify_shell "$serial" || {
+    echo "LOCAL_ANDROID_ADB_ERROR=adb_target_not_verified_as_this_phone_shell_uid_2000"
+    return 7
+  }
+  mkdir -p "$TERMUX_HOME/.ai-wadb" || { echo "LOCAL_ANDROID_ADB_ERROR=state_directory_failed"; return 8; }
+  chmod 700 "$TERMUX_HOME/.ai-wadb" 2>/dev/null || true
+
+  if [ -s "$token_file" ]; then
+    if ! grep -Eq '^[0-9a-fA-F]{64}$' "$token_file" 2>/dev/null; then
+      echo "LOCAL_ANDROID_ADB_ERROR=stored_android_shell_token_invalid"
+      return 9
+    fi
+    chmod 600 "$token_file" 2>/dev/null || true
+    ping="$(timeout 4 wadb-local-shell --android --ping 2>/dev/null || true)"
+    uid="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+    if [ "$uid" = "2000" ]; then
+      ident="$(timeout 8 wadb-local-shell --android -c 'id' 2>&1 || true)"
+      if printf '%s\n' "$ident" | grep -q 'uid=2000(shell)'; then
+        printf '%s\n' "LOCAL_ANDROID_ADB_STATE=ready" "LOCAL_ANDROID_ADB_RUNTIME_UID=2000" "LOCAL_ANDROID_ADB_ENDPOINT=127.0.0.1:$port" "LOCAL_ANDROID_ADB_SETUP=already_running"
+        return 0
+      fi
+      echo "LOCAL_ANDROID_ADB_ERROR=existing_bridge_identity_command_failed"
+      return 10
+    fi
+  fi
+
+  # Fail closed if another process already owns this loopback port.
+  if python3 - "$port" <<'PYPORT'
+import socket, sys
+s = socket.socket()
+s.settimeout(0.5)
+try:
+    raise SystemExit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)
+finally:
+    s.close()
+PYPORT
+  then
+    echo "LOCAL_ANDROID_ADB_ERROR=loopback_port_occupied_by_unverified_listener"
+    echo "LOCAL_ANDROID_ADB_ENDPOINT=127.0.0.1:$port"
+    return 11
+  fi
+
+  if [ ! -s "$token_file" ]; then
+    python3 - "$token_file" <<'PYTOKEN'
+import os, secrets, sys
+path = sys.argv[1]
+with open(path, "w", encoding="ascii") as f:
+    f.write(secrets.token_hex(32) + "\n")
+os.chmod(path, 0o600)
+PYTOKEN
+    [ -s "$token_file" ] || { echo "LOCAL_ANDROID_ADB_ERROR=token_creation_failed"; return 12; }
+  fi
+
+  timeout 20 adb -s "$serial" push "$bridge_bin" "$remote_bin" >/dev/null 2>&1 || {
+    echo "LOCAL_ANDROID_ADB_ERROR=bridge_binary_push_failed"
+    return 13
+  }
+  timeout 20 adb -s "$serial" push "$token_file" "$remote_token" >/dev/null 2>&1 || {
+    echo "LOCAL_ANDROID_ADB_ERROR=bridge_token_push_failed"
+    return 14
+  }
+  timeout 12 adb -s "$serial" shell "chmod 700 '$remote_bin' && chmod 600 '$remote_token' && '$remote_bin' '$remote_token' '$port'" >/dev/null 2>&1 || {
+    echo "LOCAL_ANDROID_ADB_ERROR=remote_bridge_launch_request_failed"
+    timeout 4 adb -s "$serial" shell "rm -f '$remote_token'" >/dev/null 2>&1 || true
+    return 15
+  }
+
+  uid=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    ping="$(timeout 4 wadb-local-shell --android --ping 2>/dev/null || true)"
+    uid="$(printf '%s\n' "$ping" | sed -n 's/^WADB_SECURE_BRIDGE_OK uid=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+    [ "$uid" = "2000" ] && break
+    sleep 0.5
+  done
+  if [ "$uid" != "2000" ]; then
+    timeout 4 adb -s "$serial" shell "rm -f '$remote_token'" >/dev/null 2>&1 || true
+    echo "LOCAL_ANDROID_ADB_ERROR=bridge_start_or_uid_2000_verification_failed"
+    echo "LOCAL_ANDROID_ADB_OBSERVED_UID=${uid:-unavailable}"
+    return 16
+  fi
+  ident="$(timeout 8 wadb-local-shell --android -c 'id' 2>&1 || true)"
+  if ! printf '%s\n' "$ident" | grep -q 'uid=2000(shell)'; then
+    echo "LOCAL_ANDROID_ADB_ERROR=remote_id_command_did_not_verify_uid_2000"
+    printf '%s\n' "$ident" | sed -n '1,3p'
+    return 17
+  fi
+  printf '%s\n' "LOCAL_ANDROID_ADB_STATE=ready" "LOCAL_ANDROID_ADB_RUNTIME_UID=2000" "LOCAL_ANDROID_ADB_ENDPOINT=127.0.0.1:$port" "LOCAL_ANDROID_ADB_SETUP=created_and_verified"
 }
 
 connect_adb() {
@@ -746,8 +917,25 @@ connect_adb() {
         exit 26
       fi
 
+      local_android_out="$(ensure_local_android_shell "$ADB_SERIAL" 2>&1)"; local_android_rc=$?
       if [ "$MACHINE_OUTPUT" -eq 1 ]; then
-        printf '%s\n' "RESULT=CONNECTED_AND_READY" "ADB_TARGET=${serial:-unknown}" "BRIDGE=ready" "BRIDGE_WRITE=ready"
+        printf '%s\n' "$local_android_out"
+      elif [ "$local_android_rc" -eq 0 ]; then
+        ok "Local Android Shell bridge is ready and verified as Android UID 2000."
+        info "Run it with: wadb-local-shell --android -c 'id'."
+        info "It survives ADB transport disconnect while Android adbd remains running."
+        info "Turning OFF the last debugging mode stops adbd and this UID-2000 bridge; USB debugging would have to remain ON to retain it with Wireless Debugging OFF."
+      else
+        fail "Wireless ADB connected, but Local Android Shell setup did not pass verification."
+        printf '%s\n' "$local_android_out"
+        info "No unknown listener was killed and no ADB trust key was changed."
+      fi
+      if [ "$local_android_rc" -ne 0 ]; then
+        if [ "$MACHINE_OUTPUT" -eq 1 ]; then echo "RESULT=ADB_CONNECTED_LOCAL_ANDROID_SHELL_NOT_READY"; else echo "Wireless ADB and WADB Bridge are ready, but Android UID-2000 local shell is not."; fi
+        exit 28
+      fi
+      if [ "$MACHINE_OUTPUT" -eq 1 ]; then
+        printf '%s\n' "RESULT=CONNECTED_AND_READY" "ADB_TARGET=${serial:-unknown}" "BRIDGE=ready" "BRIDGE_WRITE=ready" "LOCAL_ANDROID_ADB=ready" "LOCAL_ANDROID_ADB_UID=2000"
       else
         ok "Wireless ADB is connected and authenticated."
         [ -n "$serial" ] && info "Android device endpoint: $serial."
@@ -1046,9 +1234,12 @@ control_menu() {
         printf '\n'
         wadb-local-status
         printf '\n'
-        echo "Enable: wadb-local-on"
-        echo "Shell:  wadb-local-shell -c 'id'"
-        echo "Stop:   wadb-local-off --confirm"
+        echo "Termux UID shell:   wadb-local-on"
+        echo "Termux command:     wadb-local-shell -c 'id'"
+        echo "Android UID shell:  created automatically by ai-info --connect"
+        echo "Android command:    wadb-local-shell --android -c 'id'"
+        echo "Stop Termux shell:  wadb-local-off --confirm"
+        echo "Stop Android shell: wadb-local-off --android --confirm"
         return
         ;;
 
@@ -1076,6 +1267,14 @@ case "$MODE" in
       "LOCAL_ADB_SERIAL=$LOCAL_ADB_SERIAL" \
       "LOCAL_ADB_LISTENER_SCOPE=$LOCAL_ADB_LISTENER_SCOPE" \
       "LOCAL_ADB_RUNTIME_UID=$LOCAL_ADB_RUNTIME_UID" \
+      "LOCAL_ANDROID_ADB_STATE=$LOCAL_ANDROID_ADB_STATE" \
+      "LOCAL_ANDROID_ADB_ENDPOINT=$LOCAL_ANDROID_ADB_ENDPOINT" \
+      "LOCAL_ANDROID_ADB_REQUIRED_UID=$LOCAL_ANDROID_ADB_REQUIRED_UID" \
+      "LOCAL_ANDROID_ADB_RUNTIME_UID=$LOCAL_ANDROID_ADB_RUNTIME_UID" \
+      "LOCAL_ANDROID_ADB_REQUIRES_ADBD=$LOCAL_ANDROID_ADB_REQUIRES_ADBD" \
+      "LOCAL_ANDROID_ADB_ADBD_STATE=$LOCAL_ANDROID_ADB_ADBD_STATE" \
+      "LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT=$LOCAL_ANDROID_ADB_REQUIRES_ACTIVE_ADB_TRANSPORT" \
+      "LOCAL_ANDROID_ADB_LIFETIME=$LOCAL_ANDROID_ADB_LIFETIME" \
       "ADBD_TCP_EXPOSURE=$LOCAL_ADB_TCP_EXPOSURE" \
       "ADB_ENABLED=$LOCAL_ADB_ENABLED" \
       "WIRELESS_DEBUG=$WIRELESS_STATE" \
@@ -1131,7 +1330,7 @@ case "$MODE" in
 ai-info                         open the interactive Control Center (TTY)
 ai-info --plain                 print the dashboard without color or prompts
 ai-info --json                  machine-readable state for AI
-ai-info --connect               connect/recover Wireless ADB (readable result)
+ai-info --connect               connect/recover Wireless ADB and auto-create/repair Local Android Shell UID 2000
 ai-info --connect-machine       stable result fields for scripts
 ai-info --pair CODE             pair only after PAIRING_REQUIRED (readable result)
 ai-info --pair-machine CODE     stable pairing result fields for scripts
@@ -1144,10 +1343,11 @@ ai-info --recovery-machine       recovery fields for scripts
 ai-info --recovery              MCP recovery status/events
 wadb-mcp-log --follow           view live MCP log; Ctrl+C only stops viewer
 ai-info --doctor                read-only diagnostics
-ai-info --local                 secure localhost shell status
-ai-info --local-on              enable/repair loopback-only uid=2000 shell
-ai-info --local-off --confirm    stop the secure local shell bridge
-wadb-local-shell -c 'COMMAND'    run a command through the secure local shell
+ai-info --local                 status of both local shell services
+ai-info --local-on              enable/repair no-debug Termux UID shell (app UID)
+ai-info --local-off --confirm    stop Local Termux Shell
+wadb-local-shell -c 'COMMAND'    run under Termux app UID
+wadb-local-shell --android -c 'COMMAND'  run under Android shell UID 2000
 ai-info --owner-show            show optional MCP owner label
 ai-info --owner-set NAME        set optional MCP owner label (readable)
 ai-info --owner-set-machine NAME  stable owner update result

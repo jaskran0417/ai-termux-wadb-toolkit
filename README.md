@@ -1,4 +1,4 @@
-# AI Termux WADB Toolkit v1.0.3
+# AI Termux WADB Toolkit v1.0.4
 
 AI Termux WADB Toolkit connects a compatible AI assistant to an authorised Termux environment on Android. It gives the owner and the AI a consistent way to inspect status, run available Termux commands, manage Wireless ADB, use a separate no-debug Local Termux Shell, and configure optional Desktop Commander recovery.
 
@@ -53,6 +53,31 @@ Begin by inspecting your available integrations and reading the required instruc
 
 To set up the Toolkit, share this repository or the official release with your AI assistant and use the copy-ready instruction above. The linked guides contain the full setup procedure, provider-specific connection steps, commands and safety requirements.
 
+## What's new in v1.0.4
+
+Version 1.0.4 adds the second, Android shell-UID local bridge while preserving the independent no-debug Termux shell. It also corrects the recovery setup permission-screen launch path. The Android companion remains WADB Bridge 1.6 (versionCode 7).
+
+### Two separate authenticated local shells
+
+- **Local Termux Shell:** `127.0.0.1:47173`, running as the Termux app UID. It is loopback-only and does not require ADB, USB debugging, Wireless Debugging, Wi-Fi or Android `adbd`.
+- **Local Android Shell:** `127.0.0.1:47174`, running as Android shell UID 2000 with its own private token and loopback-only listener. `ai-info --connect` initializes or repairs it after authenticated ADB and WADB Bridge verification.
+- The Android shell can continue after the ADB network transport disconnects while `adbd` remains running. Turning off the last debugging mode stops `adbd` and that helper. The Toolkit never enables USB debugging automatically.
+- Each shell has independent status and stop controls. The Termux-UID shell remains available even when the Android shell's `adbd` dependency is not available.
+
+### Recovery setup correction
+
+- When the Bridge's Termux command-integration permission still needs owner approval, recovery setup now opens the permission screen through the authenticated Android shell UID. It does not try to launch that Android activity as the Termux app UID.
+- The one-shot Android recovery alarm, recovery master switch and watchdog behavior from v1.0.3 are retained.
+
+### Other retained features
+
+- Clear human-readable status with machine-readable and JSON interfaces for Wireless Debugging, ADB transport, pairing, Bridge, MCP, both local shells and installed-file integrity.
+- Protected WADB Bridge recovery controls and optional Bridge notifications.
+- Existing trusted ADB keys and Desktop Commander saved authorization are preserved by the documented update and recovery paths.
+- Signed release manifest, installed-file inventory, Bridge APK identity and SBOM are aligned with Toolkit 1.0.4 and Bridge 1.6.
+
+For the complete change list, see the [v1.0.4 Release Notes](RELEASE_NOTES.md) and [Changelog](CHANGELOG.md). Installation trust values, checksums and the component inventory are provided as separate release assets.
+
 ## What problem does it solve?
 
 An Android phone can hold an entire project, but a chat-only workflow often makes the owner move files and commands between apps: attach source files, copy a suggested command into a terminal, paste the output back into the chat, and repeat.
@@ -78,7 +103,8 @@ A PC or locally installed AI model is not required for the documented phone-only
 - **ai-info Control Center:** human dashboard, interactive menu, structured state with `ai-info --json`, read-only diagnostics with `ai-info --doctor`, and the full command index with `ai-info --commands`.
 - **Wireless ADB management:** typed mDNS discovery, trusted-key reconnect, pairing-state protection, Bridge readiness checks, and separate controls to disconnect one ADB transport or switch Wireless Debugging OFF.
 - **WADB Bridge:** Android companion used for the protected Wireless Debugging setting workflow and Android-to-Termux recovery hand-off.
-- **Local Termux Shell:** authenticated loopback-only command bridge on `127.0.0.1:47173`, launched directly under the Termux app UID. It does not require USB debugging, Wireless Debugging, Wi-Fi or Android `adbd` to remain enabled.
+- **Local Termux Shell:** authenticated loopback-only command bridge on 127.0.0.1:47173 under the Termux app UID; no ADB/debugging required.
+- **Local Android Shell:** a second authenticated loopback bridge on 127.0.0.1:47174, launched as Android shell UID 2000. ai-info --connect automatically creates or repairs it after verifying ADB and WADB Bridge. It survives ADB transport disconnect while Android adbd remains running. Turning OFF the last debugging mode stops adbd and the UID-2000 bridge; keeping it alive with Wireless Debugging OFF requires USB debugging to remain ON.
 - **Desktop Commander lifecycle:** start, stop, restart, status and log controls that preserve saved authorisation during normal lifecycle operations.
 - **Optional recovery:** Termux watchdog, Android Bridge trigger and GitHub control-file recovery.
 - **Optional notifications and device details:** Termux:API integration and Bridge recovery notifications.
@@ -92,11 +118,11 @@ AI app/client
    -> Desktop Commander on Android
    -> Termux shell
    -> AI Termux WADB Toolkit and installed Termux packages
-   -> Wireless ADB for Android shell-UID tasks, or Local Termux Shell for Termux-app-UID tasks
+   -> Local Termux Shell (UID 10572) for app-UID tasks, or Local Android Shell (UID 2000) for Android shell tasks
    -> Android
 ```
 
-MCP, Wireless ADB and Local Termux Shell are separate connections. An active AI-to-Termux MCP connection does not require Wireless Debugging to remain ON. After the one-time authorised setup, WADB Bridge can switch the Wireless Debugging setting through its protected Android receiver without requiring an already-connected ADB transport for each later toggle. Turning the setting ON does not itself pair or connect ADB; the ADB trust flow is still required.
+MCP, Wireless ADB, Local Termux Shell and Local Android Shell are separate connections. An active AI-to-Termux MCP connection does not require Wireless Debugging to remain ON. After the one-time authorised setup, WADB Bridge can switch the Wireless Debugging setting through its protected Android receiver without requiring an already-connected ADB transport for each later toggle. Turning the setting ON does not itself pair or connect ADB; the ADB trust flow is still required.
 
 ## Apps, dependencies and installation location
 
@@ -134,7 +160,7 @@ npx @wonderwhy-er/desktop-commander@0.3.1 remote
    2. Extract the official release ZIP in a Termux-accessible folder. Download the separate RELEASE-TRUST-VALUES.txt asset from the official release independently of the ZIP. Compare sha256sum install.sh security/verify-release.js with the installer and verifier hashes in that file, set the three independent WADB trust environment variables required by install.sh, and then run `bash install.sh`. The installer repeats the checks and verifies the signed package inventory before it writes any Toolkit files. Do not copy trust values only from inside the ZIP.
    3. Start the separate Desktop Commander service from Termux using the command above. Complete browser/device verification and connect the AI app by following `docs/DESKTOP_COMMANDER_SETUP.md` exactly for its Android-app setup path.
    4. Run `ai-info --connect`. On a fresh device, manually enable Developer Options → Wireless debugging, open Android's pairing-code screen when requested, and run `ai-info --pair CODE` using the current code. Some ColorOS/OPPO/OnePlus/realme builds also require **Disable permission monitoring** to be ON (blue).
-   5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and uses the ADB shell to grant and verify the required `WRITE_SECURE_SETTINGS` permissions to Termux and the Bridge. Completion requires `RESULT=CONNECTED_AND_READY` and `bridge_write=ready`.
+   5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and uses the ADB shell to grant and verify WRITE_SECURE_SETTINGS permissions for Termux and the Bridge. The same ai-info --connect command then creates and verifies the separate Local Android Shell bridge as UID 2000. Completion requires RESULT=CONNECTED_AND_READY, bridge_write=ready and LOCAL_ANDROID_ADB=ready / UID 2000.
 
 The owner may need to approve Android dialogs, browser authorisation and pairing. Android controls those prompts. Uploading the ZIP or AI guide to a chat does not establish the MCP connection.
 
@@ -156,8 +182,10 @@ ai-info --wireless-off --confirm
 
 wadb-local-on                   # enable/repair no-debug Local Termux Shell
 wadb-local-status
-wadb-local-shell -c 'id'
-wadb-local-off --confirm
+wadb-local-shell -c 'id'             # Termux app UID (no-debug)
+wadb-local-shell --android -c 'id'   # Android shell UID 2000 (auto-created by ai-info --connect)
+wadb-local-off --confirm             # stop only Termux-UID shell
+wadb-local-off --android --confirm   # stop only Android-UID shell
 
 wadb-mcp-status
 wadb-mcp-start
@@ -177,12 +205,12 @@ The full syntax, behaviour, side effects, checks and examples are in the [Comman
 ## Important distinctions
 
 - Disconnecting the current ADB transport leaves Wireless Debugging ON.
-- Turning Wireless Debugging OFF through WADB Bridge ends Wireless ADB but does not stop Desktop Commander MCP or Local Termux Shell.
+- Turning Wireless Debugging OFF through WADB Bridge ends Wireless ADB but does not stop Desktop Commander MCP or the Termux-UID Local Termux Shell. It also stops the Local Android Shell if USB debugging is OFF, because Android stops adbd.
 - `wadb-mcp-stop` stops the managed Desktop Commander process but does not delete its saved authorisation.
 - `wadb-mcp-logout --confirm` removes saved Desktop Commander authorisation and may require browser verification again.
-- `wadb-local-off --confirm` stops only Local Termux Shell.
-- Local Termux Shell is loopback-only and runs as the Termux app UID, not Android `uid=2000(shell)` and not root. It starts without ADB and remains usable with USB debugging, Wireless Debugging and `adbd` OFF. Android shell-UID-only operations still require a separately authorised Wireless ADB session.
-- Root is optional. On rooted devices, root operations still require the owner-authorised `su` path. - The Local Termux Shell uses Termux app permissions. Commands that require Android shell UID or protected system privileges must use the separately authorised Android/Bridge path.
+- wadb-local-off --confirm stops only the Termux-UID Local Termux Shell; wadb-local-off --android --confirm stops only the Android UID-2000 Local Android Shell; wadb-local-off --all --confirm stops both.
+- Local Termux Shell is loopback-only and runs as the Termux app UID. Local Android Shell is a separate loopback-only bridge running as Android uid=2000(shell), created automatically by ai-info --connect. It continues after ADB transport disconnect while Android adbd remains running. Turning OFF both Wireless and USB debugging stops adbd and the UID-2000 bridge. UID 2000 is not root.
+- Root is optional. On rooted devices, root operations still require the owner-authorised su path. The Local Termux Shell uses Termux app permissions; the separate Local Android Shell uses Android shell UID 2000 and is not root.
 - Android app sandboxing, storage permissions, background-process restrictions and AI-provider usage limits remain in force.
 
 ## Licence

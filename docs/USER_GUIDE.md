@@ -53,7 +53,7 @@ Initial setup means connecting the AI client to the phone and creating the Andro
    2. Extract the official Toolkit release in a Termux-accessible folder, complete the published release-verification steps, and run bash install.sh from the extracted folder.
    3. Start the separate Desktop Commander service from Termux with npx @wonderwhy-er/desktop-commander@0.3.1 remote, complete the browser/device verification and connect the AI client through its supported MCP integration.
    4. Run ai-info --connect. For a fresh phone, enable Developer Options > Wireless debugging manually, open Android's pairing-code screen when requested, and use ai-info --pair CODE with the current six-digit code.
-   5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and grants/verifies the required WRITE_SECURE_SETTINGS permission for both Termux and the Bridge. Setup is complete only when the output includes RESULT=CONNECTED_AND_READY and bridge_write=ready.
+   5. Once ADB is authenticated, the Toolkit installs/updates WADB Bridge and grants/verifies WRITE_SECURE_SETTINGS for Termux and the Bridge. The same ai-info --connect command then creates and verifies the Local Android Shell bridge as Android UID 2000. Setup is complete only when the output reports RESULT=CONNECTED_AND_READY, bridge_write=ready and LOCAL_ANDROID_ADB=ready / UID 2000.
 
 On OPPO/ColorOS, OnePlus and realme builds affected by the OEM restriction, Developer options > **Disable permission monitoring** may also need to be ON (blue) before the secure-settings grants. Android/browser prompts and pairing still require the owner's approval.
 
@@ -95,7 +95,7 @@ As soon as the AI can run Termux commands through Desktop Commander, the AI take
 
 ### Toolkit installation — AI performs after MCP connects
 
-After Remote Desktop Commander can reach Termux, the AI must locate the supplied bundle or fetch the official v1.0.3 ZIP and separate RELEASE-TRUST-VALUES.txt asset itself using its available tools. It independently verifies the installer hash, release verifier hash, public-key fingerprint and signed package before installing. It must check current dependencies and install only missing ones, then run the installer, configure requested settings, and verify the result. Follow the security requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
+After Remote Desktop Commander can reach Termux, the AI must locate the supplied bundle or fetch the official v1.0.4 ZIP and separate RELEASE-TRUST-VALUES.txt asset itself using its available tools. It independently verifies the installer hash, release verifier hash, public-key fingerprint and signed package before installing. It must check current dependencies and install only missing ones, then run the installer, configure requested settings, and verify the result. Follow the security requirements in `docs/AI_GUIDE.md` and `docs/TECHNICAL_REFERENCE.md`. Do not ask the owner to type Toolkit installation commands after MCP is working; ask only for a specific permission or file-access action that the AI cannot perform.
 
 **The following are AI-executed commands through the connected Remote Desktop Commander terminal, not commands for the owner to copy/paste:**
 
@@ -203,38 +203,58 @@ The headless forms are ai-info --disconnect-transport --confirm and ai-info --wi
 
 ### Optional: no-debug Local Termux Shell
 
-The Local Termux Shell is a token-authenticated command bridge bound only to `127.0.0.1:47173`. It starts directly under the Termux app UID. It does not require an initial or continuing ADB session, USB debugging, Wireless Debugging, Wi-Fi or an Android `adbd` process.
+The Local Termux Shell is a token-authenticated command bridge bound only to 127.0.0.1:47173. It starts directly under the Termux app UID. It does not require an initial or continuing ADB session, USB debugging, Wireless Debugging, Wi-Fi or Android adbd.
 
 Start or repair it:
 
-```bash
-wadb-local-on
-```
+    wadb-local-on
 
 Inspect it:
 
-```bash
-wadb-local-status
-ai-info --local
-```
+    wadb-local-status
+    ai-info --local
 
 Run commands with:
 
-```bash
-wadb-local-shell -c 'id'
-```
+    wadb-local-shell -c 'id'
 
-A healthy result reports `LOCAL_ADB_STATE=ready`, `LOCAL_ADB_MODE=termux_loopback_shell`, the Termux app UID as `LOCAL_ADB_RUNTIME_UID`, `LISTENER_SCOPE=loopback_only`, `ADB_ENABLED=not_required`, and `ADBD_TCP_EXPOSURE=none`.
+A healthy result reports LOCAL_ADB_STATE=ready, LOCAL_ADB_MODE=termux_loopback_shell, the Termux app UID as LOCAL_ADB_RUNTIME_UID, LISTENER_SCOPE=loopback_only, ADB_ENABLED=not_required and ADBD_TCP_EXPOSURE=none.
 
-**Permission boundary:** commands execute with the Termux app's Android permissions, not Android shell UID 2000 and not root. Reading or writing protected global Settings and other shell-only Android operations may be denied. Use WADB Bridge for the operations it explicitly supports. Turn on Wireless Debugging only when a specific Android shell-UID operation or ADB pairing task genuinely requires it.
+Commands execute with the Termux app's Android permissions, not Android shell UID 2000 and not root. Protected global Settings reads/writes and other shell-only operations may be denied.
 
 Stop the bridge:
 
-```bash
-wadb-local-off --confirm
-```
+    wadb-local-off --confirm
 
-Android may reclaim the app-owned process during force-stop, reboot or background restriction. Rerun `wadb-local-on` when needed; it does not enable debugging.
+Android may reclaim the app-owned process during force-stop, reboot or background restriction. Rerun wadb-local-on when needed; it does not enable debugging.
+
+### Local Android Shell bridge (Android UID 2000)
+
+The Toolkit also provides the former v1.7.5 shell-UID capability as a second, separate loopback service. It is created automatically by ai-info --connect after authenticated Wireless ADB and WADB Bridge verification. There is no separate bootstrap command to remember.
+
+Check both local services:
+
+    wadb-local-status
+    ai-info --local
+
+Run a command as Android shell UID 2000:
+
+    wadb-local-shell --android -c 'id'
+
+Expected identity: uid=2000(shell). The existing command without --android remains the lower-privilege Termux app-UID shell:
+
+    wadb-local-shell -c 'id'
+
+The services use separate tokens and ports: Termux app UID on 127.0.0.1:47173, Android shell UID 2000 on 127.0.0.1:47174. Both listeners are loopback-only. After creation, the Android bridge can continue when the ADB network transport is disconnected, provided Android adbd remains running. Turning Wireless Debugging OFF while USB debugging is also OFF stops adbd and the UID-2000 helper. Keeping it alive with Wireless Debugging OFF requires USB debugging to remain ON in USB mode; the Toolkit does not enable that setting automatically. UID 2000 is not root.
+
+Stop only the Android shell bridge:
+
+    wadb-local-off --android --confirm
+
+This does not stop the Termux-UID shell or MCP and does not turn Wireless Debugging off. To stop both local bridges deliberately, use wadb-local-off --all --confirm.
+
+Android may reclaim the helper during force-stop or reboot; running ai-info --connect again reconnects and automatically repairs it.
+
 ### 5. Optional: automatic MCP recovery
 
 After Desktop Commander has authenticated successfully at least once:
